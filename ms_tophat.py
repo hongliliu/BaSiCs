@@ -38,11 +38,13 @@ def prog_BTH(array, scales=np.linspace(5, 200, 20), structures=None,
                                   minor=scale*beam.minor,
                                   pa=beam.pa)
 
-            struct = scale_beam.as_tophat_kernel(pixscale).array
+            struct = scale_beam.as_tophat_kernel(pixscale).array > 0.0
+            struct = struct.astype(int)
             # Remove empty space along the edges
             yposn, xposn = np.where(struct > 0)
             struct = \
-                struct[np.min(yposn):np.max(yposn), np.min(xposn):np.max(xposn)]
+                struct[np.min(yposn)-1:np.max(yposn)+2,
+                       np.min(xposn)-1:np.max(xposn)+2]
 
             bths[i, :, :] = nd.black_tophat(array, structure=struct)
 

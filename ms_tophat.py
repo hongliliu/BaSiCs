@@ -8,21 +8,24 @@ import matplotlib.pyplot as p
 import numpy as np
 
 
-def prog_BTH(array, header=None, scales=np.linspace(5, 200, 20), beam=None):
+def prog_BTH(array, scales=np.linspace(5, 200, 20), structures=None,
+             wcs=None, beam=None):
 
     bths = np.empty((len(scales), ) + array.shape)
 
-    if header is None:
-        for i, scale in enumerate(scales):
-            bths[i, :, :] = nd.black_tophat(array, size=int(scale))
+    if beam is None:
+        if structures is not None:
+            for i, struct in enumerate(structures):
+                bths[i, :, :] = nd.black_tophat(array, structure=struct)
+        else:
+            for i, scale in enumerate(scales):
+                bths[i, :, :] = nd.black_tophat(array, size=int(scale))
 
     else:
+        if wcs is None:
+            raise TypeError("Must specify wcs when providing a beam.")
 
-        # mywcs = WCS(header)
-
-        pixscale = get_pixel_scales(header)
-
-        # beam = Beam.from_fits_header(header)
+        pixscale = get_pixel_scales(wcs)
 
         for i, scale in enumerate(scales):
 

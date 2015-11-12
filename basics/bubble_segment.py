@@ -47,7 +47,7 @@ class BubbleSegment(object):
             else:
                 raise KeyError("Must specify the wcs with the wcs keyword.")
 
-        self.threshold = threshold
+        self._threshold = threshold
         self.mask = mask
         self.pad_size = pad_size
         self.scales = scales
@@ -98,7 +98,7 @@ class BubbleSegment(object):
         if threshold is not None:
             self._threshold = threshold
 
-        self._array = arctan_transform(self.array, self.threshold)
+        self._array = arctan_transform(self.array, self._threshold)
         self._atan_flag = True
 
     def cut_to_bounding_box(self, pad_size=0):

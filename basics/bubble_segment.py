@@ -22,7 +22,7 @@ class BubbleSegment(object):
                  mask=None, cut_to_box=False, pad_size=0, structure="beam",
                  beam=None, wcs=None):
 
-        if isinstance(self.array, LowerDimensionalObject):
+        if isinstance(array, LowerDimensionalObject):
             self.array = array.value
             self.wcs = array.wcs
 
@@ -34,7 +34,7 @@ class BubbleSegment(object):
                 raise KeyError("No 'beam' in metadata. Must manually specify "
                                "the beam with the beam keyword.")
 
-        elif isinstance(self.array, np.ndarray):
+        elif isinstance(array, np.ndarray):
             self.array = array
 
             if beam is not None:
@@ -46,7 +46,6 @@ class BubbleSegment(object):
                 self.wcs = wcs
             else:
                 raise KeyError("Must specify the wcs with the wcs keyword.")
-
 
         self.threshold = threshold
         self.mask = mask

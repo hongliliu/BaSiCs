@@ -4,14 +4,14 @@ import warnings
 import scipy.ndimage as nd
 from astropy.nddata.utils import extract_array, add_array
 from astropy.utils.console import ProgressBar
-import astropy.unit as u
+import astropy.units as u
 import skimage.morphology as mo
 from skimage.filters import threshold_adaptive
 
 from radio_beam import Beam
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
-from .utils import arctan_transform
+from basics.utils import arctan_transform
 
 
 class BubbleSegment(object):

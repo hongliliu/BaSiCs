@@ -145,6 +145,10 @@ class BubbleSegment(object):
             full_size = np.zeros(shape)
             return add_array(full_size, self.bubble_mask, self.corner_coords)
 
+    @property
+    def bubble_mask(self):
+        return self._bubble_mask
+
     def multiscale_bubblefind(self, scales=None):
         '''
         Run find_bubbles on the specified scales.

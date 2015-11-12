@@ -171,7 +171,7 @@ def find_bubbles(array, scale, beam, wcs):
     struct_orig = beam_struct(beam, 1, pixscale)
 
     # Black tophat
-    bth = nd.black_tophat(array, structure=struct, mode='constant')
+    bth = nd.black_tophat(array, structure=struct)
 
     # Adaptive threshold
     adapt = \

@@ -166,7 +166,8 @@ def find_bubbles(array, scale, beam, wcs):
     # pixscale = get_pixel_scales(wcs) * u.deg
     pixscale = np.abs(wcs.pixel_scale_matrix[0, 0])
 
-    struct, scale_beam = beam_struct(beam, scale, pixscale)
+    struct, scale_beam = beam_struct(beam, scale, pixscale,
+                                     return_beam=True)
     struct_orig = beam_struct(beam, 1, pixscale)
 
     # Black tophat

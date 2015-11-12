@@ -3,11 +3,13 @@ import numpy as np
 import warnings
 import scipy.ndimage as nd
 from astropy.nddata.utils import extract_array, add_array
+from astropy.utils.console import ProgressBar
 import astropy.unit as u
 import skimage.morphology as mo
 from skimage.filters import threshold_adaptive
 
 from radio_beam import Beam
+from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
 from .utils import arctan_transform
 
@@ -18,12 +20,38 @@ class BubbleSegment(object):
     """
     def __init__(self, array, scales=[], atan_transform=True, threshold=None,
                  mask=None, cut_to_box=False, pad_size=0, structure="beam",
-                 beam=None):
-        # Generalize the array input from Slices and Projections
-        self.array = array
+                 beam=None, wcs=None):
+
+        if isinstance(self.array, LowerDimensionalObject):
+            self.array = array.value
+            self.wcs = array.wcs
+
+            if 'beam' in array.meta:
+                self.beam = array.meta['beam']
+            elif beam is not None:
+                self.beam = beam
+            else:
+                raise KeyError("No 'beam' in metadata. Must manually specify "
+                               "the beam with the beam keyword.")
+
+        elif isinstance(self.array, np.ndarray):
+            self.array = array
+
+            if beam is not None:
+                self.beam = beam
+            else:
+                raise KeyError("Must specify the beam with the beam keyword.")
+
+            if wcs is not None:
+                self.wcs = wcs
+            else:
+                raise KeyError("Must specify the wcs with the wcs keyword.")
+
+
         self.threshold = threshold
         self.mask = mask
         self.pad_size = pad_size
+        self.scales = scales
 
         self._atan_flag = False
 
@@ -117,6 +145,20 @@ class BubbleSegment(object):
         else:
             full_size = np.zeros(shape)
             return add_array(full_size, self.bubble_mask, self.corner_coords)
+
+    def multiscale_bubblefind(self, scales=None):
+        '''
+        Run find_bubbles on the specified scales.
+        '''
+
+        if scales is not None:
+            self.scales = scales
+
+        self._bubble_mask = np.zeros_like(self.array)
+
+        for scale in ProgressBar(self.scales):
+            self._bubble_mask += find_bubbles(self.array, scale,
+                                              self.beam, self.wcs)
 
 
 def find_bubbles(array, scale, beam, wcs):

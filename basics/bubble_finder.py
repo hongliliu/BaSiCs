@@ -77,13 +77,13 @@ class BubbleFinder2D(object):
         if self.threshold is None:
             raise ValueError("Must provide a threshold to create mask.")
 
-        self._mask = self.array > threshold
+        self._mask = self.array > self.threshold
 
     def create_bubble_mask(self, **kwargs):
 
         bubbles = BubbleSegment(self.array, mask=self.mask, **kwargs)
 
-        bubbles.apply_atan_transform()
+        # bubbles.apply_atan_transform()
         bubbles.cut_to_bounding_box()
         bubbles.multiscale_bubblefind()
 

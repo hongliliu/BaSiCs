@@ -2,6 +2,8 @@
 import numpy as np
 import astropy.units as u
 
+from bubble_segment import BubbleSegment
+
 
 class BubbleFinder(object):
     """docstring for BubbleFinder"""
@@ -76,3 +78,13 @@ class BubbleFinder2D(object):
             raise ValueError("Must provide a threshold to create mask.")
 
         self._mask = (self.array > threshold).value
+
+    def create_bubble_mask(self, **kwargs):
+
+        bubbles = BubbleSegment(self.array, mask=self.mask, **kwargs)
+
+        bubbles.apply_atan_transform()
+        bubbles.cut_to_bounding_box()
+        bubbles.multiscale_bubblefind()
+
+        self.bubble_mask = bubbles.insert_in_shape(self.array.shape)

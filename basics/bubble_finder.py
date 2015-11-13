@@ -77,7 +77,7 @@ class BubbleFinder2D(object):
         if self.threshold is None:
             raise ValueError("Must provide a threshold to create mask.")
 
-        self._mask = (self.array > threshold).value
+        self._mask = self.array > threshold
 
     def create_bubble_mask(self, **kwargs):
 

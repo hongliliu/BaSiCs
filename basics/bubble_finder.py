@@ -1,4 +1,7 @@
 
+import numpy as np
+import astropy.units as u
+
 
 class BubbleFinder(object):
     """docstring for BubbleFinder"""
@@ -11,13 +14,14 @@ class BubbleFinder2D(object):
     """
     Get bubbles in a 2D image.
     """
-    def __init__(self, array, atan_transform=True, threshold=None, mask=None,
-                 cut_to_box=False):
+    def __init__(self, array, threshold=None, mask=None):
         self.array = array
         self.threshold = threshold
-        self.mask = mask
 
-        self._atan_array = None
+        if mask is None:
+            self.create_signal_mask(threshold=threshold)
+        else:
+            self.mask = mask
 
     @property
     def mask(self):
@@ -44,16 +48,31 @@ class BubbleFinder2D(object):
 
         self._array = input_array
 
-    def apply_atan_transform(self, threshold=None):
+    @property
+    def threshold(self):
+        return self._threshold
+
+    @threshold.setter
+    def threshold(self, value):
+
+        if not isinstance(value, u.Quantity):
+            raise TypeError("Threshold must be an astropy Quantity.")
+
+        if value.unit not in self.array.unit.find_equivalent_units():
+            raise u.UnitsError("Threshold must have equivalent units"
+                               " as the array " + str(self.array.unit))
+
+        self._threshold = value
+
+    def create_signal_mask(self, threshold=None):
+        '''
+        Create a mask given a threshold brightness.
+        '''
 
         if threshold is not None:
-            self._threshold = threshold
+            self.threshold = threshold
 
-        self._atan_array = arctan_transform(self.array, self.threshold)
+        if self.threshold is None:
+            raise ValueError("Must provide a threshold to create mask.")
 
-    @property
-    def atan_array(self):
-        return self._atan_array
-
-    def get_bounding_box(self):
-        pass
+        self._mask = (self.array > threshold).value

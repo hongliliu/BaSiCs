@@ -115,12 +115,13 @@ class BubbleSegment(object):
         yedges = [mask_pixels[0].min(), mask_pixels[0].max()]
         xedges = [mask_pixels[1].min(), mask_pixels[1].max()]
 
-        self._corner_coords = (yedges[0], xedges[0])
+        self._center_coords = ((yedges[1] - yedges[0])/2,
+                               (xedges[1] - xedges[0])/2)
 
         cut_shape = (yedges[1]+1-yedges[0], xedges[1]+1-xedges[0])
 
-        cut_arr = extract_array(self.array, cut_shape, self.corner_coords)
-        cut_mask = extract_array(self.mask, cut_shape, self.corner_coords)
+        cut_arr = extract_array(self.array, cut_shape, self.center_coords)
+        cut_mask = extract_array(self.mask, cut_shape, self.center_coords)
 
         if self.pad_size > 0:
             # Pads edges with zeros
@@ -131,8 +132,8 @@ class BubbleSegment(object):
             self.mask = cut_mask
 
     @property
-    def corner_coords(self):
-        return self._corner_coords
+    def center_coords(self):
+        return self._center_coords
 
     def insert_in_shape(self, shape):
         '''
@@ -143,7 +144,7 @@ class BubbleSegment(object):
             return self.bubble_mask
         else:
             full_size = np.zeros(shape)
-            return add_array(full_size, self.bubble_mask, self.corner_coords)
+            return add_array(full_size, self.bubble_mask, self.center_coords)
 
     @property
     def bubble_mask(self):

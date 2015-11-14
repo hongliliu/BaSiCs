@@ -16,8 +16,12 @@ class BubbleFinder2D(object):
     """
     Get bubbles in a 2D image.
     """
-    def __init__(self, array, threshold=None, mask=None):
+    def __init__(self, array, threshold=None, mask=None, nan_to_zero=True):
+
         self.array = array
+        if nan_to_zero:
+            self.array[np.isnan(self.array)] = 0.0
+
         self.threshold = threshold
 
         if mask is None:

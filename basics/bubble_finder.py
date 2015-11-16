@@ -61,6 +61,9 @@ class BubbleFinder2D(object):
     @threshold.setter
     def threshold(self, value):
 
+        if value is None:
+            value = self.array.min()
+
         if not isinstance(value, u.Quantity):
             raise TypeError("Threshold must be an astropy Quantity.")
 

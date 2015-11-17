@@ -115,8 +115,8 @@ class BubbleSegment(object):
         yedges = [mask_pixels[0].min(), mask_pixels[0].max()]
         xedges = [mask_pixels[1].min(), mask_pixels[1].max()]
 
-        self._center_coords = ((yedges[1] + yedges[0])/2,
-                               (xedges[1] + xedges[0])/2)
+        self._center_coords = ((yedges[1] + 1 + yedges[0])/2,
+                               (xedges[1] + 1 + xedges[0])/2)
 
         cut_shape = (yedges[1]+1-yedges[0], xedges[1]+1-xedges[0])
 

@@ -201,7 +201,8 @@ def find_bubbles(array, scale, beam, wcs, min_scale=2):
     # Open/close to clean things up
     if CV2_FLAG:
         struct_orig = struct_orig.astype("uint8")
-        opened = cv2.morphologyEx(adapt, cv2.MORPH_OPEN, struct_orig)
+        opened = cv2.morphologyEx(adapt.astype("uint8"), cv2.MORPH_OPEN,
+                                  struct_orig)
         closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, struct_orig)
     else:
         opened = nd.binary_opening(adapt, structure=struct_orig)

@@ -165,7 +165,7 @@ class BubbleSegment(object):
                                               self.beam, self.wcs)
 
 
-def find_bubbles(array, scale, beam, wcs):
+def find_bubbles(array, scale, beam, wcs, min_scale=2):
 
     # In deg/pixel
     # pixscale = get_pixel_scales(wcs) * u.deg
@@ -173,7 +173,8 @@ def find_bubbles(array, scale, beam, wcs):
 
     struct, scale_beam = beam_struct(beam, scale, pixscale,
                                      return_beam=True)
-    struct_orig = beam_struct(beam, 1, pixscale)
+    struct_orig, beam_orig = \
+        beam_struct(beam, min_scale, pixscale, return_beam=True)
 
     # Black tophat
     bth = nd.black_tophat(array, structure=struct)
@@ -181,14 +182,14 @@ def find_bubbles(array, scale, beam, wcs):
     # Adaptive threshold
     adapt = \
         threshold_adaptive(bth,
-                           int(np.floor((scale_beam.major/pixscale).value)),
-                           param=np.floor(scale_beam.major.value/pixscale)/2)
+                           int(np.ceil((scale_beam.major/pixscale).value)),
+                           param=np.ceil(scale_beam.major.value/pixscale)/2)
 
     # Open/close to clean things up
     opened = nd.binary_opening(adapt, structure=struct_orig)
     closed = nd.binary_closing(opened, structure=struct_orig)
 
-    # Remove elements smaller than the original beam.
+    # # Remove elements smaller than the original beam.
     beam_pixels = np.floor(beam.sr.to(u.deg**2)/pixscale**2).astype(int).value
     cleaned = mo.remove_small_objects(closed, min_size=beam_pixels,
                                       connectivity=2)

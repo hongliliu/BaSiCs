@@ -1,12 +1,19 @@
 
 import numpy as np
 import warnings
-import scipy.ndimage as nd
 from astropy.nddata.utils import extract_array, add_array
 from astropy.utils.console import ProgressBar
 import astropy.units as u
 import skimage.morphology as mo
 from skimage.filters import threshold_adaptive
+
+try:
+    import cv2
+    CV2_FLAG = True
+except ImportError:
+    import scipy.ndimage as nd
+    warnings.warn("Cannot import cv2. Computing with scipy.ndimage")
+    CV2_FLAG = False
 
 from radio_beam import Beam
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
@@ -158,11 +165,12 @@ class BubbleSegment(object):
         if scales is not None:
             self.scales = scales
 
-        self._bubble_mask = np.zeros_like(self.array)
+        self._bubble_mask = \
+            np.zeros((len(self.scales), ) + self.array.shape, dtype=bool)
 
-        for scale in ProgressBar(self.scales):
-            self._bubble_mask += find_bubbles(self.array, scale,
-                                              self.beam, self.wcs)
+        for i, scale in enumerate(ProgressBar(self.scales)):
+            self._bubble_mask[i, :, :] = find_bubbles(self.array, scale,
+                                                      self.beam, self.wcs)
 
 
 def find_bubbles(array, scale, beam, wcs, min_scale=2):
@@ -177,7 +185,12 @@ def find_bubbles(array, scale, beam, wcs, min_scale=2):
         beam_struct(beam, min_scale, pixscale, return_beam=True)
 
     # Black tophat
-    bth = nd.black_tophat(array, structure=struct)
+    if CV2_FLAG:
+        array = array.astype("float64")
+        struct = struct.astype("uint8")
+        bth = cv2.morphologyEx(array, cv2.MORPH_BLACKHAT, struct)
+    else:
+        bth = nd.black_tophat(array, structure=struct)
 
     # Adaptive threshold
     adapt = \
@@ -186,8 +199,13 @@ def find_bubbles(array, scale, beam, wcs, min_scale=2):
                            param=np.ceil(scale_beam.major.value/pixscale)/2)
 
     # Open/close to clean things up
-    opened = nd.binary_opening(adapt, structure=struct_orig)
-    closed = nd.binary_closing(opened, structure=struct_orig)
+    if CV2_FLAG:
+        struct_orig = struct_orig.astype("uint8")
+        opened = cv2.morphologyEx(adapt, cv2.MORPH_OPEN, struct_orig)
+        closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, struct_orig)
+    else:
+        opened = nd.binary_opening(adapt, structure=struct_orig)
+        closed = nd.binary_closing(opened, structure=struct_orig)
 
     # # Remove elements smaller than the original beam.
     beam_pixels = np.floor(beam.sr.to(u.deg**2)/pixscale**2).astype(int).value

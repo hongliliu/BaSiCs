@@ -5,7 +5,10 @@ from astropy.nddata.utils import extract_array, add_array
 from astropy.utils.console import ProgressBar
 import astropy.units as u
 import skimage.morphology as mo
+import skimage.measure as me
 from skimage.filters import threshold_adaptive
+from skimage.segmentation import find_boundaries, clear_border
+import scipy.ndimage as nd
 
 try:
     import cv2
@@ -19,6 +22,8 @@ from radio_beam import Beam
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
 from basics.utils import arctan_transform
+
+eight_conn = np.ones((3, 3))
 
 
 class BubbleSegment(object):
@@ -172,7 +177,7 @@ class BubbleSegment(object):
             self._bubble_mask[i, :, :] = find_bubbles(self.array, scale,
                                                       self.beam, self.wcs)
 
-        region_rejection(self._bubble_mask)
+        self._bubble_mask = region_rejection(self._bubble_mask, self.array)
 
 
 def find_bubbles(array, scale, beam, wcs, min_scale=2):
@@ -239,18 +244,70 @@ def beam_struct(beam, scale, pixscale, return_beam=False):
     return struct
 
 
-def region_rejection(bubble_mask_cube): #, array):
+def region_rejection(bubble_mask_cube, array, grad_thresh=1, frac_thresh=0.05,
+                     border_clear=True):
     '''
     2D bubble candidate rejection.
     '''
 
     spec_shape = bubble_mask_cube.shape[0]
 
+    dy, dx = np.gradient(array, 9)
+    magnitude = np.sqrt(dy**2+dx**2)
+    orientation = np.arctan2(dy, dx)
+
+    grad_thresh = np.mean(magnitude) + grad_thresh * np.std(magnitude)
+
+    magnitude_mask = nd.median_filter(magnitude > grad_thresh,
+                                      footprint=eight_conn)
+
+    import matplotlib.pyplot as p
+
     for i in range(spec_shape-1):
 
         # Remove any pixels in this level if the next level doesn't contain it
-        in_smaller = \
-            np.logical_xor(bubble_mask_cube[i], bubble_mask_cube[i+1]) & \
-            bubble_mask_cube[i]
+        # in_smaller = \
+        #     np.logical_xor(bubble_mask_cube[i], bubble_mask_cube[i+1]) & \
+        #     bubble_mask_cube[i]
 
-        bubble_mask_cube[i][in_smaller] = False
+        # bubble_mask_cube[i][in_smaller] = False
+
+        if border_clear:
+            bubble_mask_cube[i] = clear_border(bubble_mask_cube[i])
+
+        labels, n = me.label(bubble_mask_cube[i], neighbors=8, connectivity=2,
+                             return_num=True)
+
+        boundaries = find_boundaries(labels, connectivity=2)
+
+        perimeters = nd.sum(boundaries, labels, range(1, n+1))
+        perimeter_masked = nd.sum(boundaries*magnitude_mask, labels,
+                                  range(1, n+1))
+
+        masked_fractions = \
+            [mask/float(perim) for mask, perim in
+             zip(perimeter_masked, perimeters)]
+
+        remove_mask = np.zeros_like(array, dtype=bool)
+        for j, frac in enumerate(masked_fractions):
+            if frac < frac_thresh:
+                bubble_mask_cube[i][np.where(labels == j+1)] = 0
+                remove_mask[np.where(labels == j+1)] = 1
+
+        # p.subplot(121)
+        # p.imshow(magnitude_mask, origin='lower')
+        # try:
+        #     p.contour(remove_mask, colors='r')
+        # except:
+        #     pass
+        # p.subplot(122)
+        # p.imshow(array, origin='lower')
+        # try:
+        #     p.contour(remove_mask, colors='r')
+        # except:
+        #     pass
+        # p.show()
+        # raw_input("?")
+        # p.clf()
+
+    return bubble_mask_cube

@@ -172,6 +172,8 @@ class BubbleSegment(object):
             self._bubble_mask[i, :, :] = find_bubbles(self.array, scale,
                                                       self.beam, self.wcs)
 
+        region_rejection(self._bubble_mask)
+
 
 def find_bubbles(array, scale, beam, wcs, min_scale=2):
 
@@ -235,3 +237,20 @@ def beam_struct(beam, scale, pixscale, return_beam=False):
         return struct, scale_beam
 
     return struct
+
+
+def region_rejection(bubble_mask_cube): #, array):
+    '''
+    2D bubble candidate rejection.
+    '''
+
+    spec_shape = bubble_mask_cube.shape[0]
+
+    for i in range(spec_shape-1):
+
+        # Remove any pixels in this level if the next level doesn't contain it
+        in_smaller = \
+            np.logical_xor(bubble_mask_cube[i], bubble_mask_cube[i+1]) & \
+            bubble_mask_cube[i]
+
+        bubble_mask_cube[i][in_smaller] = False

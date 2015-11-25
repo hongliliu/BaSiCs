@@ -8,6 +8,8 @@ import skimage.morphology as mo
 import skimage.measure as me
 from skimage.filters import threshold_adaptive
 from skimage.segmentation import find_boundaries, clear_border
+from skimage.restoration import denoise_bilateral
+from skimage.exposure import rescale_intensity
 import scipy.ndimage as nd
 
 try:
@@ -162,6 +164,16 @@ class BubbleSegment(object):
     def bubble_mask(self):
         return self._bubble_mask
 
+    def apply_bilateral_filter(self, **kwargs):
+        '''
+        Apply a denoising bilateral filter to the array.
+        '''
+
+        # Have to rescale the image to be positive. Pick 0-1
+        self.array = rescale_intensity(self.array, out_range=(0.0, 1.0))
+
+        self.array = denoise_bilateral(self.array, **kwargs)
+
     def multiscale_bubblefind(self, scales=None):
         '''
         Run find_bubbles on the specified scales.
@@ -261,8 +273,6 @@ def region_rejection(bubble_mask_cube, array, grad_thresh=1, frac_thresh=0.05,
     magnitude_mask = nd.median_filter(magnitude > grad_thresh,
                                       footprint=eight_conn)
 
-    import matplotlib.pyplot as p
-
     for i in range(spec_shape-1):
 
         # Remove any pixels in this level if the next level doesn't contain it
@@ -294,6 +304,7 @@ def region_rejection(bubble_mask_cube, array, grad_thresh=1, frac_thresh=0.05,
                 bubble_mask_cube[i][np.where(labels == j+1)] = 0
                 remove_mask[np.where(labels == j+1)] = 1
 
+        # import matplotlib.pyplot as p
         # p.subplot(121)
         # p.imshow(magnitude_mask, origin='lower')
         # try:

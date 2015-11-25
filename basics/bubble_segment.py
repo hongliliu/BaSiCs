@@ -235,6 +235,49 @@ def find_bubbles(array, scale, beam, wcs, min_scale=2):
     return cleaned
 
 
+def find_emission(array, scale, beam, wcs, min_scale=2):
+
+    # In deg/pixel
+    # pixscale = get_pixel_scales(wcs) * u.deg
+    pixscale = np.abs(wcs.pixel_scale_matrix[0, 0])
+
+    struct, scale_beam = beam_struct(beam, scale, pixscale,
+                                     return_beam=True)
+    struct_orig, beam_orig = \
+        beam_struct(beam, min_scale, pixscale, return_beam=True)
+
+    # Black tophat
+    if CV2_FLAG:
+        array = array.astype("float64")
+        struct = struct.astype("uint8")
+        bth = cv2.morphologyEx(array, cv2.MORPH_TOPHAT, struct)
+    else:
+        bth = nd.white_tophat(array, structure=struct)
+
+    # Adaptive threshold
+    adapt = \
+        threshold_adaptive(bth,
+                           int(np.ceil((scale_beam.major/pixscale).value)),
+                           param=np.ceil(scale_beam.major.value/pixscale)/2)
+
+    # Open/close to clean things up
+    if CV2_FLAG:
+        struct_orig = struct_orig.astype("uint8")
+        opened = cv2.morphologyEx(adapt.astype("uint8"), cv2.MORPH_OPEN,
+                                  struct_orig)
+        closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, struct_orig)
+    else:
+        opened = nd.binary_opening(adapt, structure=struct_orig)
+        closed = nd.binary_closing(opened, structure=struct_orig)
+
+    # # Remove elements smaller than the original beam.
+    beam_pixels = np.floor(beam.sr.to(u.deg**2)/pixscale**2).astype(int).value
+    cleaned = mo.remove_small_objects(closed, min_size=beam_pixels,
+                                      connectivity=2)
+
+    return cleaned
+
+
 def beam_struct(beam, scale, pixscale, return_beam=False):
     '''
     Return a beam structure.

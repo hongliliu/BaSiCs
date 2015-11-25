@@ -174,7 +174,7 @@ class BubbleSegment(object):
 
         self.array = denoise_bilateral(self.array, **kwargs)
 
-    def multiscale_bubblefind(self, scales=None):
+    def multiscale_bubblefind(self, scales=None, emission_reject=True):
         '''
         Run find_bubbles on the specified scales.
         '''
@@ -186,8 +186,15 @@ class BubbleSegment(object):
             np.zeros((len(self.scales), ) + self.array.shape, dtype=bool)
 
         for i, scale in enumerate(ProgressBar(self.scales)):
-            self._bubble_mask[i, :, :] = find_bubbles(self.array, scale,
-                                                      self.beam, self.wcs)
+            if not emission_reject:
+                self._bubble_mask[i] = find_bubbles(self.array, scale,
+                                                    self.beam, self.wcs)
+            else:
+                holes = find_bubbles(self.array, scale, self.beam, self.wcs)
+                emission = find_emission(self.array, scale, self.beam,
+                                         self.wcs)
+
+                self._bubble_mask[i] = holes * np.logical_not(emission)
 
         self._bubble_mask = region_rejection(self._bubble_mask, self.array)
 

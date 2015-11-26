@@ -10,6 +10,7 @@ from skimage.filters import threshold_adaptive
 from skimage.segmentation import find_boundaries, clear_border
 from skimage.restoration import denoise_bilateral
 from skimage.exposure import rescale_intensity
+from skimage.feature import peak_local_max
 import scipy.ndimage as nd
 
 try:
@@ -372,3 +373,32 @@ def region_rejection(bubble_mask_cube, array, grad_thresh=1, frac_thresh=0.05,
         # p.clf()
 
     return bubble_mask_cube
+
+
+def auto_watershed(mask, min_distance=9):
+    '''
+    Automatically create seeds based on local minima of a distance transform
+    and apply the watershed algorithm to find individual regions.
+    '''
+
+    # Distance transform of the mask
+    dist_trans = nd.distance_transform_edt(mask)
+
+    # We don't want to return local maxima within the minimum distance
+    # Use reconstruction to remove.
+    seed = dist_trans + min_distance
+    reconst = mo.reconstruction(seed, dist_trans, method='erosion') - \
+        min_distance
+
+    # Now get local maxima
+    coords = peak_local_max(reconst, min_distance=min_distance)
+
+    markers = np.zeros_like(mask)
+    markers[coords[:, 1], coords[:, 0]] = True
+    markers = me.label(markers, neighbors=8, connectivity=2)
+
+    # Need to reduce the side-by-side ones when there's a flat plateau
+
+    wshed = mo.watershed(mask, markers, mask=mask)
+
+    return wshed

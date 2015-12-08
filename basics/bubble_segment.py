@@ -223,7 +223,8 @@ def find_bubbles(array, scale, beam, wcs, min_scale=2):
     adapt = \
         threshold_adaptive(bth,
                            int(np.ceil((scale_beam.major/pixscale).value)),
-                           param=np.ceil(scale_beam.major.value/pixscale)/2)
+                           param=np.ceil(scale_beam.major.value/pixscale)/2,
+                           offset=-np.percentile(bth, 5))
 
     # Open/close to clean things up
     if CV2_FLAG:
@@ -258,15 +259,16 @@ def find_emission(array, scale, beam, wcs, min_scale=2):
     if CV2_FLAG:
         array = array.astype("float64")
         struct = struct.astype("uint8")
-        bth = cv2.morphologyEx(array, cv2.MORPH_TOPHAT, struct)
+        wth = cv2.morphologyEx(array, cv2.MORPH_TOPHAT, struct)
     else:
-        bth = nd.white_tophat(array, structure=struct)
+        wth = nd.white_tophat(array, structure=struct)
 
     # Adaptive threshold
     adapt = \
-        threshold_adaptive(bth,
+        threshold_adaptive(wth,
                            int(np.ceil((scale_beam.major/pixscale).value)),
-                           param=np.ceil(scale_beam.major.value/pixscale)/2)
+                           param=np.ceil(scale_beam.major.value/pixscale)/2,
+                           offset=-np.percentile(wth, 5))
 
     # Open/close to clean things up
     if CV2_FLAG:
@@ -375,7 +377,7 @@ def region_rejection(bubble_mask_cube, array, grad_thresh=1, frac_thresh=0.05,
     return bubble_mask_cube
 
 
-def auto_watershed(mask, min_distance=9):
+def auto_watershed(mask, array, min_distance=9):
     '''
     Automatically create seeds based on local minima of a distance transform
     and apply the watershed algorithm to find individual regions.
@@ -394,11 +396,17 @@ def auto_watershed(mask, min_distance=9):
     coords = peak_local_max(reconst, min_distance=min_distance)
 
     markers = np.zeros_like(mask)
-    markers[coords[:, 1], coords[:, 0]] = True
+    markers[coords[:, 0], coords[:, 1]] = True
     markers = me.label(markers, neighbors=8, connectivity=2)
 
     # Need to reduce the side-by-side ones when there's a flat plateau
 
-    wshed = mo.watershed(mask, markers, mask=mask)
+    wshed = mo.watershed(array, markers, mask=mask)
+
+    import matplotlib.pyplot as p
+    p.imshow(dist_trans)
+    p.contour(mask, colors='r')
+    p.contour(markers > 0, colors='b')
+    raw_input("?")
 
     return wshed

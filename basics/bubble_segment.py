@@ -186,16 +186,21 @@ class BubbleSegment(object):
         self._bubble_mask = \
             np.zeros((len(self.scales), ) + self.array.shape, dtype=bool)
 
+        pixscale = np.abs(self.wcs.pixel_scale_matrix[0, 0])
+        min_distance = np.ceil(self.beam.minor.value/(2*pixscale))
+
         for i, scale in enumerate(ProgressBar(self.scales)):
             if not emission_reject:
-                self._bubble_mask[i] = find_bubbles(self.array, scale,
-                                                    self.beam, self.wcs)
+                mask = find_bubbles(self.array, scale,
+                                    self.beam, self.wcs)
             else:
                 holes = find_bubbles(self.array, scale, self.beam, self.wcs)
                 emission = find_emission(self.array, scale, self.beam,
                                          self.wcs)
 
-                self._bubble_mask[i] = holes * np.logical_not(emission)
+                mask = holes * np.logical_not(emission)
+
+            self._bubble_mask = remove_spurs(mask, min_distance=min_distance)
 
         self._bubble_mask = region_rejection(self._bubble_mask, self.array)
 
@@ -410,3 +415,20 @@ def auto_watershed(mask, array, min_distance=9):
     raw_input("?")
 
     return wshed
+
+
+def remove_spurs(mask, min_distance=9):
+    '''
+    Remove spurious mask features with reconstruction.
+    '''
+
+    # Distance transform of the mask
+    dist_trans = nd.distance_transform_edt(mask)
+
+    # We don't want to return local maxima within the minimum distance
+    # Use reconstruction to remove.
+    seed = dist_trans + min_distance
+    reconst = mo.reconstruction(seed, dist_trans, method='erosion') - \
+        min_distance
+
+    return reconst > 0

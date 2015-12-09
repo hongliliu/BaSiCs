@@ -200,7 +200,8 @@ class BubbleSegment(object):
 
                 mask = holes * np.logical_not(emission)
 
-            self._bubble_mask = remove_spurs(mask, min_distance=min_distance)
+            self._bubble_mask[i] = remove_spurs(mask,
+                                                min_distance=min_distance)
 
         self._bubble_mask = region_rejection(self._bubble_mask, self.array)
 
@@ -431,4 +432,4 @@ def remove_spurs(mask, min_distance=9):
     reconst = mo.reconstruction(seed, dist_trans, method='erosion') - \
         min_distance
 
-    return reconst > 0
+    return mo.dilation(reconst > 0, selem=mo.disk(min_distance))

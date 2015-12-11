@@ -432,4 +432,9 @@ def remove_spurs(mask, min_distance=9):
     reconst = mo.reconstruction(seed, dist_trans, method='erosion') - \
         min_distance
 
-    return mo.dilation(reconst > 0, selem=mo.disk(min_distance))
+    if CV2_FLAG:
+        return cv2.morphologyEx((reconst > 0).astype("uint8"),
+                                cv2.MORPH_DILATE,
+                                mo.disk(min_distance).astype("uint8")).astype(bool)
+    else:
+        return mo.dilation(reconst > 0, selem=mo.disk(min_distance))

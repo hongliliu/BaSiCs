@@ -3,6 +3,7 @@ import numpy as np
 import warnings
 from astropy.nddata.utils import extract_array, add_array
 from astropy.utils.console import ProgressBar
+from astropy.convolution import convolve_fft, MexicanHat2DKernel
 import astropy.units as u
 import skimage.morphology as mo
 import skimage.measure as me
@@ -17,7 +18,6 @@ try:
     import cv2
     CV2_FLAG = True
 except ImportError:
-    import scipy.ndimage as nd
     warnings.warn("Cannot import cv2. Computing with scipy.ndimage")
     CV2_FLAG = False
 
@@ -25,6 +25,7 @@ from radio_beam import Beam
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
 from basics.utils import arctan_transform
+from basics.iterative_watershed import iterative_watershed
 
 eight_conn = np.ones((3, 3))
 
@@ -65,7 +66,16 @@ class BubbleSegment(object):
         self._threshold = threshold
         self.mask = mask
         self.pad_size = pad_size
-        self.scales = scales
+
+        pixscale = np.abs(self.wcs.pixel_scale_matrix[0, 0])
+        fwhm_beam_pix = self.beam.major.value / pixscale
+        beam_pix = np.ceil(fwhm_beam_pix / np.sqrt(8*np.log(2)))
+
+        # Scales based on 2^n times the major beam radius
+        self.scales = beam_pix * 2 ** np.arange(0., 5.1)
+        # When using non-gaussian like kernels, adjust the
+        # widths to match the FWHM areas
+        self.tophat_scales = np.floor(self.scales * np.sqrt(2))
 
         self._atan_flag = False
 
@@ -175,7 +185,7 @@ class BubbleSegment(object):
 
         self.array = denoise_bilateral(self.array, **kwargs)
 
-    def multiscale_bubblefind(self, scales=None, emission_reject=True):
+    def multiscale_bubblefind(self, scales=None):
         '''
         Run find_bubbles on the specified scales.
         '''
@@ -183,115 +193,47 @@ class BubbleSegment(object):
         if scales is not None:
             self.scales = scales
 
+        wave = wavelet_decomp(self.array, self.scales)
+
         self._bubble_mask = \
-            np.zeros((len(self.scales), ) + self.array.shape, dtype=bool)
+            np.zeros((len(self.scales), ) + self.array.shape, dtype=np.uint8)
 
-        pixscale = np.abs(self.wcs.pixel_scale_matrix[0, 0])
-        min_distance = np.ceil(self.beam.minor.value/(2*pixscale))
+        self.peaks_dict = dict.fromkeys(self.scales)
+        levels = [5, 3, 1.5, 1.5, 1.5, 1.5]
 
-        for i, scale in enumerate(ProgressBar(self.scales)):
-            if not emission_reject:
-                mask = find_bubbles(self.array, scale,
-                                    self.beam, self.wcs)
-            else:
-                holes = find_bubbles(self.array, scale, self.beam, self.wcs)
-                emission = find_emission(self.array, scale, self.beam,
-                                         self.wcs)
+        # Find the stand dev at each scale
+        # Normalize each wavelet scale to it
+        for i, (arr, scale) in enumerate(zip(wave, self.scales)):
+            sigma = sig_clip(arr, nsig=6)
+            wave[i] /= sigma
+            self._bubble_mask[i], self.peaks_dict[scale] = \
+                iterative_watershed(wave[i], self.tophat_scales[i],
+                                    end_value=1,
+                                    start_value=levels[i],
+                                    delta_value=0.25,
+                                    mask_below=1)
 
-                mask = holes * np.logical_not(emission)
-
-            self._bubble_mask[i] = remove_spurs(mask,
-                                                min_distance=min_distance)
-
-        self._bubble_mask = region_rejection(self._bubble_mask, self.array)
+        # self._bubble_mask = region_rejection(self._bubble_mask, self.array)
 
 
-def find_bubbles(array, scale, beam, wcs, min_scale=2):
+def wavelet_decomp(array, scales, kernel=MexicanHat2DKernel):
+    '''
+    Perform a wavelet decomposition at the given scales.
+    Scales correspond to the width of the kernel.
+    '''
 
-    # In deg/pixel
-    # pixscale = get_pixel_scales(wcs) * u.deg
-    pixscale = np.abs(wcs.pixel_scale_matrix[0, 0])
+    # Set nans to the min value
+    array[np.isnan(array)] = np.nanmin(array)
 
-    struct, scale_beam = beam_struct(beam, scale, pixscale,
-                                     return_beam=True)
-    struct_orig, beam_orig = \
-        beam_struct(beam, min_scale, pixscale, return_beam=True)
+    wave = np.zeros((len(scales), ) + array.shape, dtype=np.float)
 
-    # Black tophat
-    if CV2_FLAG:
-        array = array.astype("float64")
-        struct = struct.astype("uint8")
-        bth = cv2.morphologyEx(array, cv2.MORPH_BLACKHAT, struct)
-    else:
-        bth = nd.black_tophat(array, structure=struct)
+    for i, scale in enumerate(ProgressBar(scales)):
 
-    # Adaptive threshold
-    adapt = \
-        threshold_adaptive(bth,
-                           int(np.ceil((scale_beam.major/pixscale).value)),
-                           param=np.ceil(scale_beam.major.value/pixscale)/2,
-                           offset=-np.percentile(bth, 5))
+        kern = -1 * kernel(scale).array
 
-    # Open/close to clean things up
-    if CV2_FLAG:
-        struct_orig = struct_orig.astype("uint8")
-        opened = cv2.morphologyEx(adapt.astype("uint8"), cv2.MORPH_OPEN,
-                                  struct_orig)
-        closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, struct_orig)
-    else:
-        opened = nd.binary_opening(adapt, structure=struct_orig)
-        closed = nd.binary_closing(opened, structure=struct_orig)
+        wave[i] = convolve_fft(array, kern, normalize_kernel=False) * scale**2.
 
-    # # Remove elements smaller than the original beam.
-    beam_pixels = np.floor(beam.sr.to(u.deg**2)/pixscale**2).astype(int).value
-    cleaned = mo.remove_small_objects(closed, min_size=beam_pixels,
-                                      connectivity=2)
-
-    return cleaned
-
-
-def find_emission(array, scale, beam, wcs, min_scale=2):
-
-    # In deg/pixel
-    # pixscale = get_pixel_scales(wcs) * u.deg
-    pixscale = np.abs(wcs.pixel_scale_matrix[0, 0])
-
-    struct, scale_beam = beam_struct(beam, scale, pixscale,
-                                     return_beam=True)
-    struct_orig, beam_orig = \
-        beam_struct(beam, min_scale, pixscale, return_beam=True)
-
-    # Black tophat
-    if CV2_FLAG:
-        array = array.astype("float64")
-        struct = struct.astype("uint8")
-        wth = cv2.morphologyEx(array, cv2.MORPH_TOPHAT, struct)
-    else:
-        wth = nd.white_tophat(array, structure=struct)
-
-    # Adaptive threshold
-    adapt = \
-        threshold_adaptive(wth,
-                           int(np.ceil((scale_beam.major/pixscale).value)),
-                           param=np.ceil(scale_beam.major.value/pixscale)/2,
-                           offset=-np.percentile(wth, 5))
-
-    # Open/close to clean things up
-    if CV2_FLAG:
-        struct_orig = struct_orig.astype("uint8")
-        opened = cv2.morphologyEx(adapt.astype("uint8"), cv2.MORPH_OPEN,
-                                  struct_orig)
-        closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, struct_orig)
-    else:
-        opened = nd.binary_opening(adapt, structure=struct_orig)
-        closed = nd.binary_closing(opened, structure=struct_orig)
-
-    # # Remove elements smaller than the original beam.
-    beam_pixels = np.floor(beam.sr.to(u.deg**2)/pixscale**2).astype(int).value
-    cleaned = mo.remove_small_objects(closed, min_size=beam_pixels,
-                                      connectivity=2)
-
-    return cleaned
+    return wave
 
 
 def beam_struct(beam, scale, pixscale, return_beam=False):
@@ -383,58 +325,36 @@ def region_rejection(bubble_mask_cube, array, grad_thresh=1, frac_thresh=0.05,
     return bubble_mask_cube
 
 
-def auto_watershed(mask, array, min_distance=9):
+def sig_clip(array, nsig=6, tol=0.01, max_iters=500,
+             return_clipped=False):
     '''
-    Automatically create seeds based on local minima of a distance transform
-    and apply the watershed algorithm to find individual regions.
+    Sigma clipping based on the getsources method.
     '''
+    nsig = float(nsig)
+    mask = np.isfinite(array)
+    std = np.nanstd(array)
+    thresh = nsig * std
 
-    # Distance transform of the mask
-    dist_trans = nd.distance_transform_edt(mask)
+    iters = 0
+    while True:
+        good_pix = np.abs(array*mask) <= thresh
+        new_thresh = nsig * np.nanstd(array[good_pix])
+        diff = np.abs(new_thresh - thresh) / thresh
+        thresh = new_thresh
 
-    # We don't want to return local maxima within the minimum distance
-    # Use reconstruction to remove.
-    seed = dist_trans + min_distance
-    reconst = mo.reconstruction(seed, dist_trans, method='erosion') - \
-        min_distance
+        if diff <= tol:
+            break
+        elif iters == max_iters:
+            raise ValueError("Did not converge")
+        else:
+            iters += 1
+            continue
 
-    # Now get local maxima
-    coords = peak_local_max(reconst, min_distance=min_distance)
+    sigma = thresh / nsig
+    if not return_clipped:
+        return sigma
 
-    markers = np.zeros_like(mask)
-    markers[coords[:, 0], coords[:, 1]] = True
-    markers = me.label(markers, neighbors=8, connectivity=2)
+    output = array.copy()
+    output[output < thresh] = np.NaN
 
-    # Need to reduce the side-by-side ones when there's a flat plateau
-
-    wshed = mo.watershed(array, markers, mask=mask)
-
-    import matplotlib.pyplot as p
-    p.imshow(dist_trans)
-    p.contour(mask, colors='r')
-    p.contour(markers > 0, colors='b')
-    raw_input("?")
-
-    return wshed
-
-
-def remove_spurs(mask, min_distance=9):
-    '''
-    Remove spurious mask features with reconstruction.
-    '''
-
-    # Distance transform of the mask
-    dist_trans = nd.distance_transform_edt(mask)
-
-    # We don't want to return local maxima within the minimum distance
-    # Use reconstruction to remove.
-    seed = dist_trans + min_distance
-    reconst = mo.reconstruction(seed, dist_trans, method='erosion') - \
-        min_distance
-
-    if CV2_FLAG:
-        return cv2.morphologyEx((reconst > 0).astype("uint8"),
-                                cv2.MORPH_DILATE,
-                                mo.disk(min_distance).astype("uint8")).astype(bool)
-    else:
-        return mo.dilation(reconst > 0, selem=mo.disk(min_distance))
+    return sigma, output

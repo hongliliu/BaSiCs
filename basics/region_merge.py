@@ -53,4 +53,7 @@ def region_merge(label_cube, overlap_frac=0.5):
 
             l_plane[new_pts] = l_labs[arg]
 
+    for lab in range(1, l_plane.max() + 1):
+        final_mask[l_plane == lab] = final_mask.max() + 1
+
     return final_mask

@@ -4,7 +4,7 @@ from itertools import izip
 import matplotlib.pyplot as p
 
 
-def region_merge(label_cube, overlap_frac=0.5):
+def region_merge(label_cube, img, overlap_frac=0.8):
     '''
     Merge regions at different wavelet scales. Different planes
     in the labeled cube correspond to the segmentation at different
@@ -13,10 +13,21 @@ def region_merge(label_cube, overlap_frac=0.5):
 
     final_mask = np.zeros_like(label_cube[0], dtype=int)
 
+    i = 0
     for s_plane, l_plane in izip(label_cube[:-1], label_cube[1:]):
         s_labels = xrange(1, s_plane.max()+1)
 
         for s_lab in s_labels:
+
+            # print(np.mean(img[s_plane == s_lab]))
+            # print(np.std(img[s_plane == s_lab]))
+            # p.subplot(121)
+            # hist = p.hist(img[s_plane == s_lab])
+            # p.subplot(122)
+            # p.imshow(img, cmap='afmhot')
+            # p.contour(s_plane == s_lab, colors='b')
+            # raw_input("?")
+            # p.clf()
 
             l_overlap_pts = l_plane[s_plane == s_lab]
 
@@ -45,6 +56,8 @@ def region_merge(label_cube, overlap_frac=0.5):
             # p.clf()
 
             if not np.any(overlap >= overlap_frac):
+                final_mask[s_plane == s_lab] = final_mask.max() + 1
+                l_plane[s_plane == s_lab] = 0
                 continue
 
             arg = np.argmax(overlap)
@@ -52,6 +65,8 @@ def region_merge(label_cube, overlap_frac=0.5):
             new_pts = s_plane == s_lab
 
             l_plane[new_pts] = l_labs[arg]
+
+        i += 1
 
     for lab in range(1, l_plane.max() + 1):
         final_mask[l_plane == lab] = final_mask.max() + 1

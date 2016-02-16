@@ -91,6 +91,7 @@ class BubbleFinder2D(object):
         bubbles = BubbleSegment(self.array, mask=self.mask, **kwargs)
 
         # bubbles.apply_atan_transform()
+        bubbles.apply_bilateral_filter()
         bubbles.cut_to_bounding_box()
         bubbles.multiscale_bubblefind()
 

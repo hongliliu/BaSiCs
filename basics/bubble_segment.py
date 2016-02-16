@@ -26,6 +26,7 @@ from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
 from basics.utils import arctan_transform
 from basics.iterative_watershed import iterative_watershed
+from basics.candidate import Candidate
 
 eight_conn = np.ones((3, 3))
 
@@ -72,7 +73,7 @@ class BubbleSegment(object):
         beam_pix = np.ceil(fwhm_beam_pix / np.sqrt(8*np.log(2)))
 
         # Scales based on 2^n times the major beam radius
-        self.scales = beam_pix * 2 ** np.arange(0., 5.1)
+        self.scales = beam_pix * 2 ** np.arange(0., 3.1)
         # When using non-gaussian like kernels, adjust the
         # widths to match the FWHM areas
         self.tophat_scales = np.floor(self.scales * np.sqrt(2))
@@ -193,25 +194,31 @@ class BubbleSegment(object):
         if scales is not None:
             self.scales = scales
 
-        wave = wavelet_decomp(self.array, self.scales)
+        self.wave = wavelet_decomp(self.array, self.scales)
 
         self._bubble_mask = \
             np.zeros((len(self.scales), ) + self.array.shape, dtype=np.uint8)
 
         self.peaks_dict = dict.fromkeys(self.scales)
-        levels = [5, 3, 1.5, 1.5, 1.5, 1.5]
+        self.region_props = dict.fromkeys(self.scales)
+
+        levels = [5, 3, 1.5, 1.5, 1.5]  # , 1.5]
 
         # Find the stand dev at each scale
         # Normalize each wavelet scale to it
-        for i, (arr, scale) in enumerate(zip(wave, self.scales)):
+        for i, (arr, scale, top_scale) in enumerate(zip(self.wave, self.scales,
+                                                        self.tophat_scales)):
             sigma = sig_clip(arr, nsig=6)
-            wave[i] /= sigma
+            self.wave[i] /= sigma
             self._bubble_mask[i], self.peaks_dict[scale] = \
-                iterative_watershed(wave[i], self.tophat_scales[i],
+                iterative_watershed(self.wave[i], top_scale,
                                     end_value=1,
                                     start_value=levels[i],
                                     delta_value=0.25,
                                     mask_below=1)
+            self.region_props[scale] = \
+                me.regionprops(self._bubble_mask[i],
+                               intensity_image=self.wave[i])
 
         # self._bubble_mask = region_rejection(self._bubble_mask, self.array)
 

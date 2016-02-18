@@ -76,7 +76,7 @@ class BubbleSegment(object):
         self.scales = beam_pix * 2 ** np.arange(0., 3.1)
         # When using non-gaussian like kernels, adjust the
         # widths to match the FWHM areas
-        self.tophat_scales = np.floor(self.scales * np.sqrt(2))
+        # self.tophat_scales = np.floor(self.scales * np.sqrt(2))
 
         self._atan_flag = False
 
@@ -206,15 +206,14 @@ class BubbleSegment(object):
 
         # Find the stand dev at each scale
         # Normalize each wavelet scale to it
-        for i, (arr, scale, top_scale) in enumerate(zip(self.wave, self.scales,
-                                                        self.tophat_scales)):
+        for i, (arr, scale) in enumerate(zip(self.wave, self.scales)):
             sigma = sig_clip(arr, nsig=6)
             self.wave[i] /= sigma
             self._bubble_mask[i], self.peaks_dict[scale] = \
-                iterative_watershed(self.wave[i], top_scale,
+                iterative_watershed(self.wave[i], scale,
                                     end_value=1,
                                     start_value=levels[i],
-                                    delta_value=0.25,
+                                    delta_value=0.1,
                                     mask_below=1)
             self.region_props[scale] = \
                 me.regionprops(self._bubble_mask[i],
@@ -236,9 +235,11 @@ def wavelet_decomp(array, scales, kernel=MexicanHat2DKernel):
 
     for i, scale in enumerate(ProgressBar(scales)):
 
-        kern = -1 * kernel(scale).array
+        # kern = -1 * kernel(scale).array
 
-        wave[i] = convolve_fft(array, kern, normalize_kernel=False) * scale**2.
+        # wave[i] = convolve_fft(array, kern, normalize_kernel=False) * scale**2.
+
+        wave[i] = nd.gaussian_laplace(array, scale) * scale**2
 
     return wave
 

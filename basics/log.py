@@ -69,8 +69,8 @@ def _blob_overlap(blob1, blob2):
     root2 = sqrt(2)
 
     # extent of the blob is given by sqrt(2)*scale
-    r1 = blob1[2] * root2
-    r2 = blob2[2] * root2
+    r1 = blob1[2]  # * root2
+    r2 = blob2[2]  # * root2
 
     d = hypot(blob1[0] - blob2[0], blob1[1] - blob2[1])
 
@@ -221,14 +221,10 @@ def blob_log(image, min_sigma=1, max_sigma=50, num_sigma=10, threshold=.2,
     sigma_list = np.array([min_sigma * (sigma_ratio ** i)
                            for i in range(k)])
 
-    print(sigma_list)
-
     # computing gaussian laplace
     # s**2 provides scale invariance
     gl_images = [gaussian_laplace(image, s) * s ** 2 for s in sigma_list]
     image_cube = np.dstack(gl_images)
-
-    # print(np.max(np.max(image_cube, axis=0), axis=0))
 
     local_maxima = peak_local_max(image_cube, threshold_abs=threshold,
                                   footprint=np.ones((3, 3, 3)),

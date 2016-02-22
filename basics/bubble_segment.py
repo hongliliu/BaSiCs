@@ -27,6 +27,7 @@ from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 from basics.utils import arctan_transform
 from basics.iterative_watershed import iterative_watershed
 from basics.candidate import Candidate
+from basics.log import blob_log
 
 eight_conn = np.ones((3, 3))
 
@@ -186,7 +187,7 @@ class BubbleSegment(object):
 
         self.array = denoise_bilateral(self.array, **kwargs)
 
-    def multiscale_bubblefind(self, scales=None):
+    def multiscale_bubblefind(self, scales=None, sigma=None, nsig=2):
         '''
         Run find_bubbles on the specified scales.
         '''
@@ -194,7 +195,8 @@ class BubbleSegment(object):
         if scales is not None:
             self.scales = scales
 
-        self.wave = wavelet_decomp(self.array, self.scales)
+        if sigma is None:
+            sigma = sig_clip(self.array, nsig=10)
 
         self._bubble_mask = \
             np.zeros((len(self.scales), ) + self.array.shape, dtype=np.uint8)
@@ -202,46 +204,29 @@ class BubbleSegment(object):
         self.peaks_dict = dict.fromkeys(self.scales)
         self.region_props = dict.fromkeys(self.scales)
 
-        levels = [5, 3, 1.5, 1.5, 1.5]  # , 1.5]
+        self.peaks, self.wave = \
+            blob_log(self.array, min_sigma=self.scales[0],
+                     max_sigma=self.scales[-1],
+                     sigma_ratio=2.0, overlap=0.99, threshold=nsig*sigma)
 
-        # Find the stand dev at each scale
-        # Normalize each wavelet scale to it
-        for i, (arr, scale) in enumerate(zip(self.wave, self.scales)):
-            sigma = sig_clip(arr, nsig=6)
-            self.wave[i] /= sigma
-            self._bubble_mask[i], self.peaks_dict[scale] = \
-                iterative_watershed(self.wave[i], scale,
-                                    end_value=1,
-                                    start_value=levels[i],
-                                    delta_value=0.1,
-                                    mask_below=1)
-            self.region_props[scale] = \
-                me.regionprops(self._bubble_mask[i],
-                               intensity_image=self.wave[i])
+        # levels = [5, 3, 1.5, 1.5, 1.5]  # , 1.5]
+
+        # # Find the stand dev at each scale
+        # # Normalize each wavelet scale to it
+        # for i, (arr, scale) in enumerate(zip(self.wave, self.scales)):
+        #     sigma = sig_clip(arr, nsig=6)
+        #     self.wave[i] /= sigma
+        #     self._bubble_mask[i], self.peaks_dict[scale] = \
+        #         iterative_watershed(self.wave[i], scale,
+        #                             end_value=1,
+        #                             start_value=levels[i],
+        #                             delta_value=0.1,
+        #                             mask_below=1)
+        #     self.region_props[scale] = \
+        #         me.regionprops(self._bubble_mask[i],
+        #                        intensity_image=self.wave[i])
 
         # self._bubble_mask = region_rejection(self._bubble_mask, self.array)
-
-
-def wavelet_decomp(array, scales, kernel=MexicanHat2DKernel):
-    '''
-    Perform a wavelet decomposition at the given scales.
-    Scales correspond to the width of the kernel.
-    '''
-
-    # Set nans to the min value
-    array[np.isnan(array)] = np.nanmin(array)
-
-    wave = np.zeros((len(scales), ) + array.shape, dtype=np.float)
-
-    for i, scale in enumerate(ProgressBar(scales)):
-
-        # kern = -1 * kernel(scale).array
-
-        # wave[i] = convolve_fft(array, kern, normalize_kernel=False) * scale**2.
-
-        wave[i] = nd.gaussian_laplace(array, scale) * scale**2
-
-    return wave
 
 
 def beam_struct(beam, scale, pixscale, return_beam=False):

@@ -130,8 +130,9 @@ def _prune_blobs(blobs_array, overlap):
     return np.array([b for b in blobs_array if b[2] > 0])
 
 
-def blob_log(image, min_sigma=1, max_sigma=50, num_sigma=10, threshold=.2,
-             overlap=.5, log_scale=False, sigma_ratio=2., weighting=None):
+def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
+             threshold=.2, overlap=.5, log_scale=False, sigma_ratio=2.,
+             weighting=None):
     """Finds blobs in the given grayscale image.
 
     Blobs are found using the Laplacian of Gaussian (LoG) method [1]_.
@@ -143,6 +144,8 @@ def blob_log(image, min_sigma=1, max_sigma=50, num_sigma=10, threshold=.2,
     image : ndarray
         Input grayscale image, blobs are assumed to be light on dark
         background (white on black).
+    sigma_list : np.ndarray, optional
+        Provide the list of sigmas to use.
     min_sigma : float, optional
         The minimum standard deviation for Gaussian Kernel. Keep this low to
         detect smaller blobs.
@@ -213,18 +216,19 @@ def blob_log(image, min_sigma=1, max_sigma=50, num_sigma=10, threshold=.2,
 
     image = img_as_float(image)
 
-    # if log_scale:
-    #     start, stop = log(min_sigma, 10), log(max_sigma, 10)
-    #     sigma_list = np.logspace(start, stop, num_sigma)
-    # else:
-    #     sigma_list = np.linspace(min_sigma, max_sigma, num_sigma)
+    if sigma_list is None:
+        # if log_scale:
+        #     start, stop = log(min_sigma, 10), log(max_sigma, 10)
+        #     sigma_list = np.logspace(start, stop, num_sigma)
+        # else:
+        #     sigma_list = np.linspace(min_sigma, max_sigma, num_sigma)
 
-    # k such that min_sigma*(sigma_ratio**k) > max_sigma
-    k = int(log(float(max_sigma) / min_sigma, sigma_ratio)) + 1
+        # k such that min_sigma*(sigma_ratio**k) > max_sigma
+        k = int(log(float(max_sigma) / min_sigma, sigma_ratio)) + 1
 
-    # a geometric progression of standard deviations for gaussian kernels
-    sigma_list = np.array([min_sigma * (sigma_ratio ** i)
-                           for i in range(k)])
+        # a geometric progression of standard deviations for gaussian kernels
+        sigma_list = np.array([min_sigma * (sigma_ratio ** i)
+                               for i in range(k)])
 
     if weighting is not None:
         if len(weighting) != len(sigma_list):

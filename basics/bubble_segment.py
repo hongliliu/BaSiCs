@@ -206,10 +206,10 @@ class BubbleSegment(object):
         self.region_props = dict.fromkeys(self.scales)
 
         self.peaks, self.wave = \
-            blob_log(self.array, min_sigma=self.scales[0],
-                     max_sigma=self.scales[-1],
-                     sigma_ratio=2.0, overlap=overlap_frac,
-                     threshold=nsig*sigma)
+            blob_log(self.array, sigma_list=self.scales[0],
+                     overlap=overlap_frac,
+                     threshold=nsig*sigma,
+                     weighting=np.array([0.75, 1, 1, 1]))
 
         # levels = [5, 3, 1.5, 1.5, 1.5]  # , 1.5]
 

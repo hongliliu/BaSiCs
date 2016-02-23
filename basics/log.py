@@ -77,6 +77,9 @@ def _blob_overlap(blob1, blob2):
     if d > r1 + r2:
         return 0
 
+    if d == r1 + r2:
+        return 1e-5
+
     # one blob is inside the other, the smaller blob must die
     if d <= abs(r1 - r2):
         return 1
@@ -98,7 +101,7 @@ def _blob_overlap(blob1, blob2):
     return area / (math.pi * (min(r1, r2) ** 2))
 
 
-def _prune_blobs(blobs_array, overlap):
+def _prune_merge_blobs(blobs_array, overlap):
     """Eliminated blobs with area overlap.
 
     Parameters
@@ -117,17 +120,50 @@ def _prune_blobs(blobs_array, overlap):
         `array` with overlapping blobs removed.
     """
 
+    # For merging two overlapping regions into an ellipse
+    # Distance between centres equal to the radius
+    min_merge_overlap = (2/3.) - np.sqrt(3)/(2*np.pi)
+    # Distance between centres equal to the radius
+    max_merge_overlap = 1.0
+
+    merged_blobs = np.empty((0, 5), dtype=np.float64)
+
     # iterating again might eliminate more blobs, but one iteration suffices
     # for most cases
     for blob1, blob2 in itt.combinations(blobs_array, 2):
-        if _blob_overlap(blob1, blob2) > overlap:
+        blob_overlap = _blob_overlap(blob1, blob2)
+
+        if blob_overlap == 0:
+            continue
+
+        if blob1[2] != blob1[3] or blob2[2] != blob2[3]:
+            continue
+
+        if blob1[2] == blob2[2]:
+            # Check whether we should merge into an ellipse
+            if np.logical_and(blob_overlap > min_merge_overlap,
+                              blob_overlap < max_merge_overlap):
+                # Merge into an ellipse
+                merged_blobs = \
+                    np.vstack([merged_blobs, merge_to_ellipse(blob1, blob2)])
+                blob1[2] = -1
+                blob2[2] = -1
+
+        elif blob_overlap > overlap:
             if blob1[2] > blob2[2]:
                 blob2[2] = -1
             else:
                 blob1[2] = -1
 
+        else:
+            continue
+
+    # Remove blobs
+    blobs_array = np.array([b for b in blobs_array if b[2] > 0])
+    blobs_array = np.vstack([blobs_array, merged_blobs])
+
     # return blobs_array[blobs_array[:, 2] > 0]
-    return np.array([b for b in blobs_array if b[2] > 0])
+    return blobs_array
 
 
 def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
@@ -253,6 +289,40 @@ def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
     lm = local_maxima.astype(np.float64)
     # Convert the last index to its corresponding scale value
     lm[:, 2] = sigma_list[local_maxima[:, 2]] * np.sqrt(2)
+
+    # Add on semi-minor axis and position angle for generalization to ellipses
+    lm = np.hstack([lm, lm[:, 2:3]])
+    lm = np.hstack([lm, np.zeros_like(lm[:, 0:1], dtype=np.float64)])
+
     local_maxima = lm
     # return local_maxima, image_cube
-    return _prune_blobs(local_maxima, overlap), image_cube
+    return _prune_merge_blobs(local_maxima, overlap), image_cube
+
+
+def merge_to_ellipse(blob1, blob2):
+    '''
+    Merge to circular blobs into an elliptical one
+    '''
+
+    new_blob = []
+
+    d = hypot(blob1[0] - blob2[0], blob1[1] - blob2[1])
+
+    # Take the average of the centers to find the new center.
+    new_blob.append((blob1[0] + blob2[0]) / 2.)
+    new_blob.append((blob1[1] + blob2[1]) / 2.)
+
+    # Semi-major axis = r + d/2
+    new_blob.append(blob1[2] + d/2.)
+
+    # Semi-minor axis = r
+    new_blob.append(blob1[2])
+
+    # Position angle
+    pa = np.arctan((blob1[0] - blob2[0]) / (blob1[1] - blob2[1]))
+    # Returns on -pi/2 to pi/2 range. But we want 0 to pi.
+    if pa < 0:
+        pa += np.pi
+    new_blob.append(pa)
+
+    return new_blob

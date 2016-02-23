@@ -7,6 +7,7 @@ from math import sqrt, hypot, log
 from numpy import arccos
 from skimage.util import img_as_float
 from skimage.feature import peak_local_max
+from astropy.modeling.models import Ellipse2D
 # from .._shared.utils import assert_nD
 
 '''
@@ -131,15 +132,18 @@ def _prune_merge_blobs(blobs_array, overlap):
     # iterating again might eliminate more blobs, but one iteration suffices
     # for most cases
     for blob1, blob2 in itt.combinations(blobs_array, 2):
-        blob_overlap = _blob_overlap(blob1, blob2)
+
+        if blob1[2] != blob1[3] or blob2[2] != blob2[3]:
+            blob_overlap = _pixel_overlap(blob1, blob2)
+            is_ellipse = True
+        else:
+            blob_overlap = _blob_overlap(blob1, blob2)
+            is_ellipse = False
 
         if blob_overlap == 0:
             continue
 
-        if blob1[2] != blob1[3] or blob2[2] != blob2[3]:
-            continue
-
-        if blob1[2] == blob2[2]:
+        if np.logical_and(blob1[2] == blob2[2], ~is_ellipse):
             # Check whether we should merge into an ellipse
             if np.logical_and(blob_overlap > min_merge_overlap,
                               blob_overlap < max_merge_overlap):
@@ -147,13 +151,17 @@ def _prune_merge_blobs(blobs_array, overlap):
                 merged_blobs = \
                     np.vstack([merged_blobs, merge_to_ellipse(blob1, blob2)])
                 blob1[2] = -1
+                blob1[3] = -1
                 blob2[2] = -1
+                blob2[3] = -1
 
         elif blob_overlap > overlap:
             if blob1[2] > blob2[2]:
                 blob2[2] = -1
+                blob2[3] = -1
             else:
                 blob1[2] = -1
+                blob1[3] = -1
 
         else:
             continue
@@ -326,3 +334,54 @@ def merge_to_ellipse(blob1, blob2):
     new_blob.append(pa)
 
     return new_blob
+
+
+def _pixel_overlap(blob1, blob2, grid_space=0.2):
+    '''
+    Ellipse intersection are difficult. But counting common pixels is not!
+    This routine creates arrays up-sampled from the original pixel scale to
+    better estimate the overlap fraction.
+    '''
+
+    dist = np.hypot(blob1[0] - blob2[0], blob1[1] - blob2[1])
+
+    if blob1[2] > blob2[2]:
+        large_blob = blob1
+        small_blob = blob2
+    else:
+        large_blob = blob2
+        small_blob = blob1
+
+    bound1 = Ellipse2D(True, 0.0, 0.0, large_blob[2], large_blob[3],
+                       large_blob[4]).bounding_box[0][0]
+
+    bound2 = Ellipse2D(True, 0.0, 0.0, small_blob[2], small_blob[3],
+                       small_blob[4]).bounding_box[0][0]
+
+    # Find the values needed to enclose both
+    min_val = bound1 - grid_space
+    max_val = np.abs(bound1) + dist + 2*np.abs(bound2) + grid_space
+
+    index = np.arange(min_val, max_val, grid_space)
+
+    yy, xx = np.meshgrid(index, index)
+
+    ellip1 = Ellipse2D.evaluate(xx, yy, True, 0.0,
+                                0.0, large_blob[2],
+                                large_blob[3], large_blob[4])
+
+    ellip2 = Ellipse2D.evaluate(xx, yy, True,
+                                np.abs(small_blob[1]-large_blob[1]),
+                                np.abs(small_blob[0]-large_blob[0]),
+                                small_blob[2], small_blob[3],
+                                small_blob[4])
+
+    overlap_area = np.sum(np.logical_and(ellip1, ellip2))
+
+    ellip1_area = ellip1.sum()
+    ellip2_area = ellip2.sum()
+
+    if ellip1_area > ellip2_area:
+        return overlap_area / float(ellip2_area)
+    else:
+        return overlap_area / float(ellip1_area)

@@ -75,6 +75,14 @@ class BubbleSegment(object):
 
         # Scales based on 2^n times the major beam radius
         self.scales = beam_pix * 2 ** np.arange(0., 3.1)
+
+        # Default relative weightings for finding local maxima.
+        self.weightings = np.ones_like(self.scales)
+        # If searching at the beam size, decrease it's importance to
+        # remove spurious features.
+        if self.scales[0] == beam_pix:
+            self.weightings[0] = 0.75
+
         # When using non-gaussian like kernels, adjust the
         # widths to match the FWHM areas
         # self.tophat_scales = np.floor(self.scales * np.sqrt(2))
@@ -206,10 +214,10 @@ class BubbleSegment(object):
         self.region_props = dict.fromkeys(self.scales)
 
         self.peaks, self.wave = \
-            blob_log(self.array, sigma_list=self.scales[0],
+            blob_log(self.array, sigma_list=self.scales,
                      overlap=overlap_frac,
                      threshold=nsig*sigma,
-                     weighting=np.array([0.75, 1, 1, 1]))
+                     weighting=self.weightings)
 
         # levels = [5, 3, 1.5, 1.5, 1.5]  # , 1.5]
 

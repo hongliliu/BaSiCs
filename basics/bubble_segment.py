@@ -187,7 +187,8 @@ class BubbleSegment(object):
 
         self.array = denoise_bilateral(self.array, **kwargs)
 
-    def multiscale_bubblefind(self, scales=None, sigma=None, nsig=2):
+    def multiscale_bubblefind(self, scales=None, sigma=None, nsig=2,
+                              overlap_frac=0.8):
         '''
         Run find_bubbles on the specified scales.
         '''
@@ -207,7 +208,8 @@ class BubbleSegment(object):
         self.peaks, self.wave = \
             blob_log(self.array, min_sigma=self.scales[0],
                      max_sigma=self.scales[-1],
-                     sigma_ratio=2.0, overlap=0.99, threshold=nsig*sigma)
+                     sigma_ratio=2.0, overlap=overlap_frac,
+                     threshold=nsig*sigma)
 
         # levels = [5, 3, 1.5, 1.5, 1.5]  # , 1.5]
 

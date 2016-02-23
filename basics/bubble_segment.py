@@ -81,7 +81,10 @@ class BubbleSegment(object):
         # If searching at the beam size, decrease it's importance to
         # remove spurious features.
         if self.scales[0] == beam_pix:
-            self.weightings[0] = 0.75
+            # 0.8 removes small spurious features in the IC1613 cube
+            # Will need to run a proper noise test to better determine
+            # what it should be set to
+            self.weightings[0] = 0.8
 
         # When using non-gaussian like kernels, adjust the
         # widths to match the FWHM areas

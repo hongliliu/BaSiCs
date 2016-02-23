@@ -131,7 +131,7 @@ def _prune_blobs(blobs_array, overlap):
 
 
 def blob_log(image, min_sigma=1, max_sigma=50, num_sigma=10, threshold=.2,
-             overlap=.5, log_scale=False, sigma_ratio=2.):
+             overlap=.5, log_scale=False, sigma_ratio=2., weighting=None):
     """Finds blobs in the given grayscale image.
 
     Blobs are found using the Laplacian of Gaussian (LoG) method [1]_.
@@ -163,6 +163,11 @@ def blob_log(image, min_sigma=1, max_sigma=50, num_sigma=10, threshold=.2,
         If set intermediate values of standard deviations are interpolated
         using a logarithmic scale to the base `10`. If not, linear
         interpolation is used.
+    weighting : np.ndarray, optional
+        Used to weight certain scales differently when selecting local maxima
+        in the transform space. For example when searching for regions near
+        the beam size, the transform can be down-weighted to avoid spurious
+        detections. Must have the same number of elements as the scales.
 
     Returns
     -------
@@ -221,9 +226,18 @@ def blob_log(image, min_sigma=1, max_sigma=50, num_sigma=10, threshold=.2,
     sigma_list = np.array([min_sigma * (sigma_ratio ** i)
                            for i in range(k)])
 
+    if weighting is not None:
+        if len(weighting) != len(sigma_list):
+            raise IndexError("weighting must have the same number of elements"
+                             " as scales ("+str(len(sigma_list))+").")
+    else:
+        weighting = np.ones_like(sigma_list)
+
     # computing gaussian laplace
     # s**2 provides scale invariance
-    gl_images = [gaussian_laplace(image, s) * s ** 2 for s in sigma_list]
+    # weighting by w changes the relative importance of each transform scale
+    gl_images = [gaussian_laplace(image, s) * s ** 2 * w for s, w in
+                 zip(sigma_list, weighting)]
     image_cube = np.dstack(gl_images)
 
     local_maxima = peak_local_max(image_cube, threshold_abs=threshold,

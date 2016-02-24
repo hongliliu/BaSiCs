@@ -5,7 +5,7 @@ from basics.profile import profile_line
 
 
 def azimuthal_profiles(image, blob, ntheta=360, verbose=False,
-                       extend_factor=2):
+                       extend_factor=1.0):
     '''
     Calculate azimuthal profiles from the centre of a bubble to its edge.
     '''

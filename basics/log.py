@@ -179,7 +179,7 @@ def _prune_merge_blobs(blobs_array, overlap, min_distance_merge=1.0):
 
 def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
              threshold=.2, overlap=.5, log_scale=False, sigma_ratio=2.,
-             weighting=None):
+             weighting=None, merge_overlap_dist=1.0):
     """Finds blobs in the given grayscale image.
 
     Blobs are found using the Laplacian of Gaussian (LoG) method [1]_.
@@ -307,7 +307,8 @@ def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
 
     local_maxima = lm
     # return local_maxima, image_cube
-    return _prune_merge_blobs(local_maxima, overlap), image_cube
+    return _prune_merge_blobs(local_maxima, overlap, merge_overlap_dist), \
+        image_cube
 
 
 def merge_to_ellipse(blob1, blob2):

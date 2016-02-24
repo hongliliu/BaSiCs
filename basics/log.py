@@ -67,11 +67,9 @@ def _blob_overlap(blob1, blob2):
     f : float
         Fraction of overlapped area.
     """
-    root2 = sqrt(2)
-
     # extent of the blob is given by sqrt(2)*scale
-    r1 = blob1[2]  # * root2
-    r2 = blob2[2]  # * root2
+    r1 = blob1[2]
+    r2 = blob2[2]
 
     d = hypot(blob1[0] - blob2[0], blob1[1] - blob2[1])
 

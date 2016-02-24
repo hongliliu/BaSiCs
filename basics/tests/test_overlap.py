@@ -1,7 +1,8 @@
 
-from basics.log import _pixel_overlap, _blob_overlap
+from basics.log import _pixel_overlap, _blob_overlap, _min_merge_overlap
 
 import numpy.testing as npt
+import numpy as np
 
 
 def test_blob_overlap():
@@ -38,3 +39,15 @@ def test_pixel_alloverlap():
 
     npt.assert_almost_equal(1.0,
                             _pixel_overlap(pt1, pt2), decimal=3)
+
+
+def test_min_merge_overlap():
+
+    F = 2.0
+
+    assert _min_merge_overlap(F) == 0.0
+
+    F = 1.0
+
+    npt.assert_almost_equal(_min_merge_overlap(F),
+                            (2/3.) - np.sqrt(3)/(2*np.pi))

@@ -102,7 +102,7 @@ def _blob_overlap(blob1, blob2):
     return area / (math.pi * (min(r1, r2) ** 2))
 
 
-def _prune_merge_blobs(blobs_array, overlap):
+def _prune_merge_blobs(blobs_array, overlap, min_distance_merge=1.0):
     """Eliminated blobs with area overlap.
 
     Parameters
@@ -114,16 +114,19 @@ def _prune_merge_blobs(blobs_array, overlap):
     overlap : float
         A value between 0 and 1. If the fraction of area overlapping for 2
         blobs is greater than `overlap` the smaller blob is eliminated.
+    min_distance_merge : float
+        Number of sigma apart two blobs must be to be eligible for merging.
+        Blobs must be the same size to merge.
 
     Returns
     -------
     A : ndarray
-        `array` with overlapping blobs removed.
+        `array` with overlapping blobs removed and merged nearby blobs.
     """
 
     # For merging two overlapping regions into an ellipse
     # Distance between centres equal to the radius
-    min_merge_overlap = (2/3.) - np.sqrt(3)/(2*np.pi)
+    min_merge_overlap = _min_merge_overlap(min_distance_merge)
     # Distance between centres equal to the radius
     max_merge_overlap = 1.0
 
@@ -385,3 +388,18 @@ def _pixel_overlap(blob1, blob2, grid_space=0.2):
         return overlap_area / float(ellip2_area)
     else:
         return overlap_area / float(ellip1_area)
+
+
+def _min_merge_overlap(min_dist):
+    '''
+    Parameters
+    ----------
+    min_dist : float
+        Fraction of radius that two circles must be separated
+        by to be eligible to be merged.
+    '''
+
+    term1 = 2*np.arccos(min_dist/2.) / np.pi
+    term2 = np.sqrt((2-min_dist)*(2+min_dist)) / (2*np.pi)
+
+    return term1 - term2

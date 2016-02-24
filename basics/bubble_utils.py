@@ -43,6 +43,4 @@ def azimuthal_profiles(image, blob, ntheta=360, verbose=False,
 
             p.show()
 
-    profiles = np.asarray(profiles)
-
     return profiles

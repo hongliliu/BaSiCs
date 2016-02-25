@@ -304,6 +304,10 @@ def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
     lm = np.hstack([lm, np.zeros_like(lm[:, 0:1], dtype=np.float64)])
 
     local_maxima = lm
+
+    if local_maxima.size == 0:
+        return local_maxima, image_cube
+
     # return local_maxima, image_cube
     return _prune_merge_blobs(local_maxima, overlap, merge_overlap_dist), \
         image_cube

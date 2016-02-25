@@ -406,3 +406,21 @@ def _min_merge_overlap(min_dist):
     term2 = np.sqrt((2-min_dist)*(2+min_dist)) / (2*np.pi)
 
     return term1 - term2
+
+
+def overlap_metric(ellip1, ellip2):
+    '''
+    Calculate the overlap in ellipses, if they are in adjacent channels.
+    '''
+
+    if np.abs(ellip1[0] - ellip2[0]) != 1:
+        return 0.0
+
+    if ellip1[3] != ellip1[4] or ellip2[3] != ellip2[4]:
+        return _pixel_overlap(ellip1[1:], ellip2[1:])
+
+    else:
+        blob_overlap = _blob_overlap(ellip1[1:], ellip2[1:])
+        if blob_overlap == 1e-5:
+            blob_overlap = 0.0
+        return blob_overlap

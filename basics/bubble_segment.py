@@ -224,6 +224,10 @@ class BubbleSegment(object):
     def region_params(self):
         return np.array([bub2D.params for bub2D in self.bubble2D_candidates])
 
+    @property
+    def num_regions(self):
+        return len(self.bubble2D_candidates)
+
     def region_rejection(self, grad_thresh=1, frac_thresh=0.05,
                          border_clear=True):
         '''

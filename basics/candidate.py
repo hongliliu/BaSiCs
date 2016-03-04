@@ -45,3 +45,15 @@ class Bubble2D(object):
         from basics.profile import azimuthal_profiles
 
         return azimuthal_profiles(array, self.params, **kwargs)
+
+    def as_mask(self):
+        '''
+        Return a boolean mask of the 2D region.
+        '''
+        raise NotImplementedError()
+
+    def find_shape(self):
+        '''
+        Expand/contract to match the contours in the data.
+        '''
+        raise NotImplementedError()

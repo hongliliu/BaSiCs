@@ -17,8 +17,8 @@ class Bubble2D(object):
 
     @property
     def params(self):
-        return [self._y, self._x, self._major,
-                self._minor, self._pa]
+        return np.array([self._y, self._x, self._major,
+                         self._minor, self._pa])
 
     @property
     def area(self):
@@ -36,7 +36,7 @@ class Bubble2D(object):
     def minor(self):
         return self._minor
 
-    def profiles_lines(self, array, **kwargs):
+    def profile_lines(self, array, **kwargs):
         '''
         Calculate radial profile lines of the 2D bubbles.
         '''
@@ -44,6 +44,18 @@ class Bubble2D(object):
         from basics.profile import azimuthal_profiles
 
         return azimuthal_profiles(array, self.params, **kwargs)
+
+    def find_shell_fraction(self, array, frac_thresh=0.05, grad_thresh=1,
+                            **kwargs):
+        '''
+        Find the fraction of the bubble edge associated with a shell.
+        '''
+
+        shell_frac = 0
+
+        for prof in self.profiles_lines(array, **kwargs):
+
+            pass
 
     def as_mask(self):
         '''

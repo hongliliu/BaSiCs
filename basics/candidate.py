@@ -63,7 +63,7 @@ class Bubble2D(object):
 
             nabove = above_thresh.sum()
 
-            if nabove < max(2, 0.05*len(nabove)):
+            if nabove < max(2, 0.05*len(above_thresh)):
                 continue
 
             shell_frac += 1

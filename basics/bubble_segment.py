@@ -228,8 +228,8 @@ class BubbleSegment(object):
     def num_regions(self):
         return len(self.bubble2D_candidates)
 
-    def region_rejection(self, grad_thresh=1, frac_thresh=0.05,
-                         border_clear=True):
+    def region_rejection(self, value_thresh=0.0, grad_thresh=1,
+                         frac_thresh=0.3, border_clear=True):
         '''
         2D bubble candidate rejection. Profile lines from the centre to edges
         of the should show a general increase in the intensity profile.
@@ -245,8 +245,22 @@ class BubbleSegment(object):
 
         # grad_thresh = np.mean(magnitude) + grad_thresh * np.std(magnitude)
 
+        if self.num_regions == 0:
+            return
 
+        rejected_regions = []
 
+        for region in self.bubble2D_candidates:
+
+            region.find_shell_fraction(self.array, value_thresh=value_thresh,
+                                       grad_thresh=grad_thresh)
+
+            if region.shell_fraction < frac_thresh:
+                rejected_regions.append(region)
+
+        # Now remove
+        self.bubble2D_candidates = \
+            list(set(self.bubble2D_candidates) - set(rejected_regions))
 
 
 def beam_struct(beam, scale, pixscale, return_beam=False):

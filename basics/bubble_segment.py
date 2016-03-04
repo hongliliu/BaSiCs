@@ -25,8 +25,7 @@ from radio_beam import Beam
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
 from basics.utils import arctan_transform
-from basics.iterative_watershed import iterative_watershed
-from basics.candidate import Candidate
+from basics.candidate import Bubble2D
 from basics.log import blob_log
 
 
@@ -214,44 +213,24 @@ class BubbleSegment(object):
         if sigma is None:
             sigma = sig_clip(self.array, nsig=10)
 
-        self._bubble_mask = \
-            np.zeros((len(self.scales), ) + self.array.shape, dtype=np.uint8)
+        self.bubble2D_candidates = \
+            [Bubble2D(props) for props in
+             blob_log(self.array, sigma_list=self.scales,
+                      overlap=overlap_frac,
+                      threshold=nsig*sigma,
+                      weighting=self.weightings)[0]]
 
-        self.peaks_dict = dict.fromkeys(self.scales)
-        self.region_props = dict.fromkeys(self.scales)
-
-        self.peaks, self.wave = \
-            blob_log(self.array, sigma_list=self.scales,
-                     overlap=overlap_frac,
-                     threshold=nsig*sigma,
-                     weighting=self.weightings)
-
-        # levels = [5, 3, 1.5, 1.5, 1.5]  # , 1.5]
-
-        # # Find the stand dev at each scale
-        # # Normalize each wavelet scale to it
-        # for i, (arr, scale) in enumerate(zip(self.wave, self.scales)):
-        #     sigma = sig_clip(arr, nsig=6)
-        #     self.wave[i] /= sigma
-        #     self._bubble_mask[i], self.peaks_dict[scale] = \
-        #         iterative_watershed(self.wave[i], scale,
-        #                             end_value=1,
-        #                             start_value=levels[i],
-        #                             delta_value=0.1,
-        #                             mask_below=1)
-        #     self.region_props[scale] = \
-        #         me.regionprops(self._bubble_mask[i],
-        #                        intensity_image=self.wave[i])
-
-        # self._bubble_mask = region_rejection(self._bubble_mask, self.array)
+    @property
+    def region_params(self):
+        return np.array([bub2D.params for bub2D in self.bubble2D_candidates])
 
     def region_rejection(self, grad_thresh=1, frac_thresh=0.05,
                          border_clear=True):
         '''
-        2D bubble candidate rejection. Profile lines from the centre to edges of
-        the should show a general increase in the intensity profile. Regions are
-        removed when the fraction of sight lines without clear increases are
-        below frac_thresh.
+        2D bubble candidate rejection. Profile lines from the centre to edges
+        of the should show a general increase in the intensity profile.
+        Regions are removed when the fraction of sight lines without clear
+        increases are below frac_thresh.
         '''
 
         # spec_shape = bubble_mask_cube.shape[0]

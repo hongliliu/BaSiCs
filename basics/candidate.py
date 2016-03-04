@@ -45,17 +45,34 @@ class Bubble2D(object):
 
         return azimuthal_profiles(array, self.params, **kwargs)
 
-    def find_shell_fraction(self, array, frac_thresh=0.05, grad_thresh=1,
-                            **kwargs):
+    def find_shell_fraction(self, array, value_thresh=0.0,
+                            grad_thresh=1, **kwargs):
         '''
         Find the fraction of the bubble edge associated with a shell.
         '''
 
         shell_frac = 0
+        ntheta = 0
 
-        for prof in self.profiles_lines(array, **kwargs):
+        for prof in self.profile_lines(array, **kwargs):
 
-            pass
+            # Count number of profiles returned.
+            ntheta += 1
+
+            above_thresh = prof >= value_thresh
+
+            nabove = above_thresh.sum()
+
+            if nabove < max(2, 0.05*len(nabove)):
+                continue
+
+            shell_frac += 1
+
+        self._shell_fraction = float(shell_frac) / float(ntheta)
+
+    @property
+    def shell_fraction(self):
+        return self._shell_fraction
 
     def as_mask(self):
         '''

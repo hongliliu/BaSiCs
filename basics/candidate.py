@@ -41,31 +41,14 @@ class Candidate(object):
     def minor(self):
         return self._minor
 
-    @property
-    def parent(self):
-        return self._parent
+    def profiles_lines(self, array, **kwargs):
+        '''
+        Calculate radial profile lines of the 2D bubbles.
+        '''
 
-    @parent.setter
-    def parent(self, candidate):
+        from basics.profile import azimuthal_profiles
 
-        if not isinstance(candidate, Candidate):
-            raise TypeError("Input must be a Candidate instance.")
-
-        self._parent = candidate
-
-    @property
-    def children(self):
-        return self._children
-
-    def add_to_children(self, candidate):
-
-        if not isinstance(candidate, Candidate):
-            raise TypeError("Input must be a Candidate instance.")
-
-        if not self._children:
-            self._children = [candidate]
-        else:
-            self._children.append(candidate)
+        return azimuthal_profiles(array, self.params, **kwargs)
 
 
 class CandidateInteraction(object):

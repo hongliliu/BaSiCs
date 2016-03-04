@@ -29,6 +29,7 @@ from basics.iterative_watershed import iterative_watershed
 from basics.candidate import Candidate
 from basics.log import blob_log
 
+
 eight_conn = np.ones((3, 3))
 
 
@@ -69,12 +70,15 @@ class BubbleSegment(object):
         self.mask = mask
         self.pad_size = pad_size
 
+        self.array[np.isnan(self.array)] = 0.0
+
         pixscale = np.abs(self.wcs.pixel_scale_matrix[0, 0])
         fwhm_beam_pix = self.beam.major.value / pixscale
         beam_pix = np.ceil(fwhm_beam_pix / np.sqrt(8*np.log(2)))
 
         # Scales based on 2^n times the major beam radius
-        self.scales = beam_pix * 2 ** np.arange(0., 3.1)
+        # self.scales = beam_pix * 2 ** np.arange(0., 3.1)
+        self.scales = beam_pix * np.arange(1., 8 + np.sqrt(2), np.sqrt(2))
 
         # Default relative weightings for finding local maxima.
         self.weightings = np.ones_like(self.scales)
@@ -241,6 +245,26 @@ class BubbleSegment(object):
 
         # self._bubble_mask = region_rejection(self._bubble_mask, self.array)
 
+    def region_rejection(self, grad_thresh=1, frac_thresh=0.05,
+                         border_clear=True):
+        '''
+        2D bubble candidate rejection. Profile lines from the centre to edges of
+        the should show a general increase in the intensity profile. Regions are
+        removed when the fraction of sight lines without clear increases are
+        below frac_thresh.
+        '''
+
+        # spec_shape = bubble_mask_cube.shape[0]
+
+        # dy, dx = np.gradient(array, 9)
+        # magnitude = np.sqrt(dy**2+dx**2)
+        # orientation = np.arctan2(dy, dx)
+
+        # grad_thresh = np.mean(magnitude) + grad_thresh * np.std(magnitude)
+
+
+
+
 
 def beam_struct(beam, scale, pixscale, return_beam=False):
     '''
@@ -261,74 +285,6 @@ def beam_struct(beam, scale, pixscale, return_beam=False):
         return struct, scale_beam
 
     return struct
-
-
-def region_rejection(bubble_mask_cube, array, grad_thresh=1, frac_thresh=0.05,
-                     border_clear=True):
-    '''
-    2D bubble candidate rejection.
-    '''
-
-    spec_shape = bubble_mask_cube.shape[0]
-
-    dy, dx = np.gradient(array, 9)
-    magnitude = np.sqrt(dy**2+dx**2)
-    orientation = np.arctan2(dy, dx)
-
-    grad_thresh = np.mean(magnitude) + grad_thresh * np.std(magnitude)
-
-    magnitude_mask = nd.median_filter(magnitude > grad_thresh,
-                                      footprint=eight_conn)
-
-    for i in range(spec_shape-1):
-
-        # Remove any pixels in this level if the next level doesn't contain it
-        # in_smaller = \
-        #     np.logical_xor(bubble_mask_cube[i], bubble_mask_cube[i+1]) & \
-        #     bubble_mask_cube[i]
-
-        # bubble_mask_cube[i][in_smaller] = False
-
-        if border_clear:
-            bubble_mask_cube[i] = clear_border(bubble_mask_cube[i])
-
-        labels, n = me.label(bubble_mask_cube[i], neighbors=8, connectivity=2,
-                             return_num=True)
-
-        boundaries = find_boundaries(labels, connectivity=2)
-
-        perimeters = nd.sum(boundaries, labels, range(1, n+1))
-        perimeter_masked = nd.sum(boundaries*magnitude_mask, labels,
-                                  range(1, n+1))
-
-        masked_fractions = \
-            [mask/float(perim) for mask, perim in
-             zip(perimeter_masked, perimeters)]
-
-        remove_mask = np.zeros_like(array, dtype=bool)
-        for j, frac in enumerate(masked_fractions):
-            if frac < frac_thresh:
-                bubble_mask_cube[i][np.where(labels == j+1)] = 0
-                remove_mask[np.where(labels == j+1)] = 1
-
-        # import matplotlib.pyplot as p
-        # p.subplot(121)
-        # p.imshow(magnitude_mask, origin='lower')
-        # try:
-        #     p.contour(remove_mask, colors='r')
-        # except:
-        #     pass
-        # p.subplot(122)
-        # p.imshow(array, origin='lower')
-        # try:
-        #     p.contour(remove_mask, colors='r')
-        # except:
-        #     pass
-        # p.show()
-        # raw_input("?")
-        # p.clf()
-
-    return bubble_mask_cube
 
 
 def sig_clip(array, nsig=6, tol=0.01, max_iters=500,

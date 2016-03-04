@@ -413,8 +413,8 @@ def overlap_metric(ellip1, ellip2):
     Calculate the overlap in ellipses, if they are in adjacent channels.
     '''
 
-    if np.abs(ellip1[0] - ellip2[0]) != 1:
-        return 0.0
+    # if np.abs(ellip1[0] - ellip2[0]) != 1:
+    #     return 0.0
 
     if ellip1[3] != ellip1[4] or ellip2[3] != ellip2[4]:
         return _pixel_overlap(ellip1[1:], ellip2[1:])

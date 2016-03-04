@@ -9,16 +9,15 @@ class Bubble2D(object):
     def __init__(self, props):
         super(Bubble2D, self).__init__()
 
-        self._channel = props[0]
-        self._y = props[1]
-        self._x = props[2]
-        self._major = props[3]
-        self._minor = props[4]
-        self._pa = props[5]
+        self._y = props[0]
+        self._x = props[1]
+        self._major = props[2]
+        self._minor = props[3]
+        self._pa = props[4]
 
     @property
     def params(self):
-        return [self._channel, self._y, self._x, self._major,
+        return [self._y, self._x, self._major,
                 self._minor, self._pa]
 
     @property

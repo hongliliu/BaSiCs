@@ -2,32 +2,28 @@
 import numpy as np
 
 
-class Candidate(object):
+class Bubble2D(object):
     """
     Class for candidate bubble portions from 2D planes.
     """
-    def __init__(self, mask, img_coords):
-        super(Candidate, self).__init__()
-        self.mask = mask
-        self.img_coords = img_coords
+    def __init__(self, props):
+        super(Bubble2D, self).__init__()
 
-        self._parent = None
-        self._child = None
-
-    def get_props(self):
-        '''
-        Properties of the bubble candidate.
-        '''
-
-        self._size = self.mask.sum()
-
-        self._pa = None
-        self._major = None
-        self._minor = None
+        self._channel = props[0]
+        self._y = props[1]
+        self._x = props[2]
+        self._major = props[3]
+        self._minor = props[4]
+        self._pa = props[5]
 
     @property
-    def size(self):
-        return self._size
+    def params(self):
+        return [self._channel, self._y, self._x, self._major,
+                self._minor, self._pa]
+
+    @property
+    def area(self):
+        return np.pi * self.major * self.minor
 
     @property
     def pa(self):
@@ -49,14 +45,3 @@ class Candidate(object):
         from basics.profile import azimuthal_profiles
 
         return azimuthal_profiles(array, self.params, **kwargs)
-
-
-class CandidateInteraction(object):
-    """
-    Common properties between candidates based on their hierarchal structure
-    """
-    def __init__(self, candidate1, candidate2):
-        super(CandidateInteraction, self).__init__()
-        self.candidate1 = candidate1
-        self.candidate2 = candidate2
-

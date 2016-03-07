@@ -396,18 +396,24 @@ def _pixel_overlap(blob1, blob2, grid_space=0.2):
         small_blob = blob1
 
     bound1 = Ellipse2D(True, 0.0, 0.0, large_blob[2], large_blob[3],
-                       large_blob[4]).bounding_box[0][0]
+                       large_blob[4]).bounding_box
 
-    bound2 = Ellipse2D(True, 0.0, 0.0, small_blob[2], small_blob[3],
-                       small_blob[4]).bounding_box[0][0]
+    bound2 = Ellipse2D(True, np.abs(small_blob[1]-large_blob[1]),
+                       np.abs(small_blob[0]-large_blob[0]),
+                       small_blob[2], small_blob[3],
+                       small_blob[4]).bounding_box
 
-    # Find the values needed to enclose both
-    min_val = bound1 - grid_space
-    max_val = np.abs(bound1) + dist + 2*np.abs(bound2) + grid_space
+    ybounds = (min(bound1[0][0], bound2[0][0]),
+               max(bound1[0][1], bound2[0][1]))
 
-    index = np.arange(min_val, max_val, grid_space)
+    xbounds = (min(bound1[1][0], bound2[1][0]),
+               max(bound1[1][1], bound2[1][1]))
 
-    yy, xx = np.meshgrid(index, index)
+    yy, xx = \
+        np.meshgrid(np.arange(ybounds[0] - grid_space, ybounds[1] + grid_space,
+                              grid_space),
+                    np.arange(xbounds[0] - grid_space, xbounds[1] + grid_space,
+                              grid_space))
 
     ellip1 = Ellipse2D.evaluate(xx, yy, True, 0.0,
                                 0.0, large_blob[2],

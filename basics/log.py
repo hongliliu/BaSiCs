@@ -401,6 +401,10 @@ def _pixel_overlap(blob1, blob2, grid_space=0.2):
                        small_blob[2], small_blob[3],
                        small_blob[4]).bounding_box
 
+    # If there is no overlap in the bounding boxes, there is no overlap
+    if bound1[0][1] < bound2[0][0] and bound1[1][1] < bound2[1][0]:
+        return 0.0
+
     ybounds = (min(bound1[0][0], bound2[0][0]),
                max(bound1[0][1], bound2[0][1]))
 

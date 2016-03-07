@@ -2,7 +2,7 @@
 import numpy as np
 import astropy.units as u
 
-from bubble_segment2D import BubbleSegment
+from bubble_segment2D import BubbleFinder2D
 
 
 class BubbleFinder(object):
@@ -10,4 +10,3 @@ class BubbleFinder(object):
     def __init__(self, arg):
         super(BubbleFinder, self).__init__()
         self.arg = arg
-

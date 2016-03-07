@@ -8,7 +8,11 @@ from numpy import arccos
 from skimage.util import img_as_float
 from skimage.feature import peak_local_max
 from astropy.modeling.models import Ellipse2D
+from scipy.spatial.distance import pdist, squareform
+from functools import partial
 # from .._shared.utils import assert_nD
+
+from basics.utils import dist_uppertri
 
 '''
 Copyright (C) 2011, the scikit-image team
@@ -100,7 +104,7 @@ def _blob_overlap(blob1, blob2):
     return area / (math.pi * (min(r1, r2) ** 2))
 
 
-def _prune_merge_blobs(blobs_array, overlap, min_distance_merge=1.0):
+def _prune_blobs(blobs_array, overlap):
     """Eliminated blobs with area overlap.
 
     Parameters
@@ -112,15 +116,56 @@ def _prune_merge_blobs(blobs_array, overlap, min_distance_merge=1.0):
     overlap : float
         A value between 0 and 1. If the fraction of area overlapping for 2
         blobs is greater than `overlap` the smaller blob is eliminated.
-    min_distance_merge : float
-        Number of sigma apart two blobs must be to be eligible for merging.
-        Blobs must be the same size to merge.
 
     Returns
     -------
     A : ndarray
         `array` with overlapping blobs removed and merged nearby blobs.
     """
+
+    remove_blobs = []
+
+    # Create a distance matrix to catch all overlap cases.
+    cond_arr = pdist(blobs_array, metric=partial(overlap_metric,
+                                                 includes_channel=False))
+    dist_arr = dist_uppertri(cond_arr, blobs_array.shape[0])
+
+    overlaps = np.where(dist_arr > overlap)
+
+    for posn1, posn2 in zip(*overlaps):
+
+        blob1 = blobs_array[posn1]
+        blob2 = blobs_array[posn2]
+
+        if blob1[2] > blob2[2]:
+            remove_blobs.append(posn2)
+        else:
+            remove_blobs.append(posn1)
+
+    # Remove duplicates
+    remove_blobs = list(set(remove_blobs))
+
+    blobs_array = np.delete(blobs_array, remove_blobs, axis=0)
+
+    return blobs_array
+
+
+def _merge_blobs(blobs_array, min_distance_merge=1.0):
+    '''
+    Merge blobs together based on a minimum radius overlap.
+
+    Parameters
+    ----------
+    blobs_array : ndarray
+        A 2d array with each row representing 3 values, ``(y,x,sigma)``
+        where ``(y,x)`` are coordinates of the blob and ``sigma`` is the
+        standard deviation of the Gaussian kernel which detected the blob.
+
+    min_distance_merge : float
+        Number of sigma apart two blobs must be to be eligible for merging.
+        Blobs must be the same size to merge.
+
+    '''
 
     # For merging two overlapping regions into an ellipse
     # Distance between centres equal to the radius
@@ -130,48 +175,37 @@ def _prune_merge_blobs(blobs_array, overlap, min_distance_merge=1.0):
 
     merged_blobs = np.empty((0, 5), dtype=np.float64)
 
-    # iterating again might eliminate more blobs, but one iteration suffices
-    # for most cases
-    for blob1, blob2 in itt.combinations(blobs_array, 2):
+    # Create a distance matrix to catch all overlap cases.
+    cond_arr = pdist(blobs_array, metric=partial(overlap_metric,
+                                                 includes_channel=False))
+    dist_arr = dist_uppertri(cond_arr, blobs_array.shape[0])
+
+    overlaps = np.where(np.logical_and(dist_arr > min_merge_overlap,
+                                       dist_arr <= max_merge_overlap))
+
+    for posn1, posn2 in zip(*overlaps):
+
+        blob1 = blobs_array[posn1]
+        blob2 = blobs_array[posn2]
 
         if blob1[2] != blob1[3] or blob2[2] != blob2[3]:
-            blob_overlap = _pixel_overlap(blob1, blob2)
             is_ellipse = True
         else:
-            blob_overlap = _blob_overlap(blob1, blob2)
             is_ellipse = False
 
-        if blob_overlap == 0:
-            continue
-
         if np.logical_and(blob1[2] == blob2[2], ~is_ellipse):
-            # Check whether we should merge into an ellipse
-            if np.logical_and(blob_overlap > min_merge_overlap,
-                              blob_overlap < max_merge_overlap):
-                # Merge into an ellipse
-                merged_blobs = \
-                    np.vstack([merged_blobs, merge_to_ellipse(blob1, blob2)])
-                blob1[2] = -1
-                blob1[3] = -1
-                blob2[2] = -1
-                blob2[3] = -1
-
-        elif blob_overlap > overlap:
-            if blob1[2] > blob2[2]:
-                blob2[2] = -1
-                blob2[3] = -1
-            else:
-                blob1[2] = -1
-                blob1[3] = -1
-
-        else:
-            continue
+            # Merge into an ellipse
+            merged_blobs = \
+                np.vstack([merged_blobs, merge_to_ellipse(blob1, blob2)])
+            blob1[2] = -1
+            blob1[3] = -1
+            blob2[2] = -1
+            blob2[3] = -1
 
     # Remove blobs
     blobs_array = np.array([b for b in blobs_array if b[2] > 0])
     blobs_array = np.vstack([blobs_array, merged_blobs])
 
-    # return blobs_array[blobs_array[:, 2] > 0]
     return blobs_array
 
 
@@ -408,19 +442,24 @@ def _min_merge_overlap(min_dist):
     return term1 - term2
 
 
-def overlap_metric(ellip1, ellip2):
+def overlap_metric(ellip1, ellip2, includes_channel=True):
     '''
     Calculate the overlap in ellipses, if they are in adjacent channels.
     '''
 
+    if includes_channel:
+        ypos, xpos, major, minor, pa = range(1, 6)
+    else:
+        ypos, xpos, major, minor, pa = range(5)
+
     # if np.abs(ellip1[0] - ellip2[0]) != 1:
     #     return 0.0
 
-    if ellip1[3] != ellip1[4] or ellip2[3] != ellip2[4]:
-        return _pixel_overlap(ellip1[1:], ellip2[1:])
+    if ellip1[major] != ellip1[minor] or ellip2[major] != ellip2[minor]:
+        return _pixel_overlap(ellip1[ypos:], ellip2[ypos:])
 
     else:
-        blob_overlap = _blob_overlap(ellip1[1:], ellip2[1:])
+        blob_overlap = _blob_overlap(ellip1[ypos:], ellip2[ypos:])
         if blob_overlap == 1e-5:
             blob_overlap = 0.0
         return blob_overlap

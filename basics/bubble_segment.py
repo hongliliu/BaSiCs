@@ -21,10 +21,9 @@ except ImportError:
     warnings.warn("Cannot import cv2. Computing with scipy.ndimage")
     CV2_FLAG = False
 
-from radio_beam import Beam
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
-from basics.utils import arctan_transform
+from basics.utils import arctan_transform, sig_clip
 from basics.candidate import Bubble2D
 from basics.log import blob_log
 
@@ -261,59 +260,3 @@ class BubbleSegment(object):
         # Now remove
         self.bubble2D_candidates = \
             list(set(self.bubble2D_candidates) - set(rejected_regions))
-
-
-def beam_struct(beam, scale, pixscale, return_beam=False):
-    '''
-    Return a beam structure.
-    '''
-
-    if scale == 1:
-        scale_beam = beam
-    else:
-        scale_beam = Beam(major=scale*beam.major,
-                          minor=scale*beam.minor,
-                          pa=beam.pa)
-
-    struct = scale_beam.as_tophat_kernel(pixscale).array
-    struct = (struct > 0).astype(int)
-
-    if return_beam:
-        return struct, scale_beam
-
-    return struct
-
-
-def sig_clip(array, nsig=6, tol=0.01, max_iters=500,
-             return_clipped=False):
-    '''
-    Sigma clipping based on the getsources method.
-    '''
-    nsig = float(nsig)
-    mask = np.isfinite(array)
-    std = np.nanstd(array)
-    thresh = nsig * std
-
-    iters = 0
-    while True:
-        good_pix = np.abs(array*mask) <= thresh
-        new_thresh = nsig * np.nanstd(array[good_pix])
-        diff = np.abs(new_thresh - thresh) / thresh
-        thresh = new_thresh
-
-        if diff <= tol:
-            break
-        elif iters == max_iters:
-            raise ValueError("Did not converge")
-        else:
-            iters += 1
-            continue
-
-    sigma = thresh / nsig
-    if not return_clipped:
-        return sigma
-
-    output = array.copy()
-    output[output < thresh] = np.NaN
-
-    return sigma, output

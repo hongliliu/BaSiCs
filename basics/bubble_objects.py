@@ -85,3 +85,19 @@ class Bubble2D(object):
         Expand/contract to match the contours in the data.
         '''
         raise NotImplementedError()
+
+
+class Bubble3D(object):
+    """
+    3D Bubbles.
+    """
+    def __init__(self, props):
+        super(Bubble3D, self).__init__()
+
+        self._y = props[0]
+        self._x = props[1]
+        self._major = props[2]
+        self._minor = props[3]
+        self._pa = props[4]
+        self._vel_width = props[5]
+

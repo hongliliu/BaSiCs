@@ -6,6 +6,7 @@ from astropy.utils.console import ProgressBar
 
 
 from bubble_segment2D import BubbleFinder2D
+from clustering import cluster_and_clean
 from utils import sig_clip
 
 
@@ -59,7 +60,7 @@ class BubbleFinder(object):
 
         self._sigma = val
 
-    def get_bubbles(self, verbose=True):
+    def get_bubbles(self, verbose=True, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -84,4 +85,6 @@ class BubbleFinder(object):
                            bub.region_params])
             bubble_props = np.vstack([bubble_props, props_w_channel])
 
-        return bubble_props
+        cluster_idx = cluster_and_clean(bubble_props, **kwargs)
+
+        return bubble_props, cluster_idx

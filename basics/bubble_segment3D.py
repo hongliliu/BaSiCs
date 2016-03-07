@@ -14,7 +14,7 @@ class BubbleFinder(object):
     def __init__(self, cube, wcs=None, mask=None, sigma=None, empty_channel=0):
         super(BubbleFinder, self).__init__()
 
-        if not isinstance(SpectralCube):
+        if not isinstance(cube, SpectralCube):
             if wcs is None:
                 raise TypeError("When cube is not a SpectralCube, wcs must be"
                                 " given.")

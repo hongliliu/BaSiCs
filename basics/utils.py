@@ -77,6 +77,14 @@ def sig_clip(array, nsig=6, tol=0.01, max_iters=500,
     '''
     Sigma clipping based on the getsources method.
     '''
+
+    # Check if a quantity has been passed
+    if hasattr("unit"):
+        unit = array.unit
+        array = array.value.copy()
+    else:
+        unit = 1.
+
     nsig = float(nsig)
     mask = np.isfinite(array)
     std = np.nanstd(array)
@@ -103,5 +111,8 @@ def sig_clip(array, nsig=6, tol=0.01, max_iters=500,
 
     output = array.copy()
     output[output < thresh] = np.NaN
+
+    sigma *= unit
+    output *= unit
 
     return sigma, output

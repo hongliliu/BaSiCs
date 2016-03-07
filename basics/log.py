@@ -342,8 +342,11 @@ def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
     if local_maxima.size == 0:
         return local_maxima, image_cube
 
-    # return local_maxima, image_cube
-    return _prune_merge_blobs(local_maxima, overlap, merge_overlap_dist), \
+    # Merge regions into ellipses
+    local_maxima = _merge_blobs(local_maxima, merge_overlap_dist)
+
+    # Then prune and return them
+    return _prune_blobs(local_maxima, overlap), \
         image_cube
 
 

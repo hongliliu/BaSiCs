@@ -116,3 +116,108 @@ def sig_clip(array, nsig=6, tol=0.01, max_iters=500,
     output *= unit
 
     return sigma, output
+
+'''
+Scipy license:
+
+Copyright (c) 2001, 2002 Enthought, Inc.
+All rights reserved.
+
+Copyright (c) 2003-2012 SciPy Developers.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+  a. Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+  b. Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+  c. Neither the name of Enthought nor the names of the SciPy Developers
+     may be used to endorse or promote products derived from this software
+     without specific prior written permission.
+
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+THE POSSIBILITY OF SUCH DAMAGE.
+'''
+
+
+def _chk_asarray(a, axis):
+    if axis is None:
+        a = np.ravel(a)
+        outaxis = 0
+    else:
+        a = np.asarray(a)
+        outaxis = axis
+
+    if a.ndim == 0:
+        a = np.atleast_1d(a)
+
+    return a, outaxis
+
+
+def mode(a, axis=None):
+    """
+    Returns an array of the modal (most common) value in the passed array.
+    If there is more than one such value, the maximum is returned.
+
+    The scipy.stats.mode function returns the smallest value when there are
+    multiple modes. This version returns the largest.
+
+    Parameters
+    ----------
+    a : array_like
+        n-dimensional array of which to find mode(s).
+    axis : int or None, optional
+        Axis along which to operate. Default is 0. If None, compute over
+        the whole array `a`.
+
+    Returns
+    -------
+    mode : float
+        The mode of the array. If there are more than one, the largest is
+        returned.
+
+    Examples
+    --------
+    >>> a = np.array([[6, 8, 3, 0],
+    ...               [3, 2, 1, 7],
+    ...               [8, 1, 8, 4],
+    ...               [5, 3, 0, 5],
+    ...               [4, 7, 5, 9]])
+    >>> from scipy import stats
+    >>> stats.mode(a)
+    (array([[3, 1, 0, 0]]), array([[1, 1, 1, 1]]))
+    To get mode of whole array, specify ``axis=None``:
+    >>> stats.mode(a, axis=None)
+    (array([3]), array([3]))
+
+    """
+    a, axis = _chk_asarray(a, axis)
+    if a.size == 0:
+        return np.array([]), np.array([])
+
+    scores = np.unique(np.ravel(a))[::-1]  # get ALL unique values
+    testshape = list(a.shape)
+    testshape[axis] = 1
+    oldmostfreq = np.zeros(testshape, dtype=a.dtype)
+    oldcounts = np.zeros(testshape, dtype=int)
+    for score in scores:
+        template = (a == score)
+        counts = np.expand_dims(np.sum(template, axis), axis)
+        mostfrequent = np.where(counts > oldcounts, score, oldmostfreq)
+        oldcounts = np.maximum(counts, oldcounts)
+        oldmostfreq = mostfrequent
+
+    return mostfrequent

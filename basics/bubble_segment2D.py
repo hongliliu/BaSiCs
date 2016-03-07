@@ -31,11 +31,11 @@ from basics.log import blob_log
 eight_conn = np.ones((3, 3))
 
 
-class BubbleSegment(object):
+class BubbleFinder2D(object):
     """
     Image segmentation for bubbles in a 2D image.
     """
-    def __init__(self, array, scales=[], atan_transform=True, threshold=None,
+    def __init__(self, array, scales=None, threshold=None,
                  mask=None, cut_to_box=False, pad_size=0, structure="beam",
                  beam=None, wcs=None):
 
@@ -68,15 +68,19 @@ class BubbleSegment(object):
         self.mask = mask
         self.pad_size = pad_size
 
-        self.array[np.isnan(self.array)] = 0.0
+        self.array = np.nan_to_num(self.array)
+        self._orig_shape = self.array.shape
 
         pixscale = np.abs(self.wcs.pixel_scale_matrix[0, 0])
         fwhm_beam_pix = self.beam.major.value / pixscale
         beam_pix = np.ceil(fwhm_beam_pix / np.sqrt(8*np.log(2)))
 
-        # Scales based on 2^n times the major beam radius
-        # self.scales = beam_pix * 2 ** np.arange(0., 3.1)
-        self.scales = beam_pix * np.arange(1., 8 + np.sqrt(2), np.sqrt(2))
+        if scales is None:
+            # Scales based on 2^n times the major beam radius
+            # self.scales = beam_pix * 2 ** np.arange(0., 3.1)
+            self.scales = beam_pix * np.arange(1., 8 + np.sqrt(2), np.sqrt(2))
+        else:
+            self.scales = scales
 
         # Default relative weightings for finding local maxima.
         self.weightings = np.ones_like(self.scales)
@@ -128,6 +132,25 @@ class BubbleSegment(object):
         if value < 0:
             raise ValueError("Pad size must be >=0")
         self._pad_size = value
+
+    @property
+    def threshold(self):
+        return self._threshold
+
+    @threshold.setter
+    def threshold(self, value):
+
+        if value is None:
+            value = self.array.min()
+
+        if not isinstance(value, u.Quantity):
+            raise TypeError("Threshold must be an astropy Quantity.")
+
+        if value.unit not in self.array.unit.find_equivalent_units():
+            raise u.UnitsError("Threshold must have equivalent units"
+                               " as the array " + str(self.array.unit))
+
+        self._threshold = value
 
     def apply_atan_transform(self, threshold=None):
 

@@ -10,7 +10,8 @@ from matplotlib.patches import Ellipse
 from scipy.spatial.distance import pdist, squareform
 import scipy.cluster.hierarchy as hier
 
-from basics.bubble_segment import BubbleSegment, sig_clip
+from basics.bubble_segment import BubbleFinder2D
+from basics.utils import sig_clip
 from basics.log import overlap_metric
 
 # from basics.iterative_watershed import iterative_watershed
@@ -36,9 +37,10 @@ sigma = sig_clip(cube[0].value, nsig=10)
 # cube = cube.with_mask(cube > 3*sigma*u.Jy)
 
 for i in ProgressBar(cube.shape[0]):
-    bub = BubbleSegment(cube[i])
+    bub = BubbleFinder2D(cube[i])
     # bub.apply_bilateral_filter()
     bub.multiscale_bubblefind(sigma=sigma, overlap_frac=0.7)
+    bub.region_rejection(value_thresh=3*sigma)
     # test_cube[i] = bub.bubble_mask[1]
     if bub.num_regions == 0:
         continue
@@ -53,8 +55,8 @@ for i in ProgressBar(cube.shape[0]):
 
 # sims = pdist(bubble_props, metric=overlap_metric)
 # sims[sims < 0] = 0.0
-# link_mat = hier.linkage(1 - sims, 'average')
-# cluster_idx = hier.fcluster(link_mat, 0.3, criterion='distance')
+# link_mat = hier.linkage(1 - sims, 'complete')
+# cluster_idx = hier.fcluster(link_mat, 0.9, criterion='distance')
 # radii = np.unique(bubble_props[:, 4])
 
 cluster_idx = hier.fclusterdata(bubble_props[:, 1:3], 18, criterion='distance',

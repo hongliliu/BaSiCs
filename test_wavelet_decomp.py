@@ -8,7 +8,7 @@ import scipy.ndimage as nd
 
 # import cv2
 
-execfile("basics/bubble_segment.py")
+execfile("basics/bubble_segment2D.py")
 execfile("basics/iterative_watershed.py")
 
 
@@ -61,9 +61,10 @@ cube = cube[38:65, 500:1500, 500:1500]
 # Find sigma in an empty channel
 sigma = sig_clip(cube[0].value, nsig=10)
 
-bubble_15 = BubbleSegment(cube[15])
+bubble_15 = BubbleFinder2D(cube[15])
 # bubble_15.apply_bilateral_filter()
-bubble_15.multiscale_bubblefind(sigma=sigma, overlap_frac=0.98)
+bubble_15.multiscale_bubblefind(sigma=sigma, overlap_frac=0.7)
+bubble_15.region_rejection(value_thresh=3*sigma)
 # bubble_15.apply_atan_transform(np.percentile(bubble_15.array, 90))
 
 cols = ['b', 'g', 'c', 'm', 'r', 'k']

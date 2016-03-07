@@ -11,9 +11,9 @@ def cluster_2D_regions(twod_region_props, metric='position', cut_val=18):
     Cluster 2D Bubble regions by their postion or overlap.
     '''
 
-    if metric is "postion":
+    if metric is "position":
 
-        cluster_idx = fclusterdata(twod_region_props[1:3], cut_val,
+        cluster_idx = fclusterdata(twod_region_props[:, 1:3], cut_val,
                                    criterion='distance', method='complete')
 
         return cluster_idx
@@ -29,3 +29,6 @@ def cluster_2D_regions(twod_region_props, metric='position', cut_val=18):
         cluster_idx = fcluster(link_mat, cut_val, criterion='distance')
 
         return cluster_idx
+
+    else:
+        raise ValueError("metric must be 'position' or 'overlap'.")

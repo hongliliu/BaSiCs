@@ -386,8 +386,6 @@ def _pixel_overlap(blob1, blob2, grid_space=0.2):
     better estimate the overlap fraction.
     '''
 
-    dist = np.hypot(blob1[0] - blob2[0], blob1[1] - blob2[1])
-
     if blob1[2] > blob2[2]:
         large_blob = blob1
         small_blob = blob2

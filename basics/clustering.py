@@ -51,7 +51,8 @@ def cluster_and_clean(twod_region_props):
     '''
 
     # Initial cluster is based on position of the centre
-    cluster_idx = cluster_2D_regions(twod_region_props)
+    cluster_idx = cluster_2D_regions(twod_region_props,
+                                     metric='overlap', cut_val=0.7)
 
     # Now we split clusters based on spectral connectivity.
     for clust in np.unique(cluster_idx[cluster_idx > 0]):
@@ -72,5 +73,27 @@ def cluster_and_clean(twod_region_props):
 
         for idx in np.unique(spec_idx[spec_idx > 1]):
             cluster_idx[posns[spec_idx == idx]] = cluster_idx.max() + 1
+
+    # Finally, we split based on position. At this point, there should be
+    # a close cluster of regions and possibly some outliers with small radii
+    # that give a complete overlap.
+    for clust in np.unique(cluster_idx[cluster_idx > 0]):
+
+        posns = np.where(cluster_idx == clust)[0]
+
+        if posns.size == 1:
+            continue
+
+        props = twod_region_props[posns]
+
+        # Cluster on channel and split.
+        pos_idx = cluster_2D_regions(props, metric='position')
+
+        # If not split is found, continue on
+        if pos_idx.max() == 1:
+            continue
+
+        for idx in np.unique(pos_idx[pos_idx > 1]):
+            cluster_idx[posns[pos_idx == idx]] = cluster_idx.max() + 1
 
     return cluster_idx

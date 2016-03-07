@@ -1,8 +1,6 @@
 
 from spectral_cube import SpectralCube
-from astropy import units as u
 import numpy as np
-from astropy.utils.console import ProgressBar
 from astropy.io import fits
 import os
 import matplotlib.pyplot as p
@@ -10,13 +8,9 @@ from matplotlib.patches import Ellipse
 from scipy.spatial.distance import pdist, squareform
 import scipy.cluster.hierarchy as hier
 
-from basics.bubble_segment import BubbleFinder2D
+from basics.bubble_segment3D import BubbleFinder
 from basics.utils import sig_clip
 from basics.log import overlap_metric
-
-# from basics.iterative_watershed import iterative_watershed
-execfile("basics/iterative_watershed.py")
-
 
 data_path = "/media/eric/Data_3/VLA/IC1613/"
 # data_path = "/Users/eric/Data/"
@@ -26,30 +20,9 @@ cube = SpectralCube.read(os.path.join(data_path, "IC1613_NA_ICL001.fits"))
 # Remove empty channels
 cube = cube[38:63, 500:1500, 500:1500]
 
-# Test on some of the central channels
-# test_cube = np.empty((25, 1000, 1000), dtype='uint8')
-# peaks = {}
-bubble_props = np.empty((0, 6), dtype=float)
-region_props = {}
+bub_find = BubbleFinder(cube)
 
-sigma = sig_clip(cube[0].value, nsig=10)
-
-# cube = cube.with_mask(cube > 3*sigma*u.Jy)
-
-for i in ProgressBar(cube.shape[0]):
-    bub = BubbleFinder2D(cube[i])
-    # bub.apply_bilateral_filter()
-    bub.multiscale_bubblefind(sigma=sigma, overlap_frac=0.7)
-    bub.region_rejection(value_thresh=3*sigma)
-    # test_cube[i] = bub.bubble_mask[1]
-    if bub.num_regions == 0:
-        continue
-    props_w_channel = \
-        np.hstack([np.ones(bub.num_regions)[:, np.newaxis] * i,
-                   bub.region_params])
-    bubble_props = np.vstack([bubble_props, props_w_channel])
-    # print(i, props_w_channel.shape[0])
-    # region_props[i] = bub.region_props
+bubble_props = bub_find.get_bubbles(verbose=True)
 
 # Now test clustering
 

@@ -79,7 +79,7 @@ def sig_clip(array, nsig=6, tol=0.01, max_iters=500,
     '''
 
     # Check if a quantity has been passed
-    if hasattr("unit"):
+    if hasattr(array, "unit"):
         unit = array.unit
         array = array.value.copy()
     else:

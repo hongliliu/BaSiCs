@@ -1,6 +1,7 @@
 
 import numpy as np
 
+from log import overlap_metric
 
 class Bubble2D(object):
     """
@@ -85,6 +86,14 @@ class Bubble2D(object):
         Expand/contract to match the contours in the data.
         '''
         raise NotImplementedError()
+
+    def overlap_with(self, other_bubble2D):
+        '''
+        Return the overlap with another bubble.
+        '''
+
+        return overlap_metric(self.params, other_bubble2D.params,
+                              includes_channel=False)
 
 
 class Bubble3D(object):

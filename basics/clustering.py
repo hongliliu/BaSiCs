@@ -71,7 +71,6 @@ def cluster_and_clean(twod_region_props):
             continue
 
         for idx in np.unique(spec_idx[spec_idx > 1]):
-            print("Splitting " + str(clust))
             cluster_idx[posns[spec_idx == idx]] = cluster_idx.max() + 1
 
     return cluster_idx

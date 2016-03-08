@@ -152,8 +152,8 @@ def _line_profile_coordinates(src, dst, linewidth=1):
     return np.array([perp_rows, perp_cols])
 
 
-def azimuthal_profiles(image, blob, ntheta=360, verbose=False,
-                       extend_factor=1.5):
+def radial_profiles(image, blob, ntheta=360, verbose=False,
+                    extend_factor=1.5):
     '''
     Calculate azimuthal profiles from the centre of a bubble to its edge.
     '''

@@ -7,6 +7,7 @@ from math import sqrt, hypot, log
 from numpy import arccos
 from skimage.util import img_as_float
 from skimage.feature import peak_local_max
+from skimage.morphology import disk
 from astropy.modeling.models import Ellipse2D
 from scipy.spatial.distance import pdist, squareform
 from functools import partial
@@ -209,8 +210,9 @@ def _merge_blobs(blobs_array, min_distance_merge=1.0):
     return blobs_array
 
 
-def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
-             threshold=.2, overlap=.5, log_scale=False, sigma_ratio=2.,
+def blob_log(image, sigma_list=None, scale_choice='linear',
+             min_sigma=1, max_sigma=50, num_sigma=10,
+             threshold=.2, overlap=.5, sigma_ratio=2.,
              weighting=None, merge_overlap_dist=1.0):
     """Finds blobs in the given grayscale image.
 
@@ -225,6 +227,9 @@ def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
         background (white on black).
     sigma_list : np.ndarray, optional
         Provide the list of sigmas to use.
+    scale_choice : str, optional
+        'log', 'linear' or 'ratio'. Determines how the scales are calculated
+        based on the given number, minimum, maximum, or ratio.
     min_sigma : float, optional
         The minimum standard deviation for Gaussian Kernel. Keep this low to
         detect smaller blobs.
@@ -241,22 +246,24 @@ def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
     overlap : float, optional
         A value between 0 and 1. If the area of two blobs overlaps by a
         fraction greater than `threshold`, the smaller blob is eliminated.
-    log_scale : bool, optional
-        If set intermediate values of standard deviations are interpolated
-        using a logarithmic scale to the base `10`. If not, linear
-        interpolation is used.
     weighting : np.ndarray, optional
         Used to weight certain scales differently when selecting local maxima
         in the transform space. For example when searching for regions near
         the beam size, the transform can be down-weighted to avoid spurious
         detections. Must have the same number of elements as the scales.
+    merge_overlap_dist : float, optional
+        Controls the minimum overlap regions must have to be merged together.
+        Defaults to one sigma separation, where sigma is one of the scales
+        used in the transform.
 
     Returns
     -------
-    A : (n, 3) ndarray
-        A 2d array with each row representing 3 values, ``(y,x,sigma)``
-        where ``(y,x)`` are coordinates of the blob and ``sigma`` is the
-        standard deviation of the Gaussian kernel which detected the blob.
+    A : (n, 5) ndarray
+        A 2d array with each row representing 5 values,
+        ``(y, x, semi-major sigma, semi-minor sigma, pa)``
+        where ``(y,x)`` are coordinates of the blob, ``semi-major sigma`` and
+        ``semi-minor sigma`` are the standard deviations of the elliptical blob,
+        and ``pa`` is its position angle.
 
     References
     ----------
@@ -296,18 +303,19 @@ def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
     image = img_as_float(image)
 
     if sigma_list is None:
-        # if log_scale:
-        #     start, stop = log(min_sigma, 10), log(max_sigma, 10)
-        #     sigma_list = np.logspace(start, stop, num_sigma)
-        # else:
-        #     sigma_list = np.linspace(min_sigma, max_sigma, num_sigma)
-
-        # k such that min_sigma*(sigma_ratio**k) > max_sigma
-        k = int(log(float(max_sigma) / min_sigma, sigma_ratio)) + 1
-
-        # a geometric progression of standard deviations for gaussian kernels
-        sigma_list = np.array([min_sigma * (sigma_ratio ** i)
-                               for i in range(k)])
+        if scale_choice is 'log':
+            start, stop = log(min_sigma, 10), log(max_sigma, 10)
+            sigma_list = np.logspace(start, stop, num_sigma)
+        elif scale_choice is 'linear':
+            sigma_list = np.linspace(min_sigma, max_sigma, num_sigma)
+        elif scale_choice is 'ratio':
+            # k such that min_sigma*(sigma_ratio**k) > max_sigma
+            k = int(log(float(max_sigma) / min_sigma, sigma_ratio)) + 1
+            sigma_list = np.array([min_sigma * (sigma_ratio ** i)
+                                   for i in range(k)])
+        else:
+            raise ValueError("scale_choice must be 'log', 'linear', or "
+                             "'ratio'.")
 
     if weighting is not None:
         if len(weighting) != len(sigma_list):
@@ -323,10 +331,18 @@ def blob_log(image, sigma_list=None, min_sigma=1, max_sigma=50, num_sigma=10,
                  zip(sigma_list, weighting)]
     image_cube = np.dstack(gl_images)
 
-    local_maxima = peak_local_max(image_cube, threshold_abs=threshold,
-                                  footprint=np.ones((3, 3, 3)),
-                                  threshold_rel=0.0,
-                                  exclude_border=False)
+    for i, scale in enumerate(sigma_list):
+        scale_peaks = peak_local_max(image_cube[:, :, i],
+                                     threshold_abs=threshold,
+                                     min_distance=1.5*scale,
+                                     threshold_rel=0.0,
+                                     exclude_border=False)
+        scale_peaks = \
+            np.hstack([scale_peaks, np.ones_like(scale_peaks[:, :1]) * i])
+        if i == 0:
+            local_maxima = scale_peaks
+        else:
+            local_maxima = np.vstack([local_maxima, scale_peaks])
 
     # Convert local_maxima to float64
     lm = local_maxima.astype(np.float64)

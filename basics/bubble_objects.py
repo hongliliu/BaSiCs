@@ -1,7 +1,9 @@
 
 import numpy as np
+from astropy.modeling.models import Ellipse2D
 
 from log import overlap_metric
+
 
 class Bubble2D(object):
     """
@@ -55,7 +57,7 @@ class Bubble2D(object):
         shell_frac = 0
         ntheta = 0
 
-        for prof in self.profile_lines(array, **kwargs):
+        for dist, prof in self.profile_lines(array, **kwargs):
 
             # Count number of profiles returned.
             ntheta += 1
@@ -81,11 +83,13 @@ class Bubble2D(object):
         '''
         raise NotImplementedError()
 
-    def find_shape(self):
+    def find_shape(self, array, max_extent=1.5, **kwargs):
         '''
         Expand/contract to match the contours in the data.
         '''
-        raise NotImplementedError()
+
+        for dist, prof in self.profile_lines(array, **kwargs):
+            pass
 
     def overlap_with(self, other_bubble2D):
         '''

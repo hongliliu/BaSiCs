@@ -110,3 +110,9 @@ class Bubble3D(object):
         self._pa = props[4]
         self._vel_width = props[5]
 
+    @staticmethod
+    def from_2D_regions(twod_region_list):
+        '''
+        Create a 3D regions from a collection of 2D regions.
+        '''
+        pass

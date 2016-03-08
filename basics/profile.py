@@ -174,7 +174,7 @@ def azimuthal_profiles(image, blob, ntheta=360, verbose=False,
 
         profile, dists = profile_line(image, (y0, x0), end_pt)
 
-        profiles.append(profile)
+        profiles.append((dists, profile))
 
         if verbose:
             import matplotlib.pyplot as p

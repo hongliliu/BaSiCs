@@ -60,7 +60,7 @@ class BubbleFinder(object):
 
         self._sigma = val
 
-    def get_bubbles(self, verbose=True, **kwargs):
+    def get_bubbles(self, verbose=True, overlap_frac=0.9, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -76,7 +76,8 @@ class BubbleFinder(object):
         for i in iterate:
             bub = BubbleFinder2D(self.cube[i],
                                  mask=self.cube.mask.include(view=(i, )))
-            bub.multiscale_bubblefind(sigma=self.sigma, overlap_frac=0.7)
+            bub.multiscale_bubblefind(sigma=self.sigma,
+                                      overlap_frac=overlap_frac)
             bub.region_rejection(value_thresh=3*self.sigma)
             if bub.num_regions == 0:
                 continue

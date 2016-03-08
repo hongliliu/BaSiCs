@@ -4,6 +4,7 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import fcluster, fclusterdata, linkage
 
 from log import overlap_metric
+from utils import mode
 
 
 def cluster_2D_regions(twod_region_props, metric='position', cut_val=18):
@@ -43,16 +44,56 @@ def cluster_2D_regions(twod_region_props, metric='position', cut_val=18):
     return cluster_idx
 
 
-def cluster_and_clean(twod_region_props):
+def cluster_and_clean(twod_region_props, min_scatter=9):
     '''
     Clean-up clusters of 2D regions. Real bubbles must be connected in
     velocity space. This function also looks for clusters that are closely
     related, and combines them.
+
+    Parameters
+    ----------
+    twod_region_props : np.ndarray
+        Array with the channel, y position, x position, semi-major radius,
+        semi-minor radius, and position angle of the detected 2D blobs.
+    min_scatter : float, optional
+        Minimum distance to allow between the centres of regions in a cluster.
+
+    Returns
+    -------
+    cluster_idx : np.ndarray
+        The cluster ID for each of the given regions.
     '''
 
     # Initial cluster is based on position of the centre
     cluster_idx = cluster_2D_regions(twod_region_props,
-                                     metric='overlap', cut_val=0.7)
+                                     metric='position',
+                                     cut_val=twod_region_props[:, 4].max())
+
+    # Finally, we split based on position. At this point, there should be
+    # a close cluster of regions and possibly some outliers with small radii
+    # that give a complete overlap.
+    for clust in np.unique(cluster_idx[cluster_idx > 0]):
+
+        posns = np.where(cluster_idx == clust)[0]
+
+        if posns.size == 1:
+            continue
+
+        props = twod_region_props[posns]
+
+        # Determine max scatter in cluster from the mode of the major axes.
+        maj_mode = max(mode(props[:, 4]), min_scatter)
+
+        # Cluster on channel and split.
+        pos_idx = cluster_2D_regions(props,
+                                     metric='position', cut_val=maj_mode)
+
+        # If not split is found, continue on
+        if pos_idx.max() == 1:
+            continue
+
+        for idx in np.unique(pos_idx[pos_idx > 1]):
+            cluster_idx[posns[pos_idx == idx]] = cluster_idx.max() + 1
 
     # Now we split clusters based on spectral connectivity.
     for clust in np.unique(cluster_idx[cluster_idx > 0]):
@@ -67,33 +108,15 @@ def cluster_and_clean(twod_region_props):
         # Cluster on channel and split.
         spec_idx = cluster_2D_regions(props, metric='channel')
 
+        # print(props)
+        # print(spec_idx)
+        # raw_input(str(clust))
+
         # If not split is found, continue on
         if spec_idx.max() == 1:
             continue
 
         for idx in np.unique(spec_idx[spec_idx > 1]):
             cluster_idx[posns[spec_idx == idx]] = cluster_idx.max() + 1
-
-    # Finally, we split based on position. At this point, there should be
-    # a close cluster of regions and possibly some outliers with small radii
-    # that give a complete overlap.
-    for clust in np.unique(cluster_idx[cluster_idx > 0]):
-
-        posns = np.where(cluster_idx == clust)[0]
-
-        if posns.size == 1:
-            continue
-
-        props = twod_region_props[posns]
-
-        # Cluster on channel and split.
-        pos_idx = cluster_2D_regions(props, metric='position')
-
-        # If not split is found, continue on
-        if pos_idx.max() == 1:
-            continue
-
-        for idx in np.unique(pos_idx[pos_idx > 1]):
-            cluster_idx[posns[pos_idx == idx]] = cluster_idx.max() + 1
 
     return cluster_idx

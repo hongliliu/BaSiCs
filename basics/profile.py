@@ -153,9 +153,31 @@ def _line_profile_coordinates(src, dst, linewidth=1):
 
 
 def radial_profiles(image, blob, ntheta=360, verbose=False,
-                    extend_factor=1.5):
+                    extend_factor=1.5, append_end=False):
     '''
-    Calculate azimuthal profiles from the centre of a bubble to its edge.
+    Calculate radial profiles from the centre of a bubble to its edge.
+
+    Parameters
+    ----------
+    image : 2D np.ndarray
+        Image to calculate the profiles from.
+    blob : np.ndarray
+        Contains the y, x, major radius, minor radius, and position angle of
+        the blob.
+    ntheta : int, optional
+        Number of angles to compute the profile at.
+    verbose : bool, optional
+        Plots the profile and the positions in the image at each theta.
+    extend_factor : float, optional
+        Number of times past the major radius to compute the profile to.
+    append_end : bool, optional
+        Append the end point onto the returned list.
+
+    Returns
+    -------
+    profiles : list
+        Contains the distance and profile for each theta. It also contains the
+        end point when append_end is enabled.
     '''
 
     y0, x0, a, b, pa = blob.copy()
@@ -174,7 +196,10 @@ def radial_profiles(image, blob, ntheta=360, verbose=False,
 
         profile, dists = profile_line(image, (y0, x0), end_pt)
 
-        profiles.append((dists, profile))
+        if append_end:
+            profiles.append((dists, profile, end_pt))
+        else:
+            profiles.append((dists, profile))
 
         if verbose:
             import matplotlib.pyplot as p

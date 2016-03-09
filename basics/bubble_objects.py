@@ -2,6 +2,7 @@
 import numpy as np
 from astropy.modeling.models import Ellipse2D
 from astropy.nddata.utils import extract_array, add_array
+from scipy import ndimage as nd
 
 from log import overlap_metric
 from utils import consec_split, find_nearest
@@ -213,6 +214,9 @@ class Bubble2D(object):
             end_posn = tuple([posn[:nearest_idx+1] for posn in line_posns])
 
             extent_mask[end_posn] = True
+
+        # Fill holes
+        extent_mask = nd.binary_fill_holes(extent_mask)
 
         if return_array is "bbox":
             bbox_shape = \

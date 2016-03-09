@@ -168,9 +168,9 @@ class Bubble2D(object):
         # Use the ellipse model to define a bounding box for the mask.
         bbox = self.as_ellipse(zero_center=True).bounding_box
 
-        y_range = np.ceil((max_extent * np.sqrt(2)) *
+        y_range = np.ceil((max_extent * 2) *
                           (bbox[0][1] - bbox[0][0])).astype(int)
-        x_range = np.ceil((max_extent * np.sqrt(2)) *
+        x_range = np.ceil((max_extent * 2) *
                           (bbox[1][1] - bbox[1][0])).astype(int)
 
         extent_mask = np.zeros((y_range, x_range), dtype=bool)
@@ -243,8 +243,11 @@ class Bubble2D(object):
         elif return_array is "full":
             return add_array(np.zeros_like(array, dtype=bool), extent_mask,
                              self.center_pixel)
-        elif return_array is "pad bbox":
+        elif return_array is "padded":
             return extent_mask
+        else:
+            raise ValueError("return_array must be 'bbox', 'full', or"
+                             " 'padded'.")
 
     def overlap_with(self, other_bubble2D):
         '''

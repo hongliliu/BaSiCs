@@ -107,11 +107,13 @@ class Bubble2D(object):
         return Ellipse2D(True, self.y, self.x, 2*self.major, 2*self.minor,
                          self.pa)
 
-    def as_mask(self):
+    def as_mask(self, shape, zero_center=False):
         '''
         Return a boolean mask of the 2D region.
         '''
-        raise NotImplementedError()
+        yy, xx = np.mgrid[:shape[0], :shape[1]]
+
+        return self.as_ellipse(zero_center=zero_center)(xx, yy)
 
     def find_shape(self, array, max_extent=1.5, value_thresh=0.0,
                    **kwargs):

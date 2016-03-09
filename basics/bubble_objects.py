@@ -152,7 +152,7 @@ class Bubble2D(object):
         Return the mean and std for the elliptical region in the given array.
         '''
 
-        ellip_mask = self.as_mask(array.shape, zero_center=True)
+        ellip_mask = self.as_mask(array.shape, zero_center=False)
 
         if mask_operation is not None:
             if mask_operation is 'erode':
@@ -163,7 +163,7 @@ class Bubble2D(object):
                                                 iterations=niters)
 
         masked_array = array.copy()
-        masked_array[ellip_mask] = np.NaN
+        masked_array[~ellip_mask] = np.NaN
 
         return np.nanmean(masked_array), np.nanstd(masked_array)
 

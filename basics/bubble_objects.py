@@ -173,11 +173,18 @@ class Bubble2D(object):
         Expand/contract to match the contours in the data.
         '''
 
+        mean, std = self.intensity_props(array)
+        background_thresh = mean + nsig_thresh * std
+
+
         # Define a suitable background based on the intensity within the
         # elliptical region
         if value_thresh is None:
-            mean, std = self.intensity_props(array)
-            value_thresh = mean + nsig_thresh * std
+            value_thresh = background_thresh
+        else:
+            # If value_thresh is higher use it. Otherwise use the bkg.
+            if value_thresh < background_thresh:
+                value_thresh = background_thresh
 
         # Use the ellipse model to define a bounding box for the mask.
         bbox = self.as_ellipse(zero_center=True).bounding_box

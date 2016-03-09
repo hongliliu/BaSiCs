@@ -8,6 +8,8 @@ from log import overlap_metric
 from utils import consec_split, find_nearest
 from profile import _line_profile_coordinates
 
+eight_conn = np.ones((3, 3))
+
 
 class Bubble2D(object):
     """
@@ -144,12 +146,21 @@ class Bubble2D(object):
                      np.floor(bbox[1][0]).astype(int)-pad:
                      np.ceil(bbox[1][1]).astype(int)+pad+1]
 
-    def intensity_props(self, array):
+    def intensity_props(self, array, mask_operation="erode",
+                        niters=1):
         '''
         Return the mean and std for the elliptical region in the given array.
         '''
 
         ellip_mask = self.as_mask(array.shape, zero_center=True)
+
+        if mask_operation is not None:
+            if mask_operation is 'erode':
+                ellip_mask = nd.binary_erosion(ellip_mask, eight_conn,
+                                               iterations=niters)
+            elif mask_operation is 'dilate':
+                ellip_mask = nd.binary_dilation(ellip_mask, eight_conn,
+                                                iterations=niters)
 
         masked_array = array.copy()
         masked_array[ellip_mask] = np.NaN

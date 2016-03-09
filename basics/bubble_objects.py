@@ -207,19 +207,25 @@ class Bubble2D(object):
                                                   extend_factor=max_extent,
                                                   append_end=True, **kwargs):
 
-            above_thresh = np.where(prof >= value_thresh)[0]
-
             new_end = (max_extent * (end[0] - self.y),
                        max_extent * (end[1] - self.x))
 
             max_dist = np.abs(dist.max())
 
+            # line_posns = \
+            #     [np.floor(coord).astype(int) + cent for coord, cent in
+            #      zip(_line_profile_coordinates((0, 0), new_end), centre)]
+
             line_posns = []
-            coords = [np.floor(coord).astype(int) for coord in
-                      _line_profile_coordinates((0, 0), new_end)]
-            for coord, cent in zip(coords, centre):
-                coord = coord[dist_arr[coords] > min_radius_frac*self.minor]
-                line_posns.append(coord + cent)
+            coords = [np.floor(coord).astype(int)+cent for coord, cent in
+                      zip(_line_profile_coordinates((0, 0), new_end), centre)]
+            for coord in coords:
+                line_posns.append(coord[dist_arr[coords] >= min_radius_frac*self.minor])
+
+            prof = prof[dist >= min_radius_frac * self.minor]
+            dist = dist[dist >= min_radius_frac * self.minor]
+
+            above_thresh = np.where(prof >= value_thresh)[0]
 
             # This angle does not coincide with a shell.
             # We fill in a pixel at the major radius.

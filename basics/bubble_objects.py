@@ -167,7 +167,7 @@ class Bubble2D(object):
 
         return np.nanmean(masked_array), np.nanstd(masked_array)
 
-    def find_shape(self, array, return_array='full', max_extent=1.5,
+    def find_shape(self, array, return_array='full', max_extent=1.0,
                    nsig_thresh=1, value_thresh=None, **kwargs):
         '''
         Expand/contract to match the contours in the data.

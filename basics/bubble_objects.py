@@ -168,14 +168,14 @@ class Bubble2D(object):
         return np.nanmean(masked_array), np.nanstd(masked_array)
 
     def find_shape(self, array, return_array='full', max_extent=1.0,
-                   nsig_thresh=1, value_thresh=None, **kwargs):
+                   nsig_thresh=1, value_thresh=None, min_radius_frac=0.5,
+                   **kwargs):
         '''
         Expand/contract to match the contours in the data.
         '''
 
         mean, std = self.intensity_props(array)
         background_thresh = mean + nsig_thresh * std
-
 
         # Define a suitable background based on the intensity within the
         # elliptical region
@@ -214,9 +214,12 @@ class Bubble2D(object):
 
             max_dist = np.abs(dist.max())
 
-            line_posns = \
-                [np.floor(coord).astype(int) + cent for coord, cent in
-                 zip(_line_profile_coordinates((0, 0), new_end), centre)]
+            line_posns = []
+            coords = [np.floor(coord).astype(int) for coord in
+                      _line_profile_coordinates((0, 0), new_end)]
+            for coord, cent in zip(coords, centre):
+                coord = coord[dist_arr[coords] > min_radius_frac*self.minor]
+                line_posns.append(coord + cent)
 
             # This angle does not coincide with a shell.
             # We fill in a pixel at the major radius.

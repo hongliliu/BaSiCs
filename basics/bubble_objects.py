@@ -104,7 +104,7 @@ class Bubble2D(object):
         if zero_center:
             return Ellipse2D(True, 0.0, 0.0, 2*self.major, 2*self.minor,
                              self.pa)
-        return Ellipse2D(True, self.y, self.x, 2*self.major, 2*self.minor,
+        return Ellipse2D(True, self.x, self.y, 2*self.major, 2*self.minor,
                          self.pa)
 
     def as_mask(self, shape, zero_center=False):
@@ -114,6 +114,18 @@ class Bubble2D(object):
         yy, xx = np.mgrid[:shape[0], :shape[1]]
 
         return self.as_ellipse(zero_center=zero_center)(xx, yy).astype(bool)
+
+    def return_array_region(self, array):
+        '''
+        Return the region defined by the bounding box in the given array.
+        '''
+
+        bbox = self.as_ellipse(zero_center=False).bounding_box
+
+        return array[np.floor(bbox[0][0]).astype(int):
+                     np.ceil(bbox[0][1]).astype(int),
+                     np.floor(bbox[1][0]).astype(int):
+                     np.ceil(bbox[1][1]).astype(int)]
 
     def intensity_props(self, array):
         '''

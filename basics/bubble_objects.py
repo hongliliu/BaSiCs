@@ -129,17 +129,20 @@ class Bubble2D(object):
 
         return self.as_ellipse(zero_center=zero_center)(xx, yy).astype(bool)
 
-    def return_array_region(self, array):
+    def return_array_region(self, array, pad=None):
         '''
         Return the region defined by the bounding box in the given array.
         '''
 
+        if pad is None:
+            pad = 0
+
         bbox = self.as_ellipse(zero_center=False).bounding_box
 
-        return array[np.floor(bbox[0][0]).astype(int):
-                     np.ceil(bbox[0][1]).astype(int),
-                     np.floor(bbox[1][0]).astype(int):
-                     np.ceil(bbox[1][1]).astype(int)]
+        return array[np.floor(bbox[0][0]).astype(int)-pad:
+                     np.ceil(bbox[0][1]).astype(int)+pad+1,
+                     np.floor(bbox[1][0]).astype(int)-pad:
+                     np.ceil(bbox[1][1]).astype(int)+pad+1]
 
     def intensity_props(self, array):
         '''

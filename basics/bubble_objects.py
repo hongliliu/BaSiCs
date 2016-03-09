@@ -104,16 +104,28 @@ class Bubble2D(object):
             centre is at the pixel position in the array.
         '''
         if zero_center:
-            return Ellipse2D(True, 0.0, 0.0, 2*self.major, 2*self.minor,
+            return Ellipse2D(True, 0.0, 0.0, self.major, self.minor,
                              self.pa)
-        return Ellipse2D(True, self.x, self.y, 2*self.major, 2*self.minor,
+        return Ellipse2D(True, self.x, self.y, self.major, self.minor,
                          self.pa)
 
-    def as_mask(self, shape, zero_center=False):
+    def as_mask(self, shape=None, zero_center=False):
         '''
         Return a boolean mask of the 2D region.
         '''
-        yy, xx = np.mgrid[:shape[0], :shape[1]]
+
+        # Returns the bbox shape. Forces zero_center to be True
+        if shape is None:
+            zero_center = True
+            bbox = self.as_ellipse(zero_center=False).bounding_box
+            y_range = np.ceil((bbox[0][1] - bbox[0][0])).astype(int)
+            x_range = np.ceil((bbox[1][1] - bbox[1][0])).astype(int)
+
+            yy, xx = np.mgrid[-int(y_range / 2): int(y_range / 2) + 1,
+                              -int(x_range / 2): int(x_range / 2) + 1]
+
+        else:
+            yy, xx = np.mgrid[:shape[0], :shape[1]]
 
         return self.as_ellipse(zero_center=zero_center)(xx, yy).astype(bool)
 
@@ -179,6 +191,8 @@ class Bubble2D(object):
             new_end = (max_extent * (end[0] - self.y),
                        max_extent * (end[1] - self.x))
 
+            max_dist = np.abs(dist.max())
+
             line_posns = \
                 [np.floor(coord).astype(int) + cent for coord, cent in
                  zip(_line_profile_coordinates((0, 0), new_end), centre)]
@@ -187,14 +201,14 @@ class Bubble2D(object):
             # We fill in a pixel at the major radius.
             if above_thresh.size == 0:
                 nearest_idx = find_nearest(dist_arr[line_posns],
-                                           self.major).astype(int)
+                                           max_dist).astype(int)
             else:
                 # Pick the end point on the first segment with > 2 pixels
                 # above the threshold.
                 segments = consec_split(above_thresh)
 
                 for seg in segments:
-                    if seg.size < 3:
+                    if seg.size < 2:
                         continue
 
                     # Take the first position and use it to define the edge
@@ -209,7 +223,7 @@ class Bubble2D(object):
                     # to the major radius
                     nearest_idx = \
                         find_nearest(dist_arr[line_posns],
-                                     self.major).astype(int)
+                                     max_dist).astype(int)
 
             end_posn = tuple([posn[:nearest_idx+1] for posn in line_posns])
 

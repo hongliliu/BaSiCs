@@ -221,3 +221,19 @@ def mode(a, axis=None):
         oldmostfreq = mostfrequent
 
     return mostfrequent
+
+
+def consec_split(data, stepsize=1):
+    '''
+    Split an array into consecutive sequences.
+    http://stackoverflow.com/questions/7352684/how-to-find-the-groups-of-consecutive-elements-from-an-array-in-numpy
+    '''
+    return np.split(data, np.where(np.diff(data) != stepsize)[0]+1)
+
+
+def find_nearest(array, value):
+    '''
+    http://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
+    '''
+    idx = (np.abs(array-value)).argmin()
+    return array[idx]

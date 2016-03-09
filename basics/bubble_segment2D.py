@@ -24,7 +24,7 @@ except ImportError:
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
 from basics.utils import arctan_transform, sig_clip
-from basics.candidate import Bubble2D
+from basics.bubble_objects import Bubble2D
 from basics.log import blob_log
 
 

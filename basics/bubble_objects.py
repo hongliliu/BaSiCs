@@ -3,7 +3,7 @@ import numpy as np
 from astropy.modeling.models import Ellipse2D
 
 from log import overlap_metric
-from utils import consec_split, nearest_posn, find_nearest
+from utils import consec_split, find_nearest
 from profile import _line_profile_coordinates
 
 
@@ -113,13 +113,31 @@ class Bubble2D(object):
         '''
         yy, xx = np.mgrid[:shape[0], :shape[1]]
 
-        return self.as_ellipse(zero_center=zero_center)(xx, yy)
+        return self.as_ellipse(zero_center=zero_center)(xx, yy).astype(bool)
 
-    def find_shape(self, array, max_extent=1.5, value_thresh=0.0,
-                   **kwargs):
+    def intensity_props(self, array):
+        '''
+        Return the mean and std for the elliptical region in the given array.
+        '''
+
+        ellip_mask = self.as_mask(array.shape, zero_center=True)
+
+        masked_array = array.copy()
+        masked_array[ellip_mask] = np.NaN
+
+        return np.nanmean(masked_array), np.nanstd(masked_array)
+
+    def find_shape(self, array, max_extent=1.5, nsig_thresh=1,
+                   value_thresh=None, **kwargs):
         '''
         Expand/contract to match the contours in the data.
         '''
+
+        # Define a suitable background based on the intensity within the
+        # elliptical region
+        if value_thresh is None:
+            mean, std = self.intensity_props(array)
+            value_thresh = mean + nsig_thresh * std
 
         # Use the ellipse model to define a bounding box for the mask.
         bbox = self.as_ellipse(zero_center=True).bounding_box

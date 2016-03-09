@@ -210,7 +210,7 @@ class Bubble2D(object):
                         find_nearest(dist_arr[line_posns],
                                      self.major).astype(int)
 
-            end_posn = tuple([posn[nearest_idx] for posn in line_posns])
+            end_posn = tuple([posn[:nearest_idx+1] for posn in line_posns])
 
             extent_mask[end_posn] = True
 

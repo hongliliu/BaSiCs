@@ -229,7 +229,7 @@ class Bubble2D(object):
                 segments = consec_split(above_thresh)
 
                 for seg in segments:
-                    if seg.size < 2:
+                    if seg.size < 3:
                         continue
 
                     # Take the first position and use it to define the edge

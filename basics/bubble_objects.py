@@ -1,6 +1,7 @@
 
 import numpy as np
 from astropy.modeling.models import Ellipse2D
+from astropy.nddata.utils import extract_array, add_array
 
 from log import overlap_metric
 from utils import consec_split, find_nearest
@@ -139,8 +140,8 @@ class Bubble2D(object):
 
         return np.nanmean(masked_array), np.nanstd(masked_array)
 
-    def find_shape(self, array, max_extent=1.5, nsig_thresh=1,
-                   value_thresh=None, **kwargs):
+    def find_shape(self, array, return_array='full', max_extent=1.5,
+                   nsig_thresh=1, value_thresh=None, **kwargs):
         '''
         Expand/contract to match the contours in the data.
         '''
@@ -213,7 +214,19 @@ class Bubble2D(object):
 
             extent_mask[end_posn] = True
 
-        return extent_mask
+        if return_array is "bbox":
+            bbox_shape = \
+                (np.ceil(bbox[0][1]).astype(int) -
+                 np.floor(bbox[0][0]).astype(int),
+                 np.ceil(bbox[1][1]).astype(int) -
+                 np.floor(bbox[1][0]).astype(int))
+
+            return extract_array(extent_mask, bbox_shape, centre)
+        elif return_array is "full":
+            return add_array(np.zeros_like(array, dtype=bool), extent_mask,
+                             self.center_pixel)
+        elif return_array is "pad bbox":
+            return extent_mask
 
     def overlap_with(self, other_bubble2D):
         '''

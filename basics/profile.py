@@ -153,7 +153,7 @@ def _line_profile_coordinates(src, dst, linewidth=1):
 
 
 def radial_profiles(image, blob, ntheta=360, verbose=False,
-                    extend_factor=1.5, append_end=False):
+                    extend_factor=1.5, append_end=False, **kwargs):
     '''
     Calculate radial profiles from the centre of a bubble to its edge.
 
@@ -194,7 +194,7 @@ def radial_profiles(image, blob, ntheta=360, verbose=False,
         end_pt = (y0 + a*np.cos(theta)*np.sin(pa) - b*np.sin(theta)*np.cos(pa),
                   x0 + a*np.cos(theta)*np.cos(pa) - b*np.sin(theta)*np.sin(pa))
 
-        profile, dists = profile_line(image, (y0, x0), end_pt)
+        profile, dists = profile_line(image, (y0, x0), end_pt, **kwargs)
 
         if append_end:
             profiles.append((dists, profile, end_pt))

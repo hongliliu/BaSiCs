@@ -24,6 +24,12 @@ class Bubble2D(object):
         self._minor = props[3]
         self._pa = props[4]
 
+        # The last position, if given, is the velocity channel in the cube
+        try:
+            self._channel = props[5]
+        except IndexError:
+            self._channel = None
+
     @property
     def params(self):
         return np.array([self._y, self._x, self._major,
@@ -63,6 +69,13 @@ class Bubble2D(object):
     @property
     def minor(self):
         return self._minor
+
+    @property
+    def channel(self):
+        if self._channel is not None:
+            return self._channel
+
+        raise ValueError("Bubble2D not instantiated with a velocity channel.")
 
     def profile_lines(self, array, **kwargs):
         '''

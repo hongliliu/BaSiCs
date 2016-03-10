@@ -15,7 +15,7 @@ def cluster_2D_regions(twod_region_props, metric='position', cut_val=18):
     # Cluster on the x, y centre positions
     if metric is "position":
 
-        cluster_idx = fclusterdata(twod_region_props[:, 1:3], cut_val,
+        cluster_idx = fclusterdata(twod_region_props[:, :2], cut_val,
                                    criterion='distance', method='complete')
 
     # Cluster on the spatial overlap of regions
@@ -34,7 +34,7 @@ def cluster_2D_regions(twod_region_props, metric='position', cut_val=18):
 
         Warning("cut_val forced to 1.0 for channel clustering.")
 
-        cluster_idx = fclusterdata(twod_region_props[:, :1], 1.0,
+        cluster_idx = fclusterdata(twod_region_props[:, -2:], 1.0,
                                    criterion='distance', method='single',
                                    metric='cityblock')
 
@@ -67,7 +67,7 @@ def cluster_and_clean(twod_region_props, min_scatter=9):
     # Initial cluster is based on position of the centre
     cluster_idx = cluster_2D_regions(twod_region_props,
                                      metric='position',
-                                     cut_val=twod_region_props[:, 4].max())
+                                     cut_val=twod_region_props[:, 3].max())
 
     # Finally, we split based on position. At this point, there should be
     # a close cluster of regions and possibly some outliers with small radii
@@ -82,7 +82,7 @@ def cluster_and_clean(twod_region_props, min_scatter=9):
         props = twod_region_props[posns]
 
         # Determine max scatter in cluster from the mode of the major axes.
-        maj_mode = max(mode(props[:, 4]), min_scatter)
+        maj_mode = max(mode(props[:, 3]), min_scatter)
 
         # Cluster on channel and split.
         pos_idx = cluster_2D_regions(props,

@@ -193,6 +193,9 @@ class Bubble2D(object):
             if value_thresh < background_thresh:
                 value_thresh = background_thresh
 
+        # Set the number of theta to be ~ the perimeter.
+        ntheta = 1.5 * np.ceil(self.perimeter).astype(int)
+
         # Use the ellipse model to define a bounding box for the mask.
         bbox = self.as_ellipse(zero_center=True).bounding_box
 
@@ -212,7 +215,8 @@ class Bubble2D(object):
 
         for dist, prof, end in self.profile_lines(array,
                                                   extend_factor=max_extent,
-                                                  append_end=True, **kwargs):
+                                                  append_end=True,
+                                                  ntheta=ntheta, **kwargs):
 
             new_end = (max_extent * (end[0] - self.y),
                        max_extent * (end[1] - self.x))
@@ -241,7 +245,7 @@ class Bubble2D(object):
                 segments = consec_split(above_thresh)
 
                 for seg in segments:
-                    if seg.size < 3:
+                    if seg.size < max(3, int(0.1*above_thresh.size)):
                         continue
 
                     # Take the first position and use it to define the edge
@@ -264,6 +268,8 @@ class Bubble2D(object):
 
         # Fill holes
         extent_mask = nd.binary_fill_holes(extent_mask)
+        extent_mask = nd.binary_closing(extent_mask, eight_conn)
+        extent_mask = nd.binary_opening(extent_mask, eight_conn)
 
         if return_array is "bbox":
             bbox_shape = \

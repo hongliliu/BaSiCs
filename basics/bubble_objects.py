@@ -80,12 +80,11 @@ class Bubble2D(object):
         '''
 
         shell_frac = 0
-        ntheta = 0
 
-        for dist, prof in self.profile_lines(array, **kwargs):
+        # Set the number of theta to be ~ the perimeter.
+        ntheta = 1.5 * np.ceil(self.perimeter).astype(int)
 
-            # Count number of profiles returned.
-            ntheta += 1
+        for dist, prof in self.profile_lines(array, ntheta=ntheta, **kwargs):
 
             above_thresh = prof >= value_thresh
 

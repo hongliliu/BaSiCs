@@ -317,11 +317,54 @@ class Bubble3D(object):
         self._major = props[2]
         self._minor = props[3]
         self._pa = props[4]
-        self._vel_width = props[5]
+        self._velocity_width = props[5]
 
     @staticmethod
     def from_2D_regions(twod_region_list):
         '''
         Create a 3D regions from a collection of 2D regions.
         '''
+        pass
+
+    @property
+    def y(self):
+        return self._y
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def major(self):
+        return self._major
+
+    @property
+    def minor(self):
+        return self._minor
+
+    @property
+    def pa(self):
+        return self._pa
+
+    @property
+    def velocity_width(self):
+        return self._velocity_width
+
+    @property
+    def bubble_type(self):
+        return self._bubble_type
+
+    def extract_pv_slice(self, cube):
+        pass
+
+    def as_mask(self, cube):
+        pass
+
+    def as_extent_mask(self, cube):
+        pass
+
+    def as_shell_mask(self, cube):
+        pass
+
+    def return_cube_region(self, cube):
         pass

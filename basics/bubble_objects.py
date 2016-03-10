@@ -305,7 +305,9 @@ class Bubble3D(object):
         self._major = props[2]
         self._minor = props[3]
         self._pa = props[4]
-        self._velocity_width = props[5]
+        self._velocity_center = props[5]
+        self._velocity_start = props[6]
+        self._velocity_end = props[7]
 
         self._twoD_objects = None
 
@@ -326,13 +328,22 @@ class Bubble3D(object):
         props = [twoD_properties[:, 1].mean(), twoD_properties[:, 2].mean(),
                  twoD_properties[:, 3].max(), twoD_properties[:, 4].max(),
                  twoD_properties[:, 5].mean(),
-                 int(round(twoD_properties[:, 0]. median()))]
+                 int(round(twoD_properties[:, 0].median())),
+                 twoD_properties[:, 0].min(), twoD_properties[:, 0].max()]
 
         self = Bubble3D(props)
 
         self._twoD_objects = twod_region_list
 
         return self
+
+    @property
+    def twoD_objects(self):
+        return self._twoD_objects
+
+    @property
+    def has_2D_regions(self):
+        return True if self.twoD_objects is not None else False
 
     @property
     def y(self):
@@ -359,8 +370,20 @@ class Bubble3D(object):
         return self._pa
 
     @property
+    def velocity_start(self):
+        return self._velocity_start
+
+    @property
+    def velocity_end(self):
+        return self._velocity_end
+
+    @property
+    def velocity_center(self):
+        return self._velocity_center
+
+    @property
     def velocity_width(self):
-        return self._velocity_width
+        return self.velocity_end - self.velocity_start
 
     @property
     def bubble_type(self):

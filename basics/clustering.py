@@ -108,10 +108,6 @@ def cluster_and_clean(twod_region_props, min_scatter=9):
         # Cluster on channel and split.
         spec_idx = cluster_2D_regions(props, metric='channel')
 
-        # print(props)
-        # print(spec_idx)
-        # raw_input(str(clust))
-
         # If not split is found, continue on
         if spec_idx.max() == 1:
             continue

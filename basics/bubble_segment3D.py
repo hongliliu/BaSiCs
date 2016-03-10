@@ -6,6 +6,7 @@ from astropy.utils.console import ProgressBar
 
 
 from bubble_segment2D import BubbleFinder2D
+from bubble_objects import Bubble3D
 from clustering import cluster_and_clean
 from utils import sig_clip
 
@@ -60,13 +61,15 @@ class BubbleFinder(object):
 
         self._sigma = val
 
-    def get_bubbles(self, verbose=True, overlap_frac=0.9, **kwargs):
+    def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
+                    **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
         '''
 
         bubble_props = np.empty((0, 6), dtype=float)
+        twod_regions = []
 
         if verbose:
             iterate = ProgressBar(self.cube.shape[0])
@@ -74,18 +77,31 @@ class BubbleFinder(object):
             iterate = xrange(self.cube.shape[0])
 
         for i in iterate:
-            bub = BubbleFinder2D(self.cube[i],
+            bub = BubbleFinder2D(self.cube[i], channel=i,
                                  mask=self.cube.mask.include(view=(i, )))
             bub.multiscale_bubblefind(sigma=self.sigma,
                                       overlap_frac=overlap_frac)
             bub.region_rejection(value_thresh=3*self.sigma)
             if bub.num_regions == 0:
                 continue
-            props_w_channel = \
-                np.hstack([np.ones(bub.num_regions)[:, np.newaxis] * i,
-                           bub.region_params])
-            bubble_props = np.vstack([bubble_props, props_w_channel])
+            twod_regions.extend(bub.regions)
+
+        bubble_props = np.array([bub.params for bub in twod_regions])
 
         cluster_idx = cluster_and_clean(bubble_props, **kwargs)
 
+        self._bubbles = []
+
+        for idx in np.unique(cluster_idx[cluster_idx >= 0]):
+            total = (cluster_idx == idx).sum()
+            if total >= min_channels:
+                regions = [twod_regions[idx] for idx in
+                           np.where(cluster_idx == idx)]
+                self._bubbles.append(Bubble3D.from_2D_regions(regions))
+
         return bubble_props, cluster_idx
+
+    @property
+    def bubbles(self):
+        return self._bubbles
+

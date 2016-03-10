@@ -72,10 +72,10 @@ class Bubble2D(object):
 
     @property
     def channel(self):
-        if self._channel is not None:
-            return self._channel
+        if self._channel is None:
+            Warning("Bubble2D not instantiated with a velocity channel.")
 
-        raise ValueError("Bubble2D not instantiated with a velocity channel.")
+        return self._channel
 
     def profile_lines(self, array, **kwargs):
         '''

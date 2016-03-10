@@ -34,6 +34,13 @@ class Bubble2D(object):
         return np.pi * self.major * self.minor
 
     @property
+    def perimeter(self):
+        '''
+        Estimate of the perimeter when major ~ minor.
+        '''
+        return 2 * np.pi * np.sqrt(0.5*(self.major**2 + self.minor**2))
+
+    @property
     def x(self):
         return self._x
 
@@ -211,10 +218,6 @@ class Bubble2D(object):
                        max_extent * (end[1] - self.x))
 
             max_dist = np.abs(dist.max())
-
-            # line_posns = \
-            #     [np.floor(coord).astype(int) + cent for coord, cent in
-            #      zip(_line_profile_coordinates((0, 0), new_end), centre)]
 
             line_posns = []
             coords = [np.floor(coord).astype(int)+cent for coord, cent in

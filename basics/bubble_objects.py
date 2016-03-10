@@ -307,12 +307,32 @@ class Bubble3D(object):
         self._pa = props[4]
         self._velocity_width = props[5]
 
+        self._twoD_objects = None
+
     @staticmethod
     def from_2D_regions(twod_region_list):
         '''
         Create a 3D regions from a collection of 2D regions.
         '''
-        pass
+
+        # Extract the 2D properties
+        twoD_properties = \
+            np.array([bub2D.params for bub2D in twod_region_list])
+
+        # Sort by channel
+        twod_region_list = \
+            [twod_region_list[i] for i in twoD_properties[:, 0].argsort()]
+
+        props = [twoD_properties[:, 1].mean(), twoD_properties[:, 2].mean(),
+                 twoD_properties[:, 3].max(), twoD_properties[:, 4].max(),
+                 twoD_properties[:, 5].mean(),
+                 int(round(twoD_properties[:, 0]. median()))]
+
+        self = Bubble3D(props)
+
+        self._twoD_objects = twod_region_list
+
+        return self
 
     @property
     def y(self):
@@ -321,6 +341,10 @@ class Bubble3D(object):
     @property
     def x(self):
         return self._x
+
+    @property
+    def pixel_center(self):
+        return (np.floor(self.y).astype(int), np.floor(self.x).astype(int))
 
     @property
     def major(self):

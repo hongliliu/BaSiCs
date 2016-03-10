@@ -35,7 +35,7 @@ class BubbleFinder2D(object):
     """
     Image segmentation for bubbles in a 2D image.
     """
-    def __init__(self, array, scales=None, threshold=None,
+    def __init__(self, array, scales=None, threshold=None, channel=None,
                  mask=None, cut_to_box=False, pad_size=0, structure="beam",
                  beam=None, wcs=None):
 
@@ -70,6 +70,7 @@ class BubbleFinder2D(object):
 
         self.array = np.nan_to_num(self.array)
         self._orig_shape = self.array.shape
+        self.channel = channel
 
         pixscale = np.abs(self.wcs.pixel_scale_matrix[0, 0])
         fwhm_beam_pix = self.beam.major.value / pixscale
@@ -235,20 +236,29 @@ class BubbleFinder2D(object):
         if sigma is None:
             sigma = sig_clip(self.array, nsig=10)
 
-        self.bubble2D_candidates = \
-            [Bubble2D(props) for props in
-             blob_log(self.array, sigma_list=self.scales,
-                      overlap=overlap_frac,
-                      threshold=nsig*sigma,
-                      weighting=self.weightings)[0]]
+        self._regions = []
+
+        for props in blob_log(self.array, sigma_list=self.scales,
+                              overlap=overlap_frac,
+                              threshold=nsig*sigma,
+                              weighting=self.weightings)[0]:
+
+            if self.channel is not None:
+                props = np.append(props, self.channel)
+
+            self.regions.append(Bubble2D(props))
+
+    @property
+    def regions(self):
+        return self._regions
 
     @property
     def region_params(self):
-        return np.array([bub2D.params for bub2D in self.bubble2D_candidates])
+        return np.array([bub2D.params for bub2D in self.regions])
 
     @property
     def num_regions(self):
-        return len(self.bubble2D_candidates)
+        return len(self.regions)
 
     def region_rejection(self, value_thresh=0.0, grad_thresh=1,
                          frac_thresh=0.3, border_clear=True):
@@ -272,7 +282,7 @@ class BubbleFinder2D(object):
 
         rejected_regions = []
 
-        for region in self.bubble2D_candidates:
+        for region in self.regions:
 
             region.find_shell_fraction(self.array, value_thresh=value_thresh,
                                        grad_thresh=grad_thresh)
@@ -281,5 +291,5 @@ class BubbleFinder2D(object):
                 rejected_regions.append(region)
 
         # Now remove
-        self.bubble2D_candidates = \
-            list(set(self.bubble2D_candidates) - set(rejected_regions))
+        self._regions = \
+            list(set(self._regions) - set(rejected_regions))

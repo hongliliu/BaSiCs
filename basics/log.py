@@ -127,8 +127,7 @@ def _prune_blobs(blobs_array, overlap):
     remove_blobs = []
 
     # Create a distance matrix to catch all overlap cases.
-    cond_arr = pdist(blobs_array, metric=partial(overlap_metric,
-                                                 includes_channel=False))
+    cond_arr = pdist(blobs_array, metric=partial(overlap_metric))
     dist_arr = dist_uppertri(cond_arr, blobs_array.shape[0])
 
     overlaps = np.where(dist_arr > overlap)
@@ -177,8 +176,7 @@ def _merge_blobs(blobs_array, min_distance_merge=1.0):
     merged_blobs = np.empty((0, 5), dtype=np.float64)
 
     # Create a distance matrix to catch all overlap cases.
-    cond_arr = pdist(blobs_array, metric=partial(overlap_metric,
-                                                 includes_channel=False))
+    cond_arr = pdist(blobs_array, metric=partial(overlap_metric))
     dist_arr = dist_uppertri(cond_arr, blobs_array.shape[0])
 
     overlaps = np.where(np.logical_and(dist_arr > min_merge_overlap,

@@ -309,12 +309,11 @@ class Bubble2D(object):
         return overlap_metric(self.params, other_bubble2D.params,
                               includes_channel=False)
 
-    def as_patch(self):
+    def as_patch(self, **kwargs):
         from matplotlib.patches import Ellipse
         y, x, rmaj, rmin, pa = self.params[:5]
         return Ellipse((x, y), width=2*rmaj, height=2*rmin,
-                       angle=np.rad2deg(pa),
-                       color='b', fill=False, linewidth=2)
+                       angle=np.rad2deg(pa), **kwargs)
 
 
 class Bubble3D(object):

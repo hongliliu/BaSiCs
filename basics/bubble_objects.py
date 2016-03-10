@@ -159,15 +159,22 @@ class Bubble2D(object):
         Return the mean and std for the elliptical region in the given array.
         '''
 
-        ellip_mask = self.as_mask(array.shape, zero_center=False)
+        # ellip_mask = self.as_mask(array.shape, zero_center=False)
 
-        if mask_operation is not None:
-            if mask_operation is 'erode':
-                ellip_mask = nd.binary_erosion(ellip_mask, eight_conn,
-                                               iterations=niters)
-            elif mask_operation is 'dilate':
-                ellip_mask = nd.binary_dilation(ellip_mask, eight_conn,
-                                                iterations=niters)
+        # if mask_operation is not None:
+        #     if mask_operation is 'erode':
+        #         ellip_mask = nd.binary_erosion(ellip_mask, eight_conn,
+        #                                        iterations=niters)
+        #     elif mask_operation is 'dilate':
+        #         ellip_mask = nd.binary_dilation(ellip_mask, eight_conn,
+        #                                         iterations=niters)
+
+        inner_ellipse = \
+            Ellipse2D(True, self.x, self.y, max(3, self.major/2.),
+                      max(3, self.minor/2.), self.pa)
+        yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
+
+        ellip_mask = inner_ellipse(xx, yy).astype(bool)
 
         masked_array = array.copy()
         masked_array[~ellip_mask] = np.NaN
@@ -227,7 +234,8 @@ class Bubble2D(object):
             coords = [np.floor(coord).astype(int)+cent for coord, cent in
                       zip(_line_profile_coordinates((0, 0), new_end), centre)]
             for coord in coords:
-                line_posns.append(coord[dist_arr[coords] >= min_radius_frac*self.minor])
+                line_posns.append(coord[dist_arr[coords] >=
+                                  min_radius_frac*self.minor])
 
             prof = prof[dist >= min_radius_frac * self.minor]
             dist = dist[dist >= min_radius_frac * self.minor]

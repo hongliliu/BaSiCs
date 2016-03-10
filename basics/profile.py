@@ -180,7 +180,7 @@ def radial_profiles(image, blob, ntheta=360, verbose=False,
         end point when append_end is enabled.
     '''
 
-    y0, x0, a, b, pa = blob.copy()
+    y0, x0, a, b, pa = blob.copy()[:5]
 
     a *= extend_factor
     b *= extend_factor

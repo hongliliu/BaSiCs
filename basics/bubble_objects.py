@@ -32,6 +32,10 @@ class Bubble2D(object):
 
     @property
     def params(self):
+        if self.channel:
+            return np.array([self._y, self._x, self._major,
+                             self._minor, self._pa, self._channel])
+
         return np.array([self._y, self._x, self._major,
                          self._minor, self._pa])
 

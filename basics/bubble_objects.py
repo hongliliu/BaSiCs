@@ -152,21 +152,10 @@ class Bubble2D(object):
                      np.floor(bbox[1][0]).astype(int)-pad:
                      np.ceil(bbox[1][1]).astype(int)+pad+1]
 
-    def intensity_props(self, array, mask_operation="erode",
-                        niters=1):
+    def intensity_props(self, array):
         '''
         Return the mean and std for the elliptical region in the given array.
         '''
-
-        # ellip_mask = self.as_mask(array.shape, zero_center=False)
-
-        # if mask_operation is not None:
-        #     if mask_operation is 'erode':
-        #         ellip_mask = nd.binary_erosion(ellip_mask, eight_conn,
-        #                                        iterations=niters)
-        #     elif mask_operation is 'dilate':
-        #         ellip_mask = nd.binary_dilation(ellip_mask, eight_conn,
-        #                                         iterations=niters)
 
         inner_ellipse = \
             Ellipse2D(True, self.x, self.y, max(3, self.major/2.),

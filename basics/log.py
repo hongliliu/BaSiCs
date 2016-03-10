@@ -469,15 +469,12 @@ def _min_merge_overlap(min_dist):
     return term1 - term2
 
 
-def overlap_metric(ellip1, ellip2, includes_channel=True):
+def overlap_metric(ellip1, ellip2):
     '''
     Calculate the overlap in ellipses, if they are in adjacent channels.
     '''
 
-    if includes_channel:
-        ypos, xpos, major, minor, pa = range(1, 6)
-    else:
-        ypos, xpos, major, minor, pa = range(5)
+    ypos, xpos, major, minor, pa = range(5)
 
     # if np.abs(ellip1[0] - ellip2[0]) != 1:
     #     return 0.0

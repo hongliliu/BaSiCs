@@ -86,7 +86,7 @@ class BubbleFinder(object):
                 continue
             twod_regions.extend(bub.regions)
 
-        bubble_props = np.array([bub.params for bub in twod_regions])
+        bubble_props = np.vstack([bub.params for bub in twod_regions])
 
         cluster_idx = cluster_and_clean(bubble_props, **kwargs)
 
@@ -96,7 +96,7 @@ class BubbleFinder(object):
             total = (cluster_idx == idx).sum()
             if total >= min_channels:
                 regions = [twod_regions[idx] for idx in
-                           np.where(cluster_idx == idx)]
+                           np.where(cluster_idx == idx)[0]]
                 self._bubbles.append(Bubble3D.from_2D_regions(regions))
 
         return bubble_props, cluster_idx

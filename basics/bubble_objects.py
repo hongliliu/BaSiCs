@@ -351,7 +351,7 @@ class Bubble3D(object):
         props = [twoD_properties[:, 1].mean(), twoD_properties[:, 2].mean(),
                  twoD_properties[:, 3].max(), twoD_properties[:, 4].max(),
                  twoD_properties[:, 5].mean(),
-                 int(round(twoD_properties[:, 0].median())),
+                 int(round(np.median(twoD_properties[:, 0]))),
                  twoD_properties[:, 0].min(), twoD_properties[:, 0].max()]
 
         self = Bubble3D(props)

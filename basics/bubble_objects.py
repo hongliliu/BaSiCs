@@ -3,6 +3,7 @@ import numpy as np
 from astropy.modeling.models import Ellipse2D
 from astropy.nddata.utils import extract_array, add_array
 from scipy import ndimage as nd
+from itertools import izip
 
 from log import overlap_metric
 from utils import consec_split, find_nearest
@@ -412,14 +413,56 @@ class Bubble3D(object):
     def bubble_type(self):
         return self._bubble_type
 
+    def _chan_iter(self):
+        return xrange(int(self.velocity_start), int(self.velocity_end)+1)
+
+    def _twoD_region_iter(self):
+        for region in self.twoD_objects:
+            yield region
+
     def extract_pv_slice(self, cube):
         pass
 
-    def as_mask(self, cube):
-        pass
+    def as_mask(self, spatial_shape, zero_center=False):
+        '''
+        Return an elliptical mask.
+        '''
 
-    def as_extent_mask(self, cube):
-        pass
+        if len(spatial_shape) != 2:
+            raise ValueError("spatial_shape must have a length of 2.")
+
+        if not self.has_2D_regions:
+            raise NotImplementedError("")
+
+        ellip_mask = np.zeros((int(self.velocity_width),) + spatial_shape,
+                              dtype=bool)
+
+        for i in xrange(ellip_mask.shape[0]):
+            ellip_mask[i] = \
+                self.twoD_objects[i].as_mask(shape=spatial_shape,
+                                             zero_center=zero_center)
+
+        return ellip_mask
+
+    def as_extent_mask(self, cube, **kwargs):
+        '''
+        Run Bubble2D.find_shape to get the extend mask in each channel.
+        '''
+
+        if not self.has_2D_regions:
+            raise NotImplementedError("")
+
+        for i, (chan, region) in enumerate(izip(self._chan_iter(),
+                                                self._twoD_region_iter())):
+            extent_2d_mask = region.find_shape(cube[chan], **kwargs)
+
+            if i == 0:
+                extent_mask = extent_2d_mask[np.newaxis, :]
+            else:
+                extent_mask = np.append(extent_mask,
+                                        extent_2d_mask[np.newaxis, :])
+
+        return extent_mask
 
     def as_shell_mask(self, cube):
         pass

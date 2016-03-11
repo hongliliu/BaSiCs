@@ -348,11 +348,11 @@ class Bubble3D(object):
         twod_region_list = \
             [twod_region_list[i] for i in twoD_properties[:, 0].argsort()]
 
-        props = [twoD_properties[:, 1].mean(), twoD_properties[:, 2].mean(),
-                 twoD_properties[:, 3].max(), twoD_properties[:, 4].max(),
-                 twoD_properties[:, 5].mean(),
-                 int(round(np.median(twoD_properties[:, 0]))),
-                 twoD_properties[:, 0].min(), twoD_properties[:, 0].max()]
+        props = [twoD_properties[:, 0].mean(), twoD_properties[:, 1].mean(),
+                 twoD_properties[:, 2].max(), twoD_properties[:, 3].max(),
+                 twoD_properties[:, 4].mean(),
+                 int(round(np.median(twoD_properties[:, 5]))),
+                 twoD_properties[:, 5].min(), twoD_properties[:, 5].max()]
 
         self = Bubble3D(props)
 

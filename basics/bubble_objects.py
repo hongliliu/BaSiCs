@@ -441,7 +441,7 @@ class Bubble3D(object):
         if not self.has_2D_regions:
             raise NotImplementedError("")
 
-        ellip_mask = np.zeros((int(self.velocity_width),) + spatial_shape,
+        ellip_mask = np.zeros((len(self.twoD_objects),) + spatial_shape,
                               dtype=bool)
 
         for i, region in enumerate(self._twoD_region_iter()):
@@ -464,10 +464,11 @@ class Bubble3D(object):
             extent_2d_mask = region.find_shape(cube[chan], **kwargs)
 
             if i == 0:
-                extent_mask = extent_2d_mask[np.newaxis, :]
+                extent_mask = extent_2d_mask[np.newaxis, :, :]
             else:
                 extent_mask = np.append(extent_mask,
-                                        extent_2d_mask[np.newaxis, :])
+                                        extent_2d_mask[np.newaxis, :, :],
+                                        axis=0)
 
         return extent_mask
 

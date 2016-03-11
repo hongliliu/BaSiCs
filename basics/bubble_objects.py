@@ -4,6 +4,7 @@ from astropy.modeling.models import Ellipse2D
 from astropy.nddata.utils import extract_array, add_array
 from scipy import ndimage as nd
 from itertools import izip
+from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
 from log import overlap_metric
 from utils import consec_split, find_nearest
@@ -174,6 +175,9 @@ class Bubble2D(object):
         '''
         Return the mean and std for the elliptical region in the given array.
         '''
+
+        if isinstance(array, LowerDimensionalObject):
+            array = array.value.copy()
 
         inner_ellipse = \
             Ellipse2D(True, self.x, self.y, max(3, self.major/2.),
@@ -420,6 +424,9 @@ class Bubble3D(object):
         for region in self.twoD_objects:
             yield region
 
+    def twoD_region_params(self):
+        return np.array([region.params for region in self._twoD_region_iter()])
+
     def extract_pv_slice(self, cube):
         pass
 
@@ -437,10 +444,10 @@ class Bubble3D(object):
         ellip_mask = np.zeros((int(self.velocity_width),) + spatial_shape,
                               dtype=bool)
 
-        for i in xrange(ellip_mask.shape[0]):
+        for i, region in enumerate(self._twoD_region_iter()):
             ellip_mask[i] = \
-                self.twoD_objects[i].as_mask(shape=spatial_shape,
-                                             zero_center=zero_center)
+                region.as_mask(shape=spatial_shape,
+                               zero_center=zero_center)
 
         return ellip_mask
 

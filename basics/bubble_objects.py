@@ -500,13 +500,21 @@ class Bubble3D(BaseNDClass):
         # Set width to be twice minor radius
 
         if use_subcube:
-            # Define end points along the major axis
-            high = (self.major*np.sin(self.pa),
-                    self.major*np.cos(self.pa))
-            low = (self.major*np.sin(self.pa),
-                   self.major*np.cos(self.pa))
 
-            return extract_pv_slice(self.return_cube_region(cube, **kwargs),
+            subcube = self.return_cube_region(cube, **kwargs)
+
+            y_center = floor_int(subcube.shape[1]/2.)
+            x_center = floor_int(subcube.shape[2]/2.)
+
+            # Define end points along the major axis
+            high = (y_center + self.major*np.sin(self.pa),
+                    x_center + self.major*np.cos(self.pa))
+            low = (y_center - self.major*np.sin(self.pa),
+                   x_center - self.major*np.cos(self.pa))
+
+            print high, low
+
+            return extract_pv_slice(subcube,
                                     Path([low, high], width=width))
         else:
             high = (self.y + self.major*np.sin(self.pa),

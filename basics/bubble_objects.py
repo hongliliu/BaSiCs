@@ -118,7 +118,7 @@ class Bubble2D(BubbleNDBase):
         shell_frac = 0
 
         # Set the number of theta to be ~ the perimeter.
-        ntheta = 1.5 * np.ceil(self.perimeter).astype(int)
+        ntheta = 1.5 * ceil_int(self.perimeter)
 
         for dist, prof in self.profile_lines(array, ntheta=ntheta, **kwargs):
 
@@ -162,8 +162,8 @@ class Bubble2D(BubbleNDBase):
         if shape is None:
             zero_center = True
             bbox = self.as_ellipse(zero_center=False).bounding_box
-            y_range = np.ceil((bbox[0][1] - bbox[0][0])).astype(int)
-            x_range = np.ceil((bbox[1][1] - bbox[1][0])).astype(int)
+            y_range = ceil_int((bbox[0][1] - bbox[0][0]))
+            x_range = ceil_int((bbox[1][1] - bbox[1][0]))
 
             yy, xx = np.mgrid[-int(y_range / 2): int(y_range / 2) + 1,
                               -int(x_range / 2): int(x_range / 2) + 1]
@@ -260,15 +260,15 @@ class Bubble2D(BubbleNDBase):
                 value_thresh = background_thresh
 
         # Set the number of theta to be ~ the perimeter.
-        ntheta = 1.5 * np.ceil(self.perimeter).astype(int)
+        ntheta = 1.5 * ceil_int(self.perimeter)
 
         # Use the ellipse model to define a bounding box for the mask.
         bbox = self.as_ellipse(zero_center=True).bounding_box
 
-        y_range = np.ceil((max_extent * 2) *
-                          (bbox[0][1] - bbox[0][0])).astype(int)
-        x_range = np.ceil((max_extent * 2) *
-                          (bbox[1][1] - bbox[1][0])).astype(int)
+        y_range = ceil_int((max_extent * 2) *
+                           (bbox[0][1] - bbox[0][0]))
+        x_range = ceil_int((max_extent * 2) *
+                           (bbox[1][1] - bbox[1][0]))
 
         extent_mask = np.zeros((y_range, x_range), dtype=bool)
 
@@ -290,7 +290,7 @@ class Bubble2D(BubbleNDBase):
             max_dist = np.abs(dist.max())
 
             line_posns = []
-            coords = [np.floor(coord).astype(int)+cent for coord, cent in
+            coords = [floor_int(coord)+cent for coord, cent in
                       zip(_line_profile_coordinates((0, 0), new_end), centre)]
             for coord in coords:
                 line_posns.append(coord[dist_arr[coords] >=
@@ -340,10 +340,10 @@ class Bubble2D(BubbleNDBase):
 
         if return_array is "bbox":
             bbox_shape = \
-                (np.ceil(bbox[0][1]).astype(int) -
-                 np.floor(bbox[0][0]).astype(int),
-                 np.ceil(bbox[1][1]).astype(int) -
-                 np.floor(bbox[1][0]).astype(int))
+                (ceil_int(bbox[0][1]) -
+                 floor_int(bbox[0][0]),
+                 ceil_int(bbox[1][1]) -
+                 floor_int(bbox[1][0]))
 
             return extract_array(extent_mask, bbox_shape, centre)
         elif return_array is "full":
@@ -517,8 +517,7 @@ class Bubble3D(BubbleNDBase):
         Return an elliptical mask.
         '''
 
-        if len(spatial_shape) != 2    def visualize(self, cube, return_plot=False, use_aplpy=True):
-:
+        if len(spatial_shape) != 2:
             raise ValueError("spatial_shape must have a length of 2.")
 
         if not self.has_2D_regions:

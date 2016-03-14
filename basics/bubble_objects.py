@@ -473,10 +473,10 @@ class Bubble3D(BaseNDClass):
         if not self.has_2D_regions:
             raise NotImplementedError("")
 
-        bboxes = np.array((self.velocity_width, 4), dtype=np.int)
+        bboxes = np.empty((self.velocity_width, 4), dtype=np.int)
 
         for i, region in enumerate(self._twoD_region_iter()):
-            bbox = region.as_ellipse(zero_center=zero_center)
+            bbox = region.as_ellipse(zero_center=zero_center).bounding_box
             bboxes[i, :2] = bbox[0]
             bboxes[i, 2:] = bbox[1]
 

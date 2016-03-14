@@ -193,9 +193,41 @@ class Bubble2D(object):
 
     def find_shape(self, array, return_array='full', max_extent=1.0,
                    nsig_thresh=1, value_thresh=None, min_radius_frac=0.5,
-                   **kwargs):
+                   radius=None, **kwargs):
         '''
         Expand/contract to match the contours in the data.
+
+        Parameters
+        ----------
+        array : 2D numpy.ndarray or spectral_cube.LowerDimensionalObject
+            Data used to define the region boundaries.
+        return_array : 'full', 'bbox', or 'padded', optional
+            Choose the shape of the mask to be returned. 'full' returns
+            the mask within the full array. 'bbox' cuts to the boundaries of
+            the ellipse. 'padded' returns a padded version of 'bbox' that
+            depends on the choice of max_extent.
+        max_extent : float, optional
+            Multiplied by the major radius to set how far should be searched
+            when searching for the boundary.
+        nsig_thresh : float, optional
+            Number of times sigma above the mean to set the boundary intensity
+            requirement. This is used whenever the local background is higher
+            than the given `value_thresh`.
+        value_thresh : float, optional
+            When given, sets the minimum intensity for defining a bubble edge.
+            The natural choice is a few times the noise level in the cube.
+        min_radius_frac : float, optional
+            Sets a minimum distance to search for the bubble boundary. Defaults
+            to 1/2 of the major radius.
+        radius : float, optional
+            Give an optional radius to use instead of the major radius defined
+            for the bubble.
+        kwargs : passed to profile.profile_line.
+
+        Returns
+        -------
+        extent_mask : np.ndarray
+            Boolean array with the region mask.
         '''
 
         mean, std = self.intensity_props(array)
@@ -298,8 +330,8 @@ class Bubble2D(object):
 
             return extract_array(extent_mask, bbox_shape, centre)
         elif return_array is "full":
-            return add_array(np.zeros_like(array, dtype=bool), extent_mask,
-                             self.center_pixel)
+            return add_array(np.zeros_like(array.value, dtype=bool),
+                             extent_mask, self.center_pixel)
         elif return_array is "padded":
             return extent_mask
         else:

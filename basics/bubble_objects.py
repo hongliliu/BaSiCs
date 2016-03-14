@@ -565,8 +565,9 @@ class Bubble3D(BubbleNDBase):
         # y, x  extents
         extents = self.find_spatial_extents(zero_center=False)
 
-        spec_slice = slice(self.velocity_start-spec_pad,
-                           self.velocity_end+1+spec_pad, 1)
+        spec_slice = slice(max(0, self.velocity_start-spec_pad),
+                           min(self.cube.shape[0],
+                               self.velocity_end+1+spec_pad), 1)
 
         y_slice = slice(max(0, extents[0]-spatial_pad),
                         min(cube.shape[1], extents[1]+spatial_pad), 1)

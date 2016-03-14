@@ -537,9 +537,9 @@ class Bubble3D(BaseNDClass):
         '''
 
         # y, x  extents
+        extents = self.find_spatial_extents(zero_center=False)
 
-
-        subcube = cube.subcube()
+        subcube = cube[self.velocity_start:self.velocity_end+1,
+                       extents[0]:extents[1], extents[2]:extents[3]]
 
         return subcube
-

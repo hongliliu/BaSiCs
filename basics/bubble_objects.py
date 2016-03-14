@@ -43,6 +43,14 @@ class BubbleNDBase(BaseNDClass):
     def minor(self):
         return self._minor
 
+    @property
+    def ra(self):
+        return self._ra
+
+    @property
+    def dec(self):
+        return self._dec
+
 
 class Bubble2D(BubbleNDBase):
     """

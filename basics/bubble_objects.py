@@ -51,9 +51,15 @@ class BubbleNDBase(BaseNDClass):
     def dec(self):
         return self._dec
 
-    def as_patch(self, **kwargs):
+    def as_patch(self, x_cent=None, y_cent=None, **kwargs):
         from matplotlib.patches import Ellipse
         y, x, rmaj, rmin, pa = self.params[:5]
+
+        if y_cent is not None:
+            y = y_cent
+        if x_cent is not None:
+            x = x_cent
+
         return Ellipse((x, y), width=2*rmaj, height=2*rmin,
                        angle=np.rad2deg(pa), **kwargs)
 
@@ -518,11 +524,18 @@ class Bubble3D(BubbleNDBase):
             return extract_pv_slice(cube, Path([low, high], width=width)), \
                 [low, high]
 
-    def as_pv_patch(self, **kwargs):
+    def as_pv_patch(self, x_cent=None, vel_cent=None, **kwargs):
         '''
         Return a PV slice. Aligns the direction along the major axis.
         '''
         from matplotlib.patches import Ellipse
+
+        if x_cent is None:
+            x_cent = self.major
+
+        if vel_cent is None:
+            vel_cent = self.velocity_center
+
         return Ellipse((self.major, self.velocity_center),
                        width=2*self.major,
                        height=self.velocity_width,
@@ -636,12 +649,17 @@ class Bubble3D(BubbleNDBase):
             im1 = ax1.imshow(moment0.value, origin='lower', cmap='gray')
             fig.colorbar(im1, ax=ax1)
 
-            c = self.as_patch()
+            c = self.as_patch(x_cent=floor_int(moment0.shape[1]/2.),
+                              y_cent=floor_int(moment0.shape[0]/2.),
+                              fill=False, color='r', linewidth=2)
             ax1.add_patch(c)
 
             ax2 = fig.add_subplot(122)
             im2 = ax2.imshow(pvslice.data, origin='lower', cmap='gray')
             fig.colorbar(im2, ax=ax2)
+
+            c = self.as_pv_patch(fill=False, color='r', linewidth=2)
+            ax2.add_patch(c)
 
         if return_plot:
             return fig

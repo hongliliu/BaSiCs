@@ -483,8 +483,30 @@ class Bubble3D(BaseNDClass):
         return (floor_int(np.min(bboxes[0])), ceil_int(np.max(bboxes[1])),
                 floor_int(np.min(bboxes[2])), ceil_int(np.max(bboxes[3])))
 
-    def extract_pv_slice(self, cube):
-        pass
+    def extract_pv_slice(self, cube, width=None):
+        '''
+        Return a PV Slice. Defaults to across the entire bubble.
+        '''
+
+        try:
+            from pvextractor import Path, extract_pv_slice
+        except ImportError:
+            raise ImportError("pvextractor must be installed to extract "
+                              " PV slices.")
+
+        # Define end points along the major axis
+        high = (self.y + self.major*np.sin(self.pa),
+                self.x + self.major*np.cos(self.pa))
+        low = (self.y - self.major*np.sin(self.pa),
+               self.x - self.major*np.cos(self.pa))
+
+        if width is None:
+            width = 2*self.minor
+
+        # Set width to be twice minor radius
+        path = Path([low, high], width=width)
+
+        return extract_pv_slice(cube, path)
 
     def as_mask(self, spatial_shape, zero_center=False):
         '''

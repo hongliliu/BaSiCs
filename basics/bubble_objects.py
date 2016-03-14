@@ -14,7 +14,37 @@ from profile import _line_profile_coordinates
 eight_conn = np.ones((3, 3))
 
 
-class Bubble2D(BaseNDClass):
+class BubbleNDBase(BaseNDClass):
+    """
+    Common properties between all cubes
+    """
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+    @property
+    def center_pixel(self):
+        return (floor_int(self.y), floor_int(self.x))
+
+    @property
+    def pa(self):
+        return self._pa
+
+    @property
+    def major(self):
+        return self._major
+
+    @property
+    def minor(self):
+        return self._minor
+
+
+class Bubble2D(BubbleNDBase):
     """
     Class for candidate bubble portions from 2D planes.
     """
@@ -54,30 +84,6 @@ class Bubble2D(BaseNDClass):
         Estimate of the perimeter when major ~ minor.
         '''
         return 2 * np.pi * np.sqrt(0.5*(self.major**2 + self.minor**2))
-
-    @property
-    def x(self):
-        return self._x
-
-    @property
-    def y(self):
-        return self._y
-
-    @property
-    def center_pixel(self):
-        return (np.floor(self.y).astype(int), np.floor(self.x).astype(int))
-
-    @property
-    def pa(self):
-        return self._pa
-
-    @property
-    def major(self):
-        return self._major
-
-    @property
-    def minor(self):
-        return self._minor
 
     @property
     def channel(self):
@@ -356,7 +362,7 @@ class Bubble2D(BaseNDClass):
                        angle=np.rad2deg(pa), **kwargs)
 
 
-class Bubble3D(BaseNDClass):
+class Bubble3D(BubbleNDBase):
     """
     3D Bubbles.
     """
@@ -410,30 +416,6 @@ class Bubble3D(BaseNDClass):
     @property
     def has_2D_regions(self):
         return True if self.twoD_objects is not None else False
-
-    @property
-    def y(self):
-        return self._y
-
-    @property
-    def x(self):
-        return self._x
-
-    @property
-    def pixel_center(self):
-        return (np.floor(self.y).astype(int), np.floor(self.x).astype(int))
-
-    @property
-    def major(self):
-        return self._major
-
-    @property
-    def minor(self):
-        return self._minor
-
-    @property
-    def pa(self):
-        return self._pa
 
     @property
     def velocity_start(self):

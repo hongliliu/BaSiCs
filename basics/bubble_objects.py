@@ -62,7 +62,7 @@ class Bubble2D(object):
 
     @property
     def center_pixel(self):
-        return (self.y, self.x)
+        return (np.floor(self.y).astype(int), np.floor(self.x).astype(int))
 
     @property
     def pa(self):

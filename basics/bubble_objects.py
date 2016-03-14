@@ -616,12 +616,12 @@ class Bubble3D(BubbleNDBase):
 
         if not use_aplpy:
             ax1 = fig.add_subplot(121)
-            ax1.imshow(moment0, origin='lower', cmap='gray')
-            ax1.colorbar()
+            im1 = ax1.imshow(moment0.value, origin='lower', cmap='gray')
+            fig.colorbar(im1, ax=ax1)
 
-            ax2 = fig.add_subplot(121)
-            ax2.imshow(pvslice.data, origin='lower', cmap='gray')
-            ax2.colorbar()
+            ax2 = fig.add_subplot(122)
+            im2 = ax2.imshow(pvslice.data, origin='lower', cmap='gray')
+            fig.colorbar(im2, ax=ax2)
 
         if return_plot:
             return fig

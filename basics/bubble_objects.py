@@ -485,9 +485,7 @@ class Bubble3D(BubbleNDBase):
                               " PV slices.")
 
         if width is None:
-            width = 2*self.minor
-
-        # Set width to be twice minor radius
+            width = self.minor
 
         if use_subcube:
 

@@ -512,8 +512,6 @@ class Bubble3D(BaseNDClass):
             low = (y_center - self.major*np.sin(self.pa),
                    x_center - self.major*np.cos(self.pa))
 
-            print high, low
-
             return extract_pv_slice(subcube,
                                     Path([low, high], width=width))
         else:

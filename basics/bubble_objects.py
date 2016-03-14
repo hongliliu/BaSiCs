@@ -566,7 +566,7 @@ class Bubble3D(BubbleNDBase):
         extents = self.find_spatial_extents(zero_center=False)
 
         spec_slice = slice(max(0, self.velocity_start-spec_pad),
-                           min(self.cube.shape[0],
+                           min(cube.shape[0],
                                self.velocity_end+1+spec_pad), 1)
 
         y_slice = slice(max(0, extents[0]-spatial_pad),
@@ -585,3 +585,45 @@ class Bubble3D(BubbleNDBase):
 
         return self.return_cube_region(cube, **kwargs).moment0()
 
+    def visualize(self, cube, return_plot=False, use_aplpy=True):
+        '''
+        Visualize the bubble within the cube.
+        '''
+
+        moment0 = self.return_moment0(cube, spatial_pad=10, spec_pad=5)
+
+        pvslice = self.extract_pv_slice(cube, spatial_pad=10, spec_pad=5)
+
+        import matplotlib.pyplot as p
+        fig = p.figure()
+
+        if use_aplpy:
+            try:
+                import aplpy
+                mom0_fig = aplpy.FITSFigure(moment0.hdu, figure=fig,
+                                            subplot=(1, 2, 1))
+                mom0_fig.show_grayscale()
+                mom0_fig.add_colorbar()
+
+                pv_fig = aplpy.FITSFigure(pvslice.data, figure=fig,
+                                          subplot=(1, 2, 2))
+                pv_fig.show_grayscale()
+                pv_fig.add_colorbar()
+
+            except ImportError:
+                Warning("aplpy not installed. Reverting to matplotlib.")
+                use_aplpy = False
+
+        if not use_aplpy:
+            ax1 = fig.add_subplot(121)
+            ax1.imshow(moment0, origin='lower', cmap='gray')
+            ax1.colorbar()
+
+            ax2 = fig.add_subplot(121)
+            ax2.imshow(pvslice.data, origin='lower', cmap='gray')
+            ax2.colorbar()
+
+        if return_plot:
+            return fig
+
+        p.show()

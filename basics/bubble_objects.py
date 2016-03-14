@@ -394,7 +394,8 @@ class Bubble3D(BaseNDClass):
                  twoD_properties[:, 2].max(), twoD_properties[:, 3].max(),
                  twoD_properties[:, 4].mean(),
                  int(round(np.median(twoD_properties[:, 5]))),
-                 twoD_properties[:, 5].min(), twoD_properties[:, 5].max()]
+                 int(twoD_properties[:, 5].min()),
+                 int(twoD_properties[:, 5].max())]
 
         self = Bubble3D(props, wcs=wcs)
 
@@ -513,4 +514,11 @@ class Bubble3D(BaseNDClass):
         pass
 
     def return_cube_region(self, cube):
-        pass
+        '''
+        Return the minimum subcube about the bubble.
+        '''
+
+        subcube = cube.subcube()
+
+        return subcube
+

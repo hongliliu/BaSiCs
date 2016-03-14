@@ -237,3 +237,11 @@ def find_nearest(array, value):
     '''
     idx = (np.abs(array-value)).argmin()
     return idx
+
+
+def floor_int(value):
+    return np.floor(value).astype(int)
+
+
+def ceil_int(value):
+    return np.ceil(value).astype(int)

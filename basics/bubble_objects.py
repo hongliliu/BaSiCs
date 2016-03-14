@@ -494,23 +494,27 @@ class Bubble3D(BaseNDClass):
             raise ImportError("pvextractor must be installed to extract "
                               " PV slices.")
 
-        # Define end points along the major axis
-        high = (self.y + self.major*np.sin(self.pa),
-                self.x + self.major*np.cos(self.pa))
-        low = (self.y - self.major*np.sin(self.pa),
-               self.x - self.major*np.cos(self.pa))
-
         if width is None:
             width = 2*self.minor
 
         # Set width to be twice minor radius
-        path = Path([low, high], width=width)
 
         if use_subcube:
+            # Define end points along the major axis
+            high = (self.y + self.major*np.sin(self.pa),
+                    self.x + self.major*np.cos(self.pa))
+            low = (self.y - self.major*np.sin(self.pa),
+                   self.x - self.major*np.cos(self.pa))
+
             return extract_pv_slice(self.return_cube_region(cube, **kwargs),
-                                    path)
+                                    Path([low, high], width=width))
         else:
-            return extract_pv_slice(cube, path)
+            high = (self.major*np.sin(self.pa),
+                    self.major*np.cos(self.pa))
+            low = (self.major*np.sin(self.pa),
+                   self.major*np.cos(self.pa))
+
+            return extract_pv_slice(cube, Path([low, high], width=width))
 
     def as_mask(self, spatial_shape, zero_center=False):
         '''

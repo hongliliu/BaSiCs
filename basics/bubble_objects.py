@@ -501,18 +501,18 @@ class Bubble3D(BaseNDClass):
 
         if use_subcube:
             # Define end points along the major axis
-            high = (self.y + self.major*np.sin(self.pa),
-                    self.x + self.major*np.cos(self.pa))
-            low = (self.y - self.major*np.sin(self.pa),
-                   self.x - self.major*np.cos(self.pa))
-
-            return extract_pv_slice(self.return_cube_region(cube, **kwargs),
-                                    Path([low, high], width=width))
-        else:
             high = (self.major*np.sin(self.pa),
                     self.major*np.cos(self.pa))
             low = (self.major*np.sin(self.pa),
                    self.major*np.cos(self.pa))
+
+            return extract_pv_slice(self.return_cube_region(cube, **kwargs),
+                                    Path([low, high], width=width))
+        else:
+            high = (self.y + self.major*np.sin(self.pa),
+                    self.x + self.major*np.cos(self.pa))
+            low = (self.y - self.major*np.sin(self.pa),
+                   self.x - self.major*np.cos(self.pa))
 
             return extract_pv_slice(cube, Path([low, high], width=width))
 

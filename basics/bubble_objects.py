@@ -51,6 +51,12 @@ class BubbleNDBase(BaseNDClass):
     def dec(self):
         return self._dec
 
+    def as_patch(self, **kwargs):
+        from matplotlib.patches import Ellipse
+        y, x, rmaj, rmin, pa = self.params[:5]
+        return Ellipse((x, y), width=2*rmaj, height=2*rmin,
+                       angle=np.rad2deg(pa), **kwargs)
+
 
 class Bubble2D(BubbleNDBase):
     """
@@ -363,12 +369,6 @@ class Bubble2D(BubbleNDBase):
         return overlap_metric(self.params, other_bubble2D.params,
                               includes_channel=False)
 
-    def as_patch(self, **kwargs):
-        from matplotlib.patches import Ellipse
-        y, x, rmaj, rmin, pa = self.params[:5]
-        return Ellipse((x, y), width=2*rmaj, height=2*rmin,
-                       angle=np.rad2deg(pa), **kwargs)
-
 
 class Bubble3D(BubbleNDBase):
     """
@@ -416,6 +416,12 @@ class Bubble3D(BubbleNDBase):
         self._twoD_objects = twod_region_list
 
         return self
+
+    @property
+    def params(self):
+        return np.array([self._y, self._x, self._major,
+                         self._minor, self._pa,
+                         self._velocity_center])
 
     @property
     def twoD_objects(self):
@@ -501,14 +507,16 @@ class Bubble3D(BubbleNDBase):
                    x_center - self.major*np.cos(self.pa))
 
             return extract_pv_slice(subcube,
-                                    Path([low, high], width=width))
+                                    Path([low, high], width=width)), \
+                [low, high]
         else:
             high = (self.y + self.major*np.sin(self.pa),
                     self.x + self.major*np.cos(self.pa))
             low = (self.y - self.major*np.sin(self.pa),
                    self.x - self.major*np.cos(self.pa))
 
-            return extract_pv_slice(cube, Path([low, high], width=width))
+            return extract_pv_slice(cube, Path([low, high], width=width)), \
+                [low, high]
 
     def as_mask(self, spatial_shape, zero_center=False):
         '''
@@ -590,7 +598,8 @@ class Bubble3D(BubbleNDBase):
 
         moment0 = self.return_moment0(cube, spatial_pad=10, spec_pad=5)
 
-        pvslice = self.extract_pv_slice(cube, spatial_pad=10, spec_pad=5)
+        pvslice, path_ends = \
+            self.extract_pv_slice(cube, spatial_pad=10, spec_pad=5)
 
         import matplotlib.pyplot as p
         fig = p.figure()

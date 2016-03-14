@@ -483,7 +483,7 @@ class Bubble3D(BaseNDClass):
         return (floor_int(np.min(bboxes[0])), ceil_int(np.max(bboxes[1])),
                 floor_int(np.min(bboxes[2])), ceil_int(np.max(bboxes[3])))
 
-    def extract_pv_slice(self, cube, width=None):
+    def extract_pv_slice(self, cube, width=None, use_subcube=True, **kwargs):
         '''
         Return a PV Slice. Defaults to across the entire bubble.
         '''
@@ -506,7 +506,11 @@ class Bubble3D(BaseNDClass):
         # Set width to be twice minor radius
         path = Path([low, high], width=width)
 
-        return extract_pv_slice(cube, path)
+        if use_subcube:
+            return extract_pv_slice(self.return_cube_region(cube, **kwargs),
+                                    path)
+        else:
+            return extract_pv_slice(cube, path)
 
     def as_mask(self, spatial_shape, zero_center=False):
         '''

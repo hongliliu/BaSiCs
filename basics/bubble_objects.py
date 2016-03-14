@@ -5,6 +5,7 @@ from astropy.nddata.utils import extract_array, add_array
 from scipy import ndimage as nd
 from itertools import izip
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
+from spectral_cube.base_class import BaseNDClass
 
 from log import overlap_metric
 from utils import consec_split, find_nearest
@@ -13,11 +14,11 @@ from profile import _line_profile_coordinates
 eight_conn = np.ones((3, 3))
 
 
-class Bubble2D(object):
+class Bubble2D(BaseNDClass):
     """
     Class for candidate bubble portions from 2D planes.
     """
-    def __init__(self, props):
+    def __init__(self, props, wcs=None):
         super(Bubble2D, self).__init__()
 
         self._y = props[0]
@@ -31,6 +32,8 @@ class Bubble2D(object):
             self._channel = props[5]
         except IndexError:
             self._channel = None
+
+        self._wcs = None
 
     @property
     def params(self):
@@ -353,11 +356,11 @@ class Bubble2D(object):
                        angle=np.rad2deg(pa), **kwargs)
 
 
-class Bubble3D(object):
+class Bubble3D(BaseNDClass):
     """
     3D Bubbles.
     """
-    def __init__(self, props):
+    def __init__(self, props, wcs=None):
         super(Bubble3D, self).__init__()
 
         self._y = props[0]
@@ -371,8 +374,10 @@ class Bubble3D(object):
 
         self._twoD_objects = None
 
+        self._wcs = wcs
+
     @staticmethod
-    def from_2D_regions(twod_region_list):
+    def from_2D_regions(twod_region_list, wcs=None):
         '''
         Create a 3D regions from a collection of 2D regions.
         '''
@@ -391,7 +396,7 @@ class Bubble3D(object):
                  int(round(np.median(twoD_properties[:, 5]))),
                  twoD_properties[:, 5].min(), twoD_properties[:, 5].max()]
 
-        self = Bubble3D(props)
+        self = Bubble3D(props, wcs=wcs)
 
         self._twoD_objects = twod_region_list
 

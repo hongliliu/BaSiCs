@@ -449,7 +449,7 @@ class Bubble3D(BaseNDClass):
 
     @property
     def velocity_width(self):
-        return self.velocity_end - self.velocity_start
+        return self.velocity_end - self.velocity_start + 1
 
     @property
     def bubble_type(self):

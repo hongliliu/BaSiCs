@@ -518,6 +518,16 @@ class Bubble3D(BubbleNDBase):
             return extract_pv_slice(cube, Path([low, high], width=width)), \
                 [low, high]
 
+    def as_pv_patch(self, **kwargs):
+        '''
+        Return a PV slice. Aligns the direction along the major axis.
+        '''
+        from matplotlib.patches import Ellipse
+        return Ellipse((self.major, self.velocity_center),
+                       width=2*self.major,
+                       height=self.velocity_width,
+                       angle=0.0, **kwargs)
+
     def as_mask(self, spatial_shape, zero_center=False):
         '''
         Return an elliptical mask.
@@ -625,6 +635,9 @@ class Bubble3D(BubbleNDBase):
             ax1 = fig.add_subplot(121)
             im1 = ax1.imshow(moment0.value, origin='lower', cmap='gray')
             fig.colorbar(im1, ax=ax1)
+
+            c = self.as_patch()
+            ax1.add_patch(c)
 
             ax2 = fig.add_subplot(122)
             im2 = ax2.imshow(pvslice.data, origin='lower', cmap='gray')

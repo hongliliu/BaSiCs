@@ -568,8 +568,10 @@ class Bubble3D(BubbleNDBase):
         spec_slice = slice(self.velocity_start-spec_pad,
                            self.velocity_end+1+spec_pad, 1)
 
-        y_slice = slice(extents[0]-spatial_pad, extents[1]+spatial_pad, 1)
-        x_slice = slice(extents[2]-spatial_pad, extents[3]+spatial_pad, 1)
+        y_slice = slice(max(0, extents[0]-spatial_pad),
+                        min(cube.shape[1], extents[1]+spatial_pad), 1)
+        x_slice = slice(max(0, extents[2]-spatial_pad),
+                        min(cube.shape[1], extents[3]+spatial_pad), 1)
 
         subcube = cube[spec_slice, y_slice, x_slice]
 
@@ -581,3 +583,4 @@ class Bubble3D(BubbleNDBase):
         '''
 
         return self.return_cube_region(cube, **kwargs).moment0()
+

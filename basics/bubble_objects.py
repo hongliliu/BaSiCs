@@ -8,7 +8,7 @@ from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 from spectral_cube.base_class import BaseNDClass
 
 from log import overlap_metric
-from utils import consec_split, find_nearest
+from utils import consec_split, find_nearest, floor_int, ceil_int
 from profile import _line_profile_coordinates
 
 eight_conn = np.ones((3, 3))
@@ -465,6 +465,24 @@ class Bubble3D(BaseNDClass):
     def twoD_region_params(self):
         return np.array([region.params for region in self._twoD_region_iter()])
 
+    def find_spatial_extents(self, zero_center=True):
+        '''
+        Find the maximum spatial extents.
+        '''
+
+        if not self.has_2D_regions:
+            raise NotImplementedError("")
+
+        bboxes = np.array((self.velocity_width, 4), dtype=np.int)
+
+        for i, region in enumerate(self._twoD_region_iter()):
+            bbox = region.as_ellipse(zero_center=zero_center)
+            bboxes[i, :2] = bbox[0]
+            bboxes[i, 2:] = bbox[1]
+
+        return (floor_int(np.min(bboxes[0])), ceil_int(np.max(bboxes[1])),
+                floor_int(np.min(bboxes[2])), ceil_int(np.max(bboxes[3])))
+
     def extract_pv_slice(self, cube):
         pass
 
@@ -517,6 +535,9 @@ class Bubble3D(BaseNDClass):
         '''
         Return the minimum subcube about the bubble.
         '''
+
+        # y, x  extents
+
 
         subcube = cube.subcube()
 

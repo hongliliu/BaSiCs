@@ -183,10 +183,10 @@ class Bubble2D(BubbleNDBase):
 
         bbox = self.as_ellipse(zero_center=False).bounding_box
 
-        return array[np.floor(bbox[0][0]).astype(int)-pad:
-                     np.ceil(bbox[0][1]).astype(int)+pad+1,
-                     np.floor(bbox[1][0]).astype(int)-pad:
-                     np.ceil(bbox[1][1]).astype(int)+pad+1]
+        return array[floor_int(bbox[0][0])-pad:
+                     ceil_int(bbox[0][1])+pad+1,
+                     floor_int(bbox[1][0])-pad:
+                     ceil_int(bbox[1][1])+pad+1]
 
     def intensity_props(self, array):
         '''
@@ -517,7 +517,8 @@ class Bubble3D(BubbleNDBase):
         Return an elliptical mask.
         '''
 
-        if len(spatial_shape) != 2:
+        if len(spatial_shape) != 2    def visualize(self, cube, return_plot=False, use_aplpy=True):
+:
             raise ValueError("spatial_shape must have a length of 2.")
 
         if not self.has_2D_regions:

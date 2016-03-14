@@ -653,6 +653,10 @@ class Bubble3D(BubbleNDBase):
                               y_cent=floor_int(moment0.shape[0]/2.),
                               fill=False, color='r', linewidth=2)
             ax1.add_patch(c)
+            ax1.arrow(path_ends[0][0], path_ends[0][1],
+                      path_ends[1][0] - path_ends[0][0],
+                      path_ends[1][1] - path_ends[0][1],
+                      fc='r', ec='r')
 
             ax2 = fig.add_subplot(122)
             im2 = ax2.imshow(pvslice.data, origin='lower', cmap='gray')

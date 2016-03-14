@@ -531,7 +531,7 @@ class Bubble3D(BaseNDClass):
     def as_shell_mask(self, cube):
         pass
 
-    def return_cube_region(self, cube):
+    def return_cube_region(self, cube, spatial_pad=0, spec_pad=0):
         '''
         Return the minimum subcube about the bubble.
         '''
@@ -539,7 +539,12 @@ class Bubble3D(BaseNDClass):
         # y, x  extents
         extents = self.find_spatial_extents(zero_center=False)
 
-        subcube = cube[self.velocity_start:self.velocity_end+1,
-                       extents[0]:extents[1], extents[2]:extents[3]]
+        spec_slice = slice(self.velocity_start-spec_pad,
+                           self.velocity_end+1+spec_pad, 1)
+
+        y_slice = slice(extents[0]-spatial_pad, extents[1]+spatial_pad, 1)
+        x_slice = slice(extents[2]-spatial_pad, extents[3]+spatial_pad, 1)
+
+        subcube = cube[spec_slice, y_slice, x_slice]
 
         return subcube

@@ -536,7 +536,7 @@ class Bubble3D(BubbleNDBase):
         if vel_cent is None:
             vel_cent = self.velocity_center
 
-        return Ellipse((self.major, self.velocity_center),
+        return Ellipse((x_cent, vel_cent),
                        width=2*self.major,
                        height=self.velocity_width,
                        angle=0.0, **kwargs)
@@ -662,7 +662,8 @@ class Bubble3D(BubbleNDBase):
             im2 = ax2.imshow(pvslice.data, origin='lower', cmap='gray')
             fig.colorbar(im2, ax=ax2)
 
-            c = self.as_pv_patch(fill=False, color='r', linewidth=2)
+            c = self.as_pv_patch(fill=False, color='r', linewidth=2,
+                                 vel_cent=pvslice.data.shape[0]/2)
             ax2.add_patch(c)
 
         if return_plot:

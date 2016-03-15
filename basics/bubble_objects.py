@@ -506,11 +506,17 @@ class Bubble3D(BubbleNDBase):
             y_center = floor_int(subcube.shape[1]/2.)
             x_center = floor_int(subcube.shape[2]/2.)
 
+            if "spatial_pad" in kwargs:
+                spatial_pad = kwargs["spatial_pad"]
+            else:
+                spatial_pad = 0
+
             # Define end points along the major axis
-            high = (y_center + self.major*np.sin(self.pa),
-                    x_center + self.major*np.cos(self.pa))
-            low = (y_center - self.major*np.sin(self.pa),
-                   x_center - self.major*np.cos(self.pa))
+            max_dist = float(self.major + spatial_pad)
+            high = (y_center + max_dist*np.sin(self.pa),
+                    x_center + max_dist*np.cos(self.pa))
+            low = (y_center - max_dist*np.sin(self.pa),
+                   x_center - max_dist*np.cos(self.pa))
 
             return extract_pv_slice(subcube,
                                     Path([low, high], width=width)), \
@@ -663,7 +669,8 @@ class Bubble3D(BubbleNDBase):
             fig.colorbar(im2, ax=ax2)
 
             c = self.as_pv_patch(fill=False, color='r', linewidth=2,
-                                 vel_cent=pvslice.data.shape[0]/2)
+                                 vel_cent=pvslice.data.shape[0]/2,
+                                 x_cent=pvslice.data.shape[1]/2)
             ax2.add_patch(c)
 
         if return_plot:

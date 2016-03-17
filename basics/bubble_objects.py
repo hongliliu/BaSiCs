@@ -77,6 +77,18 @@ class BubbleNDBase(BaseNDClass):
         '''
         return 2 * np.pi * np.sqrt(0.5*(self.major**2 + self.minor**2))
 
+    @property
+    def extent_mask(self):
+        return self._extent_mask
+
+    @property
+    def extent_offset(self):
+        return self._extent_offset
+
+    @property
+    def extent_props(self):
+        return self._extent_props
+
     def as_patch(self, x_cent=None, y_cent=None, **kwargs):
         from matplotlib.patches import Ellipse
         y, x, rmaj, rmin, pa = self.params[:5]
@@ -225,9 +237,9 @@ class Bubble2D(BubbleNDBase):
                      floor_int(bbox[1][0])-pad:
                      ceil_int(bbox[1][1])+pad+1]
 
-    def find_shape(self, array, return_array='full', max_extent=1.0,
-                   nsig_thresh=1, value_thresh=None, min_radius_frac=0.5,
-                   radius=None, **kwargs):
+    def find_extent_mask(self, array, max_extent=1.0,
+                         nsig_thresh=1, value_thresh=None, min_radius_frac=0.5,
+                         radius=None, **kwargs):
         '''
         Expand/contract to match the contours in the data.
 
@@ -235,11 +247,6 @@ class Bubble2D(BubbleNDBase):
         ----------
         array : 2D numpy.ndarray or spectral_cube.LowerDimensionalObject
             Data used to define the region boundaries.
-        return_array : 'full', 'bbox', or 'padded', optional
-            Choose the shape of the mask to be returned. 'full' returns
-            the mask within the full array. 'bbox' cuts to the boundaries of
-            the ellipse. 'padded' returns a padded version of 'bbox' that
-            depends on the choice of max_extent.
         max_extent : float, optional
             Multiplied by the major radius to set how far should be searched
             when searching for the boundary.
@@ -355,22 +362,8 @@ class Bubble2D(BubbleNDBase):
         extent_mask = nd.binary_closing(extent_mask, eight_conn)
         extent_mask = nd.binary_opening(extent_mask, eight_conn)
 
-        if return_array is "bbox":
-            bbox_shape = \
-                (ceil_int(bbox[0][1]) -
-                 floor_int(bbox[0][0]),
-                 ceil_int(bbox[1][1]) -
-                 floor_int(bbox[1][0]))
-
-            return extract_array(extent_mask, bbox_shape, centre)
-        elif return_array is "full":
-            return add_array(np.zeros_like(array.value, dtype=bool),
-                             extent_mask, self.center_pixel)
-        elif return_array is "padded":
-            return extent_mask
-        else:
-            raise ValueError("return_array must be 'bbox', 'full', or"
-                             " 'padded'.")
+        self._extent_mask = extent_mask
+        self._extent_offset = (bbox[0][0], bbox[1][0])
 
     def overlap_with(self, other_bubble2D):
         '''
@@ -569,9 +562,9 @@ class Bubble3D(BubbleNDBase):
 
         return ellip_mask
 
-    def as_extent_mask(self, cube, **kwargs):
+    def as_extent_mask(self, cube, cut_shape=True, **kwargs):
         '''
-        Run Bubble2D.find_shape to get the extend mask in each channel.
+        Run Bubble2D.find_extent_mask to get the extend mask in each channel.
         '''
 
         if not self.has_2D_regions:
@@ -579,16 +572,35 @@ class Bubble3D(BubbleNDBase):
 
         for i, (chan, region) in enumerate(izip(self._chan_iter(),
                                                 self._twoD_region_iter())):
-            extent_2d_mask = region.find_shape(cube[chan], **kwargs)
+
+            if not hasattr(region, "_extent_mask"):
+                region.find_extent_mask(cube[chan], **kwargs)
+
+            # Don't need to add into the full sized array if it already has
+            # the same shape.
+            if region.extent_mask.shape != cube.shape[1:]:
+                extent_2d_mask = np.zeros(cube.shape[1:], dtype=bool)
+                extent_2d_mask = add_array(extent_2d_mask,
+                                           region.extent_mask.copy(),
+                                           region.extent_offset)
+            else:
+                extent_2d_mask = region.extent_mask.copy()
 
             if i == 0:
-                extent_mask = extent_2d_mask[np.newaxis, :, :]
+                extent_mask = extent_2d_mask
             else:
                 extent_mask = np.append(extent_mask,
                                         extent_2d_mask[np.newaxis, :, :],
                                         axis=0)
 
-        return extent_mask
+        if cut_shape:
+            slices = nd.find_objects(extent_mask)[0][1:]
+            self._extent_mask = extent_mask[slices]
+            self._extent_offset = (self.channel_start,) + \
+                tuple([pos.start for pos in slices])
+        else:
+            self._extent_mask = extent_mask
+            self._extent_mask = (self.channel_start, 0, 0)
 
     def as_shell_mask(self, cube):
         pass

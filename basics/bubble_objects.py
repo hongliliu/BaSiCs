@@ -446,6 +446,10 @@ class Bubble3D(BubbleNDBase):
     #     return self.channel_width * self.wcs.cdelt[0]
 
     @property
+    def channel_start(self):
+        return self._channel_start
+
+    @property
     def channel_end(self):
         return self._channel_end
 

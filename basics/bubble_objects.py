@@ -587,7 +587,7 @@ class Bubble3D(BubbleNDBase):
                 extent_2d_mask = region.extent_mask.copy()
 
             if i == 0:
-                extent_mask = extent_2d_mask
+                extent_mask = extent_2d_mask[np.newaxis, :, :]
             else:
                 extent_mask = np.append(extent_mask,
                                         extent_2d_mask[np.newaxis, :, :],

@@ -23,7 +23,7 @@ class BubbleNDBase(BaseNDClass):
     @property
     def params(self):
         return np.array([self._y, self._x, self._major,
-                         self._minor, self._pa, self._center_channel])
+                         self._minor, self._pa, self._channel_center])
 
     @property
     def x(self):
@@ -58,6 +58,10 @@ class BubbleNDBase(BaseNDClass):
         return self._dec
 
     @property
+    def channel_center(self):
+        return self._channel_center
+
+    @property
     def use_extent_props(self):
         return self._use_extent_props
 
@@ -72,10 +76,6 @@ class BubbleNDBase(BaseNDClass):
         '''
         return 2 * np.pi * np.sqrt(0.5*(self.major**2 + self.minor**2))
 
-    @property
-    def center_channel(self):
-        return self._center_channel
-
     def as_patch(self, x_cent=None, y_cent=None, **kwargs):
         from matplotlib.patches import Ellipse
         y, x, rmaj, rmin, pa = self.params[:5]
@@ -87,136 +87,6 @@ class BubbleNDBase(BaseNDClass):
 
         return Ellipse((x, y), width=2*rmaj, height=2*rmin,
                        angle=np.rad2deg(pa), **kwargs)
-
-
-class Bubble2D(BubbleNDBase):
-    """
-    Class for candidate bubble portions from 2D planes.
-    """
-    def __init__(self, props, wcs=None):
-        super(Bubble2D, self).__init__()
-
-        self._y = props[0]
-        self._x = props[1]
-        self._major = props[2]
-        self._minor = props[3]
-        self._pa = props[4]
-
-        # The last position, if given, is the velocity channel in the cube
-        try:
-            self._center_channel = props[5]
-        except IndexError:
-            self._center_channel = 0
-
-        self._wcs = None
-
-    def profile_lines(self, array, **kwargs):
-        '''
-        Calculate radial profile lines of the 2D bubbles.
-        '''
-
-        from basics.profile import radial_profiles
-
-        return radial_profiles(array, self.params, **kwargs)
-
-    def find_shell_fraction(self, array, value_thresh=0.0,
-                            grad_thresh=1, **kwargs):
-        '''
-        Find the fraction of the bubble edge associated with a shell.
-        '''
-
-        shell_frac = 0
-
-        # Set the number of theta to be ~ the perimeter.
-        ntheta = 1.5 * ceil_int(self.perimeter)
-
-        for dist, prof in self.profile_lines(array, ntheta=ntheta, **kwargs):
-
-            above_thresh = prof >= value_thresh
-
-            nabove = above_thresh.sum()
-
-            if nabove < max(2, 0.05*len(above_thresh)):
-                continue
-
-            shell_frac += 1
-
-        self._shell_fraction = float(shell_frac) / float(ntheta)
-
-    @property
-    def shell_fraction(self):
-        return self._shell_fraction
-
-    def as_ellipse(self, zero_center=True):
-        '''
-        Returns an Ellipse2D model.
-
-        Parameters
-        ----------
-        zero_center : bool, optional
-            If enabled, returns a model with a centre at (0, 0). Otherwise the
-            centre is at the pixel position in the array.
-        '''
-        if zero_center:
-            return Ellipse2D(True, 0.0, 0.0, self.major, self.minor,
-                             self.pa)
-        return Ellipse2D(True, self.x, self.y, self.major, self.minor,
-                         self.pa)
-
-    def as_mask(self, shape=None, zero_center=False):
-        '''
-        Return a boolean mask of the 2D region.
-        '''
-
-        # Returns the bbox shape. Forces zero_center to be True
-        if shape is None:
-            zero_center = True
-            bbox = self.as_ellipse(zero_center=False).bounding_box
-            y_range = ceil_int((bbox[0][1] - bbox[0][0]))
-            x_range = ceil_int((bbox[1][1] - bbox[1][0]))
-
-            yy, xx = np.mgrid[-int(y_range / 2): int(y_range / 2) + 1,
-                              -int(x_range / 2): int(x_range / 2) + 1]
-
-        else:
-            yy, xx = np.mgrid[:shape[0], :shape[1]]
-
-        return self.as_ellipse(zero_center=zero_center)(xx, yy).astype(bool)
-
-    def return_array_region(self, array, pad=None):
-        '''
-        Return the region defined by the bounding box in the given array.
-        '''
-
-        if pad is None:
-            pad = 0
-
-        bbox = self.as_ellipse(zero_center=False).bounding_box
-
-        return array[floor_int(bbox[0][0])-pad:
-                     ceil_int(bbox[0][1])+pad+1,
-                     floor_int(bbox[1][0])-pad:
-                     ceil_int(bbox[1][1])+pad+1]
-
-    def intensity_props(self, array):
-        '''
-        Return the mean and std for the elliptical region in the given array.
-        '''
-
-        if isinstance(array, LowerDimensionalObject):
-            array = array.value.copy()
-
-        inner_ellipse = \
-            Ellipse2D(True, self.x, self.y, max(3, self.major/2.),
-                      max(3, self.minor/2.), self.pa)
-        yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
-
-        ellip_mask = inner_ellipse(xx, yy).astype(bool)
-
-        masked_array = array.copy()
-        masked_array[~ellip_mask] = np.NaN
-
-        return np.nanmean(masked_array), np.nanstd(masked_array)
 
     def find_shape(self, array, return_array='full', max_extent=1.0,
                    nsig_thresh=1, value_thresh=None, min_radius_frac=0.5,
@@ -364,6 +234,136 @@ class Bubble2D(BubbleNDBase):
         else:
             raise ValueError("return_array must be 'bbox', 'full', or"
                              " 'padded'.")
+
+
+class Bubble2D(BubbleNDBase):
+    """
+    Class for candidate bubble portions from 2D planes.
+    """
+    def __init__(self, props, wcs=None):
+        super(Bubble2D, self).__init__()
+
+        self._y = props[0]
+        self._x = props[1]
+        self._major = props[2]
+        self._minor = props[3]
+        self._pa = props[4]
+
+        # The last position, if given, is the velocity channel in the cube
+        try:
+            self._channel_center = props[5]
+        except IndexError:
+            self._channel_center = 0
+
+        self._wcs = None
+
+    def profile_lines(self, array, **kwargs):
+        '''
+        Calculate radial profile lines of the 2D bubbles.
+        '''
+
+        from basics.profile import radial_profiles
+
+        return radial_profiles(array, self.params, **kwargs)
+
+    def find_shell_fraction(self, array, value_thresh=0.0,
+                            grad_thresh=1, **kwargs):
+        '''
+        Find the fraction of the bubble edge associated with a shell.
+        '''
+
+        shell_frac = 0
+
+        # Set the number of theta to be ~ the perimeter.
+        ntheta = 1.5 * ceil_int(self.perimeter)
+
+        for dist, prof in self.profile_lines(array, ntheta=ntheta, **kwargs):
+
+            above_thresh = prof >= value_thresh
+
+            nabove = above_thresh.sum()
+
+            if nabove < max(2, 0.05*len(above_thresh)):
+                continue
+
+            shell_frac += 1
+
+        self._shell_fraction = float(shell_frac) / float(ntheta)
+
+    @property
+    def shell_fraction(self):
+        return self._shell_fraction
+
+    def as_ellipse(self, zero_center=True):
+        '''
+        Returns an Ellipse2D model.
+
+        Parameters
+        ----------
+        zero_center : bool, optional
+            If enabled, returns a model with a centre at (0, 0). Otherwise the
+            centre is at the pixel position in the array.
+        '''
+        if zero_center:
+            return Ellipse2D(True, 0.0, 0.0, self.major, self.minor,
+                             self.pa)
+        return Ellipse2D(True, self.x, self.y, self.major, self.minor,
+                         self.pa)
+
+    def as_mask(self, shape=None, zero_center=False):
+        '''
+        Return a boolean mask of the 2D region.
+        '''
+
+        # Returns the bbox shape. Forces zero_center to be True
+        if shape is None:
+            zero_center = True
+            bbox = self.as_ellipse(zero_center=False).bounding_box
+            y_range = ceil_int((bbox[0][1] - bbox[0][0]))
+            x_range = ceil_int((bbox[1][1] - bbox[1][0]))
+
+            yy, xx = np.mgrid[-int(y_range / 2): int(y_range / 2) + 1,
+                              -int(x_range / 2): int(x_range / 2) + 1]
+
+        else:
+            yy, xx = np.mgrid[:shape[0], :shape[1]]
+
+        return self.as_ellipse(zero_center=zero_center)(xx, yy).astype(bool)
+
+    def return_array_region(self, array, pad=None):
+        '''
+        Return the region defined by the bounding box in the given array.
+        '''
+
+        if pad is None:
+            pad = 0
+
+        bbox = self.as_ellipse(zero_center=False).bounding_box
+
+        return array[floor_int(bbox[0][0])-pad:
+                     ceil_int(bbox[0][1])+pad+1,
+                     floor_int(bbox[1][0])-pad:
+                     ceil_int(bbox[1][1])+pad+1]
+
+    def intensity_props(self, array):
+        '''
+        Return the mean and std for the elliptical region in the given array.
+        '''
+
+        if isinstance(array, LowerDimensionalObject):
+            array = array.value.copy()
+
+        inner_ellipse = \
+            Ellipse2D(True, self.x, self.y, max(3, self.major/2.),
+                      max(3, self.minor/2.), self.pa)
+        yy, xx = np.mgrid[:array.shape[0], :array.shape[1]]
+
+        ellip_mask = inner_ellipse(xx, yy).astype(bool)
+
+        masked_array = array.copy()
+        masked_array[~ellip_mask] = np.NaN
+
+        return np.nanmean(masked_array), np.nanstd(masked_array)
 
     def overlap_with(self, other_bubble2D):
         '''

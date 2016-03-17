@@ -643,7 +643,8 @@ class Bubble3D(BubbleNDBase):
 
         if not use_aplpy:
             ax1 = fig.add_subplot(121)
-            im1 = ax1.imshow(moment0.value, origin='lower', cmap='gray')
+            im1 = ax1.imshow(moment0.value, origin='lower', cmap='gray',
+                             interpolation='nearest')
             fig.colorbar(im1, ax=ax1)
 
             c = self.as_patch(x_cent=floor_int(moment0.shape[1]/2.),
@@ -656,7 +657,8 @@ class Bubble3D(BubbleNDBase):
             #           fc='r', ec='r')
 
             ax2 = fig.add_subplot(122)
-            im2 = ax2.imshow(pvslice.data, origin='lower', cmap='gray')
+            im2 = ax2.imshow(pvslice.data, origin='lower', cmap='gray',
+                             interpolation='nearest')
             fig.colorbar(im2, ax=ax2)
 
             c = self.as_pv_patch(fill=False, color='r', linewidth=2,

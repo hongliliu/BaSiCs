@@ -10,6 +10,7 @@ from spectral_cube.base_class import BaseNDClass
 from log import overlap_metric
 from utils import consec_split, find_nearest, floor_int, ceil_int
 from profile import _line_profile_coordinates
+from fan_pvslice import pv_wedge
 
 eight_conn = np.ones((3, 3))
 
@@ -496,39 +497,29 @@ class Bubble3D(BubbleNDBase):
             raise ImportError("pvextractor must be installed to extract "
                               " PV slices.")
 
+        if "spatial_pad" in kwargs:
+            spatial_pad = kwargs["spatial_pad"]
+        else:
+            spatial_pad = 0
+
+        # Define end points along the major axis
+        max_dist = 2*float(self.major + spatial_pad)
+
         if width is None:
-            width = self.minor
+            width = 1  # self.minor
 
         if use_subcube:
 
             subcube = self.return_cube_region(cube, **kwargs)
 
-            y_center = floor_int(subcube.shape[1]/2.)
-            x_center = floor_int(subcube.shape[2]/2.)
+            sub_center = (floor_int(subcube.shape[1]/2.),
+                          floor_int(subcube.shape[2]/2.))
 
-            if "spatial_pad" in kwargs:
-                spatial_pad = kwargs["spatial_pad"]
-            else:
-                spatial_pad = 0
-
-            # Define end points along the major axis
-            max_dist = float(self.major + spatial_pad)
-            high = (y_center + max_dist*np.sin(self.pa),
-                    x_center + max_dist*np.cos(self.pa))
-            low = (y_center - max_dist*np.sin(self.pa),
-                   x_center - max_dist*np.cos(self.pa))
-
-            return extract_pv_slice(subcube,
-                                    Path([low, high], width=width)), \
-                [low, high]
+            return pv_wedge(subcube, sub_center, max_dist, 0.0, np.pi,
+                            width=width)
         else:
-            high = (self.y + self.major*np.sin(self.pa),
-                    self.x + self.major*np.cos(self.pa))
-            low = (self.y - self.major*np.sin(self.pa),
-                   self.x - self.major*np.cos(self.pa))
-
-            return extract_pv_slice(cube, Path([low, high], width=width)), \
-                [low, high]
+            return pv_wedge(cube, self.center, max_dist, 0.0, np.pi,
+                            width=width)
 
     def as_pv_patch(self, x_cent=None, vel_cent=None, **kwargs):
         '''
@@ -627,7 +618,7 @@ class Bubble3D(BubbleNDBase):
 
         moment0 = self.return_moment0(cube, spatial_pad=10, spec_pad=5)
 
-        pvslice, path_ends = \
+        pvslice = \
             self.extract_pv_slice(cube, spatial_pad=10, spec_pad=5)
 
         import matplotlib.pyplot as p
@@ -641,7 +632,7 @@ class Bubble3D(BubbleNDBase):
                 mom0_fig.show_grayscale()
                 mom0_fig.add_colorbar()
 
-                pv_fig = aplpy.FITSFigure(pvslice.data, figure=fig,
+                pv_fig = aplpy.FITSFigure(pvslice, figure=fig,
                                           subplot=(1, 2, 2))
                 pv_fig.show_grayscale()
                 pv_fig.add_colorbar()
@@ -659,10 +650,10 @@ class Bubble3D(BubbleNDBase):
                               y_cent=floor_int(moment0.shape[0]/2.),
                               fill=False, color='r', linewidth=2)
             ax1.add_patch(c)
-            ax1.arrow(path_ends[0][0], path_ends[0][1],
-                      path_ends[1][0] - path_ends[0][0],
-                      path_ends[1][1] - path_ends[0][1],
-                      fc='r', ec='r')
+            # ax1.arrow(path_ends[0][0], path_ends[0][1],
+            #           path_ends[1][0] - path_ends[0][0],
+            #           path_ends[1][1] - path_ends[0][1],
+            #           fc='r', ec='r')
 
             ax2 = fig.add_subplot(122)
             im2 = ax2.imshow(pvslice.data, origin='lower', cmap='gray')

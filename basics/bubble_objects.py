@@ -21,6 +21,11 @@ class BubbleNDBase(BaseNDClass):
     """
 
     @property
+    def params(self):
+        return np.array([self._y, self._x, self._major,
+                         self._minor, self._pa, self._center_channel])
+
+    @property
     def x(self):
         return self._x
 
@@ -52,6 +57,25 @@ class BubbleNDBase(BaseNDClass):
     def dec(self):
         return self._dec
 
+    @property
+    def use_extent_props(self):
+        return self._use_extent_props
+
+    @property
+    def area(self):
+        return np.pi * self.major * self.minor
+
+    @property
+    def perimeter(self):
+        '''
+        Estimate of the perimeter when major ~ minor.
+        '''
+        return 2 * np.pi * np.sqrt(0.5*(self.major**2 + self.minor**2))
+
+    @property
+    def center_channel(self):
+        return self._center_channel
+
     def as_patch(self, x_cent=None, y_cent=None, **kwargs):
         from matplotlib.patches import Ellipse
         y, x, rmaj, rmin, pa = self.params[:5]
@@ -80,38 +104,11 @@ class Bubble2D(BubbleNDBase):
 
         # The last position, if given, is the velocity channel in the cube
         try:
-            self._channel = props[5]
+            self._center_channel = props[5]
         except IndexError:
-            self._channel = None
+            self._center_channel = 0
 
         self._wcs = None
-
-    @property
-    def params(self):
-        if self.channel is not None:
-            return np.array([self._y, self._x, self._major,
-                             self._minor, self._pa, self._channel])
-
-        return np.array([self._y, self._x, self._major,
-                         self._minor, self._pa])
-
-    @property
-    def area(self):
-        return np.pi * self.major * self.minor
-
-    @property
-    def perimeter(self):
-        '''
-        Estimate of the perimeter when major ~ minor.
-        '''
-        return 2 * np.pi * np.sqrt(0.5*(self.major**2 + self.minor**2))
-
-    @property
-    def channel(self):
-        if self._channel is None:
-            Warning("Bubble2D not instantiated with a velocity channel.")
-
-        return self._channel
 
     def profile_lines(self, array, **kwargs):
         '''
@@ -389,9 +386,9 @@ class Bubble3D(BubbleNDBase):
         self._major = props[2]
         self._minor = props[3]
         self._pa = props[4]
-        self._velocity_center = props[5]
-        self._velocity_start = props[6]
-        self._velocity_end = props[7]
+        self._channel_center = props[5]
+        self._channel_start = props[6]
+        self._channel_end = props[7]
 
         self._twoD_objects = None
 
@@ -425,12 +422,6 @@ class Bubble3D(BubbleNDBase):
         return self
 
     @property
-    def params(self):
-        return np.array([self._y, self._x, self._major,
-                         self._minor, self._pa,
-                         self._velocity_center])
-
-    @property
     def twoD_objects(self):
         return self._twoD_objects
 
@@ -438,28 +429,36 @@ class Bubble3D(BubbleNDBase):
     def has_2D_regions(self):
         return True if self.twoD_objects is not None else False
 
-    @property
-    def velocity_start(self):
-        return self._velocity_start
+    # @property
+    # def velocity_start(self):
+    #     return self._velocity_start
+
+    # @property
+    # def velocity_end(self):
+    #     return self._velocity_end
+
+    # @property
+    # def velocity_center(self):
+    #     return self._velocity_center
+
+    # @property
+    # def velocity_width(self):
+    #     return self.channel_width * self.wcs.cdelt[0]
 
     @property
-    def velocity_end(self):
-        return self._velocity_end
+    def channel_end(self):
+        return self._channel_end
 
     @property
-    def velocity_center(self):
-        return self._velocity_center
-
-    @property
-    def velocity_width(self):
-        return self.velocity_end - self.velocity_start + 1
+    def channel_width(self):
+        return self.channel_end - self.channel_start + 1
 
     @property
     def bubble_type(self):
         return self._bubble_type
 
     def _chan_iter(self):
-        return xrange(int(self.velocity_start), int(self.velocity_end)+1)
+        return xrange(int(self.channel_start), int(self.channel_end)+1)
 
     def _twoD_region_iter(self):
         for region in self.twoD_objects:
@@ -521,7 +520,7 @@ class Bubble3D(BubbleNDBase):
             return pv_wedge(cube, self.center, max_dist, 0.0, np.pi,
                             width=width)
 
-    def as_pv_patch(self, x_cent=None, vel_cent=None, **kwargs):
+    def as_pv_patch(self, x_cent=None, chan_cent=None, **kwargs):
         '''
         Return a PV slice. Aligns the direction along the major axis.
         '''
@@ -530,12 +529,12 @@ class Bubble3D(BubbleNDBase):
         if x_cent is None:
             x_cent = self.major
 
-        if vel_cent is None:
-            vel_cent = self.velocity_center
+        if chan_cent is None:
+            chan_cent = self.channel_center
 
-        return Ellipse((x_cent, vel_cent),
+        return Ellipse((x_cent, chan_cent),
                        width=2*self.major,
-                       height=self.velocity_width,
+                       height=self.channel_width,
                        angle=0.0, **kwargs)
 
     def as_mask(self, spatial_shape, zero_center=False):
@@ -591,9 +590,9 @@ class Bubble3D(BubbleNDBase):
         # y, x  extents
         extents = self.find_spatial_extents(zero_center=False)
 
-        spec_slice = slice(max(0, self.velocity_start-spec_pad),
+        spec_slice = slice(max(0, self.channel_start-spec_pad),
                            min(cube.shape[0],
-                               self.velocity_end+1+spec_pad), 1)
+                               self.channel_end+1+spec_pad), 1)
 
         y_slice = slice(max(0, extents[0]-spatial_pad),
                         min(cube.shape[1], extents[1]+spatial_pad), 1)

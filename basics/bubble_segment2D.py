@@ -3,27 +3,15 @@ import numpy as np
 import warnings
 from astropy.nddata.utils import extract_array, add_array
 from astropy.utils.console import ProgressBar
-from astropy.convolution import convolve_fft, MexicanHat2DKernel
 import astropy.units as u
 import skimage.morphology as mo
 import skimage.measure as me
-from skimage.filters import threshold_adaptive
 from skimage.segmentation import find_boundaries, clear_border
-from skimage.restoration import denoise_bilateral
-from skimage.exposure import rescale_intensity
-from skimage.feature import peak_local_max
 import scipy.ndimage as nd
-
-try:
-    import cv2
-    CV2_FLAG = True
-except ImportError:
-    warnings.warn("Cannot import cv2. Computing with scipy.ndimage")
-    CV2_FLAG = False
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
-from basics.utils import arctan_transform, sig_clip
+from basics.utils import sig_clip
 from basics.bubble_objects import Bubble2D
 from basics.log import blob_log
 
@@ -153,18 +141,6 @@ class BubbleFinder2D(object):
 
         self._threshold = value
 
-    def apply_atan_transform(self, threshold=None):
-
-        if self._atan_flag:
-            warnings.warn("arctan transform already applied to the data.")
-            return
-
-        if threshold is not None:
-            self._threshold = threshold
-
-        self._array = arctan_transform(self.array, self._threshold)
-        self._atan_flag = True
-
     def cut_to_bounding_box(self, pad_size=0):
         '''
         Reduce the array down to the minimum size based on the mask.
@@ -213,16 +189,6 @@ class BubbleFinder2D(object):
     @property
     def bubble_mask(self):
         return self._bubble_mask
-
-    def apply_bilateral_filter(self, **kwargs):
-        '''
-        Apply a denoising bilateral filter to the array.
-        '''
-
-        # Have to rescale the image to be positive. Pick 0-1
-        self.array = rescale_intensity(self.array, out_range=(0.0, 1.0))
-
-        self.array = denoise_bilateral(self.array, **kwargs)
 
     def multiscale_bubblefind(self, scales=None, sigma=None, nsig=2,
                               overlap_frac=0.8):

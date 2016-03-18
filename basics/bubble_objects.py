@@ -363,7 +363,6 @@ class Bubble2D(BubbleNDBase):
         extent_mask = nd.binary_opening(extent_mask, eight_conn)
 
         self._extent_mask = extent_mask
-        self._extent_offset = (bbox[0][0] + self.y, bbox[1][0] + self.x)
 
     def overlap_with(self, other_bubble2D):
         '''
@@ -582,7 +581,7 @@ class Bubble3D(BubbleNDBase):
                 extent_2d_mask = np.zeros(cube.shape[1:], dtype=bool)
                 extent_2d_mask = add_array(extent_2d_mask,
                                            region.extent_mask.copy(),
-                                           region.extent_offset)
+                                           region.center_pixel)
             else:
                 extent_2d_mask = region.extent_mask.copy()
 

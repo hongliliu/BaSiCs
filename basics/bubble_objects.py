@@ -363,7 +363,7 @@ class Bubble2D(BubbleNDBase):
         extent_mask = nd.binary_opening(extent_mask, eight_conn)
 
         self._extent_mask = extent_mask
-        self._extent_offset = (bbox[0][0], bbox[1][0])
+        self._extent_offset = (bbox[0][0] + self.y, bbox[1][0] + self.x)
 
     def overlap_with(self, other_bubble2D):
         '''

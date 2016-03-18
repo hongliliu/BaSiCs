@@ -594,13 +594,13 @@ class Bubble3D(BubbleNDBase):
                                         axis=0)
 
         if cut_shape:
-            slices = nd.find_objects(extent_mask)[0][1:]
+            slices = nd.find_objects(extent_mask)[0]
             self._extent_mask = extent_mask[slices]
             self._extent_offset = (self.channel_start,) + \
-                tuple([pos.start for pos in slices])
+                tuple([pos.start for pos in slices[1:]])
         else:
             self._extent_mask = extent_mask
-            self._extent_mask = (self.channel_start, 0, 0)
+            self._extent_offset = (self.channel_start, 0, 0)
 
     def as_shell_mask(self, cube):
         pass

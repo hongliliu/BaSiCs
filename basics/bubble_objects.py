@@ -561,7 +561,7 @@ class Bubble3D(BubbleNDBase):
 
         return ellip_mask
 
-    def as_extent_mask(self, cube, cut_shape=True, **kwargs):
+    def find_extent_mask(self, cube, cut_shape=True, **kwargs):
         '''
         Run Bubble2D.find_extent_mask to get the extend mask in each channel.
         '''

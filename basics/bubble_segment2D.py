@@ -2,12 +2,7 @@
 import numpy as np
 import warnings
 from astropy.nddata.utils import extract_array, add_array
-from astropy.utils.console import ProgressBar
 import astropy.units as u
-import skimage.morphology as mo
-import skimage.measure as me
-from skimage.segmentation import find_boundaries, clear_border
-import scipy.ndimage as nd
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 

@@ -130,7 +130,7 @@ def _prune_blobs(blobs_array, overlap):
     cond_arr = pdist(blobs_array, metric=partial(overlap_metric))
     dist_arr = dist_uppertri(cond_arr, blobs_array.shape[0])
 
-    overlaps = np.where(dist_arr > overlap)
+    overlaps = np.where(dist_arr >= overlap)
 
     for posn1, posn2 in zip(*overlaps):
 
@@ -359,7 +359,8 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
     # Merge regions into ellipses
     local_maxima = _merge_blobs(local_maxima, merge_overlap_dist)
 
-    # Then prune and return them
+    # Then prune and return them\
+    # return local_maxima, image_cube
     return _prune_blobs(local_maxima, overlap), \
         image_cube
 

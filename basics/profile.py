@@ -153,7 +153,8 @@ def _line_profile_coordinates(src, dst, linewidth=1):
 
 
 def radial_profiles(image, blob, ntheta=360, verbose=False,
-                    extend_factor=1.5, append_end=False, **kwargs):
+                    extend_factor=1.5, append_end=False, return_thetas=False,
+                    **kwargs):
     '''
     Calculate radial profiles from the centre of a bubble to its edge.
 
@@ -172,12 +173,16 @@ def radial_profiles(image, blob, ntheta=360, verbose=False,
         Number of times past the major radius to compute the profile to.
     append_end : bool, optional
         Append the end point onto the returned list.
+    return_thetas : bool, optional
+        Return the array of theta values.
 
     Returns
     -------
     profiles : list
         Contains the distance and profile for each theta. It also contains the
         end point when append_end is enabled.
+    thetas : np.ndarray, optional
+        Returned when return_thetas is enabled.
     '''
 
     y0, x0, a, b, pa = blob.copy()[:5]
@@ -217,5 +222,8 @@ def radial_profiles(image, blob, ntheta=360, verbose=False,
 
             p.draw()
             time.sleep(0.05)
+
+    if return_thetas:
+        return profiles, thetas
 
     return profiles

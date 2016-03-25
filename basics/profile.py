@@ -196,7 +196,7 @@ def radial_profiles(image, blob, ntheta=360, verbose=False,
 
     for i, theta in enumerate(thetas):
 
-        end_pt = (y0 + a*np.cos(theta)*np.sin(pa) - b*np.sin(theta)*np.cos(pa),
+        end_pt = (y0 + a*np.cos(theta)*np.sin(pa) + b*np.sin(theta)*np.cos(pa),
                   x0 + a*np.cos(theta)*np.cos(pa) - b*np.sin(theta)*np.sin(pa))
 
         profile, dists = profile_line(image, (y0, x0), end_pt, **kwargs)

@@ -369,8 +369,7 @@ class Bubble2D(BubbleNDBase):
         Return the overlap with another bubble.
         '''
 
-        return overlap_metric(self.params, other_bubble2D.params,
-                              includes_channel=False)
+        return overlap_metric(self.params, other_bubble2D.params)
 
 
 class Bubble3D(BubbleNDBase):

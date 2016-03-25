@@ -2,6 +2,7 @@
 from spectral_cube import SpectralCube
 import numpy as np
 from astropy.io import fits
+import astropy.units as u
 import os
 import matplotlib.pyplot as p
 from matplotlib.patches import Ellipse
@@ -13,27 +14,22 @@ from basics.utils import sig_clip
 from basics.log import overlap_metric
 
 data_path = "/media/eric/Data_3/VLA/IC1613/"
+# data_path = "/media/eric/MyRAID/M33/14B-088/HI/combined_HI"
 # data_path = "/Users/eric/Data/"
 
 cube = SpectralCube.read(os.path.join(data_path, "IC1613_NA_ICL001.fits"))
+# cube = SpectralCube.read(os.path.join(data_path, "M33_14B-088_AT0206_HI.clean.image.fits"))
 
 # Remove empty channels
 cube = cube[38:63, 500:1500, 500:1500]
+# cube = cube[48:55, 500:1500, 500:1500]
+# cube = cube[:, 960:3400, 1200:2600]
 
 bub_find = BubbleFinder(cube)
 
-bubble_props = bub_find.get_bubbles(verbose=True)
+bubble_props, cluster_idx = \
+    bub_find.get_bubbles(verbose=True, overlap_frac=0.5)
 
-# Now test clustering
-
-# sims = pdist(bubble_props, metric=overlap_metric)
-# sims[sims < 0] = 0.0
-# link_mat = hier.linkage(1 - sims, 'complete')
-# cluster_idx = hier.fcluster(link_mat, 0.9, criterion='distance')
-# radii = np.unique(bubble_props[:, 4])
-
-cluster_idx = hier.fclusterdata(bubble_props[:, 1:3], 18, criterion='distance',
-                                method='complete')
 
 # from sklearn.cluster import DBSCAN
 # cluster_idx = DBSCAN(eps=18, min_samples=3,
@@ -42,6 +38,8 @@ cluster_idx = hier.fclusterdata(bubble_props[:, 1:3], 18, criterion='distance',
 ax = p.subplot(111)
 
 # Show the moment 0
+# mom0 = cube.with_mask(cube>3*bub_find.sigma*u.Jy).moment0()
+# ax.imshow(mom0.value, cmap='afmhot')
 mom0 = fits.getdata(os.path.join(data_path, "IC1613_NA_X0_P_R.fits")).squeeze()
 ax.imshow(mom0[500:1500, 500:1500],
           cmap='afmhot')
@@ -58,14 +56,44 @@ for idx in np.unique(cluster_idx[cluster_idx >= 0]):
     if total > 2:
         # print idx, total
         for blob in bubble_props[cluster_idx == idx]:
-            chan, y, x, rmaj, rmin, pa = blob
+            y, x, rmaj, rmin, pa, chan = blob
             c = Ellipse((x, y), width=2*rmaj, height=2*rmin,
                         angle=np.rad2deg(pa),
                         color=cols[i % len(cols)], fill=False, linewidth=2)
             ax.add_patch(c)
             ax.plot(x, y, cols[i % len(cols)]+'D')
-        x = np.mean(bubble_props[cluster_idx == idx, 2])
-        y = np.mean(bubble_props[cluster_idx == idx, 1])
+        x = np.mean(bubble_props[cluster_idx == idx, 1])
+        y = np.mean(bubble_props[cluster_idx == idx, 0])
+        ax.text(x, y, str(idx), color=cols[i % len(cols)])
+        i += 1
+
+p.xlim([0, cube.shape[2]])
+p.ylim([0, cube.shape[1]])
+
+p.figure()
+
+ax = p.subplot(111)
+ax.imshow(mom0[500:1500, 500:1500],
+          cmap='afmhot')
+# ax.imshow(mom0.value,
+#           cmap='afmhot')
+
+i = 0
+for idx in np.unique(cluster_idx[cluster_idx >= 0]):
+    # if idx in remove_idx:
+    #     continue
+    total = bubble_props[cluster_idx == idx].shape[0]
+    if total <= 2:
+        # print idx, total
+        for blob in bubble_props[cluster_idx == idx]:
+            y, x, rmaj, rmin, pa, chan = blob
+            c = Ellipse((x, y), width=2*rmaj, height=2*rmin,
+                        angle=np.rad2deg(pa),
+                        color=cols[i % len(cols)], fill=False, linewidth=2)
+            ax.add_patch(c)
+            ax.plot(x, y, cols[i % len(cols)]+'D')
+        x = np.mean(bubble_props[cluster_idx == idx, 1])
+        y = np.mean(bubble_props[cluster_idx == idx, 0])
         ax.text(x, y, str(idx), color=cols[i % len(cols)])
         i += 1
 

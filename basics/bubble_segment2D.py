@@ -3,12 +3,15 @@ import numpy as np
 import warnings
 from astropy.nddata.utils import extract_array, add_array
 import astropy.units as u
+from skimage.measure import EllipseModel, CircleModel, ransac
+from cv2 import fitEllipse
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
 from basics.utils import sig_clip
 from basics.bubble_objects import Bubble2D
-from basics.log import blob_log
+from basics.log import blob_log, _prune_blobs
+from basics.bubble_edge import find_bubble_edges
 
 
 eight_conn = np.ones((3, 3))
@@ -186,7 +189,7 @@ class BubbleFinder2D(object):
         return self._bubble_mask
 
     def multiscale_bubblefind(self, scales=None, sigma=None, nsig=2,
-                              overlap_frac=0.8):
+                              overlap_frac=0.8, edge_find=True):
         '''
         Run find_bubbles on the specified scales.
         '''
@@ -198,16 +201,107 @@ class BubbleFinder2D(object):
             sigma = sig_clip(self.array, nsig=10)
 
         self._regions = []
+        all_props = []
+        for i, props in enumerate(blob_log(self.array,
+                                  sigma_list=self.scales,
+                                  overlap=0.99,
+                                  threshold=nsig*sigma,
+                                  weighting=self.weightings)[0][::-1]):
+            # print(i)
+            # Adjust the region properties based on where the bubble edges are
+            if edge_find:
+                coords, shell_fraction, angular_std, mask = \
+                    find_bubble_edges(self.array, props, max_extent=1.25,
+                                      value_thresh=2*sigma,
+                                      nsig_thresh=2, return_mask=True)
+                # find_bubble_edges calculates the shell fraction
+                # If it is below the given fraction, we skip the region.
+                # print(len(coords))
+                if len(coords) < 3:
+                    print("Skipping %s" % (str(i)))
+                    continue
 
-        for props in blob_log(self.array, sigma_list=self.scales,
-                              overlap=overlap_frac,
-                              threshold=nsig*sigma,
-                              weighting=self.weightings)[0]:
+                coords = np.array(coords)
+                ymean = coords[:, 0].mean()
+                xmean = coords[:, 1].mean()
+                coords[:, 0] -= int(ymean)
+                coords[:, 1] -= int(xmean)
+                new_props = np.empty((5,))
+
+                can_fit_ellipse = np.logical_and(shell_fraction > 0.5,
+                                                 angular_std > 0.7)
+
+                if len(coords) > 5 and can_fit_ellipse:
+                    model = ransac(coords[:, ::-1], EllipseModel,
+                                   max(5, int(0.1*len(coords))),
+                                   props[2]/2.)[0]
+                    pars = model.params.copy()
+                    eccent = pars[2] / float(pars[3])
+                    # Sometimes a < b??
+                    if eccent < 1:
+                        eccent = 1. / eccent
+                        pars[2], pars[3] = pars[3], pars[2]
+                        pars[4] = np.angle(np.exp(1j*(pars[4] + 0.5*np.pi)))
+                    if pars[3] < 4.0 or pars[2] > 2.5*props[2] or eccent > 3.:
+                        ellip_fail = True
+                    else:
+                        new_props[0] = pars[1] + int(ymean)
+                        new_props[1] = pars[0] + int(xmean)
+                        new_props[2] = pars[2]
+                        new_props[3] = pars[3]
+                        new_props[4] = pars[4]
+                        ellip_fail = False
+                else:
+                    ellip_fail = True
+
+                if ellip_fail:
+                    model = ransac(coords[:, ::-1], CircleModel,
+                                   max(3, int(0.1*len(coords))),
+                                   props[2]/2.)[0]
+                    if model.params[2] > 2.5*props[2]:
+                        Warning("All fitting failed for: "+str(i))
+                        continue
+                    new_props[0] = model.params[1] + int(ymean)
+                    new_props[1] = model.params[0] + int(xmean)
+                    new_props[2] = model.params[2]
+                    new_props[3] = model.params[2]
+                    new_props[4] = 0.0
+
+            new_coords, new_shell_fraction = \
+                find_bubble_edges(self.array, new_props, max_extent=1.25,
+                                  value_thresh=2*sigma,
+                                  nsig_thresh=2, return_mask=False)[:2]
+            print(shell_fraction)
+            print(new_shell_fraction)
+
+            # print("Shell fraction: ", shell_fraction)
+            # print("Angular std: ", angular_std)
+            # print(new_props)
+            import matplotlib.pyplot as p
+            ax = p.subplot(111)
+            ax.plot(coords[:, 1]+xmean, coords[:, 0]+ymean, 'bo')
+            ax.plot(new_coords[:, 1], new_coords[:, 0], 'go')
+            ax.imshow(self.array, origin='lower', cmap='afmhot')
+            bub = Bubble2D(props)
+            ax.add_patch(bub.as_patch(color='b', fill=False, linewidth=2))
+            bub = Bubble2D(new_props)
+            ax.add_patch(bub.as_patch(color='g', fill=False, linewidth=2))
+            p.draw()
+            import time; time.sleep(0.1)
+            raw_input("?")
+            p.clf()
+
+            new_props = np.append(new_props, shell_fraction)
 
             if self.channel is not None:
-                props = np.append(props, self.channel)
+                new_props = np.append(new_props, self.channel)
 
-            self.regions.append(Bubble2D(props))
+            all_props.append(new_props)
+
+        all_props = _prune_blobs(np.array(all_props), 0.9,
+                                 use_shell_fraction=True)
+
+        self._regions = [Bubble2D(props) for props in all_props]
 
     @property
     def regions(self):

@@ -10,6 +10,9 @@ except ImportError:
     _radio_beam_flag = False
 
 
+eight_conn = np.ones((3, 3), dtype=bool)
+
+
 def arctan_transform(array, thresh):
     return np.arctan(array/thresh)
 

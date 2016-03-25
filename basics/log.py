@@ -105,7 +105,7 @@ def _blob_overlap(blob1, blob2):
     return area / (math.pi * (min(r1, r2) ** 2))
 
 
-def _prune_blobs(blobs_array, overlap):
+def _prune_blobs(blobs_array, overlap, use_shell_fraction=False):
     """Eliminated blobs with area overlap.
 
     Parameters
@@ -126,8 +126,13 @@ def _prune_blobs(blobs_array, overlap):
 
     remove_blobs = []
 
+    if use_shell_fraction:
+        slicer = slice(0, -2)
+    else:
+        slicer = slice(None)
+
     # Create a distance matrix to catch all overlap cases.
-    cond_arr = pdist(blobs_array, metric=partial(overlap_metric))
+    cond_arr = pdist(blobs_array[:, slicer], metric=partial(overlap_metric))
     dist_arr = dist_uppertri(cond_arr, blobs_array.shape[0])
 
     overlaps = np.where(dist_arr >= overlap)
@@ -137,10 +142,20 @@ def _prune_blobs(blobs_array, overlap):
         blob1 = blobs_array[posn1]
         blob2 = blobs_array[posn2]
 
-        if blob1[2] > blob2[2]:
-            remove_blobs.append(posn2)
+        if use_shell_fraction:
+            cond = blob1[5] > blob2[5]
+            if cond:
+                remove_blobs.append(posn2)
+            else:
+                remove_blobs.append(posn1)
+
         else:
-            remove_blobs.append(posn1)
+            cond = blob1[2] > blob2[2]
+            if cond:
+                remove_blobs.append(posn2)
+            else:
+                remove_blobs.append(posn1)
+
 
     # Remove duplicates
     remove_blobs = list(set(remove_blobs))

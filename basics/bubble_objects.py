@@ -146,7 +146,7 @@ class Bubble2D(BubbleNDBase):
 
         # The last position, if given, is the velocity channel in the cube
         try:
-            self._channel_center = props[5]
+            self._channel_center = props[7]
         except IndexError:
             self._channel_center = 0
 

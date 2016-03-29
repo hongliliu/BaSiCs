@@ -273,7 +273,9 @@ class BubbleFinder2D(object):
                     model = ransac(coords[:, ::-1], CircleModel,
                                    max(3, int(0.1*len(coords))),
                                    props[2]/2.)[0]
-                    if model.params[2] > max_rad*props[2]:
+                    fail_conds = model.params[2] > max_rad*props[2] or \
+                        model.params[3] < self.beam_pix
+                    if fail_conds:
                         Warning("All fitting failed for: "+str(i))
                         continue
                     new_props[0] = model.params[1] + int(ymean)

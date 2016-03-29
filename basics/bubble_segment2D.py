@@ -60,12 +60,13 @@ class BubbleFinder2D(object):
 
         pixscale = np.abs(self.wcs.pixel_scale_matrix[0, 0])
         fwhm_beam_pix = self.beam.major.value / pixscale
-        beam_pix = np.ceil(fwhm_beam_pix / np.sqrt(8*np.log(2)))
+        self.beam_pix = np.ceil(fwhm_beam_pix / np.sqrt(8*np.log(2)))
 
         if scales is None:
             # Scales based on 2^n times the major beam radius
             # self.scales = beam_pix * 2 ** np.arange(0., 3.1)
-            self.scales = beam_pix * np.arange(1., 8 + np.sqrt(2), np.sqrt(2))
+            self.scales = self.beam_pix * \
+                np.arange(1., 8 + np.sqrt(2), np.sqrt(2))
         else:
             self.scales = scales
 
@@ -73,7 +74,7 @@ class BubbleFinder2D(object):
         self.weightings = np.ones_like(self.scales)
         # If searching at the beam size, decrease it's importance to
         # remove spurious features.
-        if self.scales[0] == beam_pix:
+        if self.scales[0] == self.beam_pix:
             # 0.8 removes small spurious features in the IC1613 cube
             # Will need to run a proper noise test to better determine
             # what it should be set to
@@ -189,7 +190,11 @@ class BubbleFinder2D(object):
         return self._bubble_mask
 
     def multiscale_bubblefind(self, scales=None, sigma=None, nsig=2,
-                              overlap_frac=0.8, edge_find=True):
+                              overlap_frac=0.5, edge_find=True,
+                              edge_loc_bkg_nsig=2,
+                              ellfit_thresh={"min_shell_frac": 0.5,
+                                             "min_angular_std": 0.7},
+                              max_rad=1.75):
         '''
         Run find_bubbles on the specified scales.
         '''
@@ -200,20 +205,22 @@ class BubbleFinder2D(object):
         if sigma is None:
             sigma = sig_clip(self.array, nsig=10)
 
-        self._regions = []
         all_props = []
+        all_coords = []
         for i, props in enumerate(blob_log(self.array,
                                   sigma_list=self.scales,
                                   overlap=0.99,
                                   threshold=nsig*sigma,
-                                  weighting=self.weightings)[0][::-1]):
-            # print(i)
+                                  weighting=self.weightings)):
             # Adjust the region properties based on where the bubble edges are
             if edge_find:
-                coords, shell_fraction, angular_std, mask = \
+                # Use twice the sigma used to find local minima. Ensures the
+                # edges that are found are real.
+                coords, shell_frac, angular_std, mask = \
                     find_bubble_edges(self.array, props, max_extent=1.25,
-                                      value_thresh=2*sigma,
-                                      nsig_thresh=2, return_mask=True)
+                                      value_thresh=2*nsig*sigma,
+                                      nsig_thresh=edge_loc_bkg_nsig,
+                                      return_mask=True)
                 # find_bubble_edges calculates the shell fraction
                 # If it is below the given fraction, we skip the region.
                 # print(len(coords))
@@ -224,12 +231,14 @@ class BubbleFinder2D(object):
                 coords = np.array(coords)
                 ymean = coords[:, 0].mean()
                 xmean = coords[:, 1].mean()
+                # Fitting works better when the points are near the origin
                 coords[:, 0] -= int(ymean)
                 coords[:, 1] -= int(xmean)
                 new_props = np.empty((5,))
 
-                can_fit_ellipse = np.logical_and(shell_fraction > 0.5,
-                                                 angular_std > 0.7)
+                can_fit_ellipse = \
+                    shell_frac >= ellfit_thresh["min_shell_frac"] and \
+                    angular_std >= ellfit_thresh["min_angular_std"]
 
                 if len(coords) > 5 and can_fit_ellipse:
                     model = ransac(coords[:, ::-1], EllipseModel,
@@ -237,12 +246,17 @@ class BubbleFinder2D(object):
                                    props[2]/2.)[0]
                     pars = model.params.copy()
                     eccent = pars[2] / float(pars[3])
-                    # Sometimes a < b??
+                    # Sometimes a < b?? If so, manually correct.
                     if eccent < 1:
                         eccent = 1. / eccent
                         pars[2], pars[3] = pars[3], pars[2]
                         pars[4] = np.angle(np.exp(1j*(pars[4] + 0.5*np.pi)))
-                    if pars[3] < 4.0 or pars[2] > 2.5*props[2] or eccent > 3.:
+
+                    fail_conds = pars[3] < self.beam_pix or \
+                        pars[2] > max_rad*props[2] or \
+                        eccent > 3.
+
+                    if fail_conds:
                         ellip_fail = True
                     else:
                         new_props[0] = pars[1] + int(ymean)
@@ -258,7 +272,7 @@ class BubbleFinder2D(object):
                     model = ransac(coords[:, ::-1], CircleModel,
                                    max(3, int(0.1*len(coords))),
                                    props[2]/2.)[0]
-                    if model.params[2] > 2.5*props[2]:
+                    if model.params[2] > max_rad*props[2]:
                         Warning("All fitting failed for: "+str(i))
                         continue
                     new_props[0] = model.params[1] + int(ymean)
@@ -267,41 +281,35 @@ class BubbleFinder2D(object):
                     new_props[3] = model.params[2]
                     new_props[4] = 0.0
 
-            new_coords, new_shell_fraction = \
-                find_bubble_edges(self.array, new_props, max_extent=1.25,
-                                  value_thresh=2*sigma,
-                                  nsig_thresh=2, return_mask=False)[:2]
-            print(shell_fraction)
-            print(new_shell_fraction)
+                props = new_props
 
-            # print("Shell fraction: ", shell_fraction)
-            # print("Angular std: ", angular_std)
-            # print(new_props)
-            import matplotlib.pyplot as p
-            ax = p.subplot(111)
-            ax.plot(coords[:, 1]+xmean, coords[:, 0]+ymean, 'bo')
-            ax.plot(new_coords[:, 1], new_coords[:, 0], 'go')
-            ax.imshow(self.array, origin='lower', cmap='afmhot')
-            bub = Bubble2D(props)
-            ax.add_patch(bub.as_patch(color='b', fill=False, linewidth=2))
-            bub = Bubble2D(new_props)
-            ax.add_patch(bub.as_patch(color='g', fill=False, linewidth=2))
-            p.draw()
-            import time; time.sleep(0.1)
-            raw_input("?")
-            p.clf()
+            coords, shell_frac = \
+                find_bubble_edges(self.array, props, max_extent=1.35,
+                                  value_thresh=4*sigma,
+                                  nsig_thresh=edge_loc_bkg_nsig)[:2]
 
-            new_props = np.append(new_props, shell_fraction)
+            # Append the shell fraction onto the properties
+            props = np.append(props, shell_frac)
 
             if self.channel is not None:
-                new_props = np.append(new_props, self.channel)
+                props = np.append(props, self.channel)
 
             all_props.append(new_props)
+            all_coords.append(np.array(coords))
 
-        all_props = _prune_blobs(np.array(all_props), 0.9,
-                                 use_shell_fraction=True)
+        all_props, remove_posns = \
+            _prune_blobs(np.array(all_props), overlap_frac,
+                         use_shell_fraction=True,
+                         min_large_overlap=0.5,
+                         return_removal_posns=True)
 
-        self._regions = [Bubble2D(props) for props in all_props]
+        # Delete the removed region coords
+        for pos in remove_posns:
+            del all_coords[pos]
+
+        self._regions = \
+            [Bubble2D(props, shell_coords=coords) for props, coords in
+             zip(all_props, all_coords)]
 
     @property
     def regions(self):

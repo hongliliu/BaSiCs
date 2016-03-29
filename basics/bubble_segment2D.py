@@ -301,19 +301,23 @@ class BubbleFinder2D(object):
             all_props.append(props)
             all_coords.append(np.array(coords))
 
-        all_props, remove_posns = \
-            _prune_blobs(np.array(all_props), overlap_frac,
-                         use_shell_fraction=True,
-                         min_large_overlap=0.5,
-                         return_removal_posns=True)
+        if not len(all_props) == 0:
 
-        # Delete the removed region coords
-        for pos in remove_posns[::-1]:
-            del all_coords[pos]
+            all_props, remove_posns = \
+                _prune_blobs(np.array(all_props), overlap_frac,
+                             use_shell_fraction=True,
+                             min_large_overlap=0.5,
+                             return_removal_posns=True)
 
-        self._regions = \
-            [Bubble2D(props, shell_coords=coords) for props, coords in
-             zip(all_props, all_coords)]
+            # Delete the removed region coords
+            for pos in remove_posns[::-1]:
+                del all_coords[pos]
+
+            self._regions = \
+                [Bubble2D(props, shell_coords=coords) for props, coords in
+                 zip(all_props, all_coords)]
+        else:
+            self._regions = []
 
     @property
     def regions(self):

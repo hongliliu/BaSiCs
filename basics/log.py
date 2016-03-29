@@ -128,7 +128,7 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
     remove_blobs = []
 
     if use_shell_fraction:
-        slicer = slice(0, -2)
+        slicer = slice(0, -3)
     else:
         slicer = slice(None)
 

@@ -140,13 +140,17 @@ class Bubble2D(BubbleNDBase):
         self._major = props[2]
         self._minor = props[3]
         self._pa = props[4]
-        self._shell_fraction = props[5]
-        self._angular_std = props[6]
+
+        # > 6, some shell properties were included
+        if len(props) > 6:
+            self._shell_fraction = props[5]
+            self._angular_std = props[6]
+
         self._shell_coords = shell_coords
 
-        # The last position, if given, is the velocity channel in the cube
+        # The last position is the velocity channel in the cube
         try:
-            self._channel_center = props[7]
+            self._channel_center = props[-1]
         except IndexError:
             self._channel_center = 0
 
@@ -167,23 +171,10 @@ class Bubble2D(BubbleNDBase):
         Find the fraction of the bubble edge associated with a shell.
         '''
 
-        shell_frac = 0
+        from basics.bubble_edge import find_bubble_edges
 
-        # Set the number of theta to be ~ the perimeter.
-        ntheta = 1.5 * ceil_int(self.perimeter)
-
-        for dist, prof in self.profile_lines(array, ntheta=ntheta, **kwargs):
-
-            above_thresh = prof >= value_thresh
-
-            nabove = above_thresh.sum()
-
-            if nabove < max(2, 0.05*len(above_thresh)):
-                continue
-
-            shell_frac += 1
-
-        self._shell_fraction = float(shell_frac) / float(ntheta)
+        self._shell_coords, self._shell_fraction, self._angular_std = \
+            find_bubble_edges(array, self.params, **kwargs)
 
     @property
     def shell_fraction(self):

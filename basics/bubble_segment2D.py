@@ -286,13 +286,14 @@ class BubbleFinder2D(object):
 
                 props = new_props
 
-            coords, shell_frac = \
+            coords, shell_frac, angular_std = \
                 find_bubble_edges(self.array, props, max_extent=1.35,
                                   value_thresh=2*nsig*sigma,
-                                  nsig_thresh=edge_loc_bkg_nsig)[:2]
+                                  nsig_thresh=edge_loc_bkg_nsig)
 
             # Append the shell fraction onto the properties
             props = np.append(props, shell_frac)
+            props = np.append(props, angular_std)
 
             if self.channel is not None:
                 props = np.append(props, self.channel)
@@ -307,7 +308,7 @@ class BubbleFinder2D(object):
                          return_removal_posns=True)
 
         # Delete the removed region coords
-        for pos in remove_posns:
+        for pos in remove_posns[::-1]:
             del all_coords[pos]
 
         self._regions = \

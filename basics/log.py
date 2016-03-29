@@ -105,7 +105,8 @@ def _blob_overlap(blob1, blob2):
     return area / (math.pi * (min(r1, r2) ** 2))
 
 
-def _prune_blobs(blobs_array, overlap, use_shell_fraction=False):
+def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
+                 min_large_overlap=0.5):
     """Eliminated blobs with area overlap.
 
     Parameters
@@ -143,12 +144,36 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False):
         blob2 = blobs_array[posn2]
 
         if use_shell_fraction:
-            shell_cond = blob1[5] > blob2[5]
-            # Also want to check if the
-            if cond:
-                remove_blobs.append(posn2)
+            area1 = np.pi*blob1[2]*blob1[3]
+            area2 = np.pi*blob2[2]*blob2[3]
+
+            if area1 >= area2:
+                large = blob1
+                large_pos = posn1
+                small = blob2
+                small_pos = posn2
             else:
-                remove_blobs.append(posn1)
+                large = blob2
+                large_pos = posn2
+                small = blob1
+                small_pos = posn1
+
+            shell_cond = large[5] >= small[5]
+            # Also want to check if the fraction of overlap is above
+            # min_large_overlap. This stops much larger regions from being
+            # removed when small ones are embedded in their edges.
+            large_overlap = _pixel_overlap(blob1, blob2,
+                                           return_large_overlap=True)
+            overlap_cond = large_overlap >= min_large_overlap
+
+            # If the bigger one is more complete, discard the smaller
+            if shell_cond:
+                remove_blobs.append(small_pos)
+            # Otherwise, only remove the larger one if the smaller overlaps
+            # >= min_large_overlap
+            else:
+                if overlap_cond:
+                    remove_blobs.append(large_pos)
 
         else:
             cond = blob1[2] > blob2[2]

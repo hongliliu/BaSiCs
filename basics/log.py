@@ -143,7 +143,8 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False):
         blob2 = blobs_array[posn2]
 
         if use_shell_fraction:
-            cond = blob1[5] > blob2[5]
+            shell_cond = blob1[5] > blob2[5]
+            # Also want to check if the
             if cond:
                 remove_blobs.append(posn2)
             else:
@@ -155,7 +156,6 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False):
                 remove_blobs.append(posn2)
             else:
                 remove_blobs.append(posn1)
-
 
     # Remove duplicates
     remove_blobs = list(set(remove_blobs))
@@ -409,7 +409,7 @@ def merge_to_ellipse(blob1, blob2):
     return new_blob
 
 
-def _pixel_overlap(blob1, blob2, grid_space=0.2):
+def _pixel_overlap(blob1, blob2, grid_space=0.2, return_large_overlap=False):
     '''
     Ellipse intersection are difficult. But counting common pixels is not!
     This routine creates arrays up-sampled from the original pixel scale to
@@ -463,8 +463,14 @@ def _pixel_overlap(blob1, blob2, grid_space=0.2):
     ellip2_area = ellip2.sum()
 
     if ellip1_area > ellip2_area:
+        if return_large_overlap:
+            return overlap_area / float(ellip1_area)
+
         return overlap_area / float(ellip2_area)
     else:
+        if return_large_overlap:
+            return overlap_area / float(ellip2_area)
+
         return overlap_area / float(ellip1_area)
 
 

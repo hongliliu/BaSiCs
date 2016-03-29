@@ -274,7 +274,7 @@ class BubbleFinder2D(object):
                                    max(3, int(0.1*len(coords))),
                                    props[2]/2.)[0]
                     fail_conds = model.params[2] > max_rad*props[2] or \
-                        model.params[3] < self.beam_pix
+                        model.params[2] < self.beam_pix
                     if fail_conds:
                         Warning("All fitting failed for: "+str(i))
                         continue

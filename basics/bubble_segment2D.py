@@ -268,6 +268,7 @@ class BubbleFinder2D(object):
                 else:
                     ellip_fail = True
 
+                # If ellipse fitting is not allowed, or it failed, fit a circle
                 if ellip_fail:
                     model = ransac(coords[:, ::-1], CircleModel,
                                    max(3, int(0.1*len(coords))),
@@ -285,7 +286,7 @@ class BubbleFinder2D(object):
 
             coords, shell_frac = \
                 find_bubble_edges(self.array, props, max_extent=1.35,
-                                  value_thresh=4*sigma,
+                                  value_thresh=2*nsig*sigma,
                                   nsig_thresh=edge_loc_bkg_nsig)[:2]
 
             # Append the shell fraction onto the properties

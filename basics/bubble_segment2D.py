@@ -297,7 +297,7 @@ class BubbleFinder2D(object):
             if self.channel is not None:
                 props = np.append(props, self.channel)
 
-            all_props.append(new_props)
+            all_props.append(props)
             all_coords.append(np.array(coords))
 
         all_props, remove_posns = \

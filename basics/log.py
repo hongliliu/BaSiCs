@@ -106,7 +106,7 @@ def _blob_overlap(blob1, blob2):
 
 
 def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
-                 min_large_overlap=0.5):
+                 min_large_overlap=0.5, return_removal_posns=False):
     """Eliminated blobs with area overlap.
 
     Parameters
@@ -186,6 +186,9 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
     remove_blobs = list(set(remove_blobs))
 
     blobs_array = np.delete(blobs_array, remove_blobs, axis=0)
+
+    if return_removal_posns:
+        return blobs_array, remove_blobs
 
     return blobs_array
 

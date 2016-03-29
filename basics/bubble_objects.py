@@ -178,7 +178,17 @@ class Bubble2D(BubbleNDBase):
 
     @property
     def shell_fraction(self):
+        '''
+        Fraction of the region surrounded by a shell.
+        '''
         return self._shell_fraction
+
+    @property
+    def angular_std(self):
+        '''
+        The angular standard deviation of the shell positions.
+        '''
+        return self._angular_std
 
     def as_ellipse(self, zero_center=True):
         '''

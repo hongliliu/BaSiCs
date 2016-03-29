@@ -194,7 +194,7 @@ class BubbleFinder2D(object):
                               edge_loc_bkg_nsig=2,
                               ellfit_thresh={"min_shell_frac": 0.5,
                                              "min_angular_std": 0.7},
-                              max_rad=1.75):
+                              max_rad=1.75, verbose=False):
         '''
         Run find_bubbles on the specified scales.
         '''
@@ -225,7 +225,8 @@ class BubbleFinder2D(object):
                 # If it is below the given fraction, we skip the region.
                 # print(len(coords))
                 if len(coords) < 3:
-                    print("Skipping %s" % (str(i)))
+                    if verbose:
+                        print("Skipping %s" % (str(i)))
                     continue
 
                 coords = np.array(coords)

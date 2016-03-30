@@ -439,19 +439,26 @@ def merge_to_ellipse(blob1, blob2):
     return new_blob
 
 
-def _ellipse_overlap(blob1, blob2, grid_space=1.0, return_large_overlap=False):
+def _ellipse_overlap(blob1, blob2, grid_space=0.2, return_large_overlap=False):
     '''
     Ellipse intersection are difficult. But counting common pixels is not!
     This routine creates arrays up-sampled from the original pixel scale to
     better estimate the overlap fraction.
     '''
 
-    if blob1[2] > blob2[2]:
+    ellip1_area = np.pi * blob1[2] * blob1[3]
+    ellip2_area = np.pi * blob2[2] * blob2[3]
+
+    if ellip1_area >= ellip2_area:
         large_blob = blob1
         small_blob = blob2
+        large_ellip_area = ellip1_area
+        small_ellip_area = ellip2_area
     else:
         large_blob = blob2
         small_blob = blob1
+        large_ellip_area = ellip2_area
+        small_ellip_area = ellip1_area
 
     bound1 = Ellipse2D(True, 0.0, 0.0, large_blob[2], large_blob[3],
                        large_blob[4]).bounding_box
@@ -462,14 +469,16 @@ def _ellipse_overlap(blob1, blob2, grid_space=1.0, return_large_overlap=False):
                        small_blob[4]).bounding_box
 
     # If there is no overlap in the bounding boxes, there is no overlap
-    if bound1[0][1] < bound2[0][0] and bound1[1][1] < bound2[1][0]:
+    if bound1[0][1] <= bound2[0][0] or bound1[1][1] <= bound2[1][0]:
         return 0.0
 
-    ybounds = (min(bound1[0][0], bound2[0][0]),
-               max(bound1[0][1], bound2[0][1]))
+    # Only evaluate the overlap between the two.
 
-    xbounds = (min(bound1[1][0], bound2[1][0]),
-               max(bound1[1][1], bound2[1][1]))
+    ybounds = (max(bound1[0][0], bound2[0][0]),
+               min(bound1[0][1], bound2[0][1]))
+
+    xbounds = (max(bound1[1][0], bound2[1][0]),
+               min(bound1[1][1], bound2[1][1]))
 
     yy, xx = \
         np.meshgrid(np.arange(ybounds[0] - grid_space, ybounds[1] + grid_space,
@@ -487,21 +496,12 @@ def _ellipse_overlap(blob1, blob2, grid_space=1.0, return_large_overlap=False):
                                 small_blob[2], small_blob[3],
                                 small_blob[4])
 
-    overlap_area = np.sum(np.logical_and(ellip1, ellip2))
+    overlap_area = np.sum(np.logical_and(ellip1, ellip2)) * grid_space ** 2
 
-    ellip1_area = ellip1.sum()
-    ellip2_area = ellip2.sum()
+    if return_large_overlap:
+        return overlap_area / float(large_ellip_area)
 
-    if ellip1_area > ellip2_area:
-        if return_large_overlap:
-            return overlap_area / float(ellip1_area)
-
-        return overlap_area / float(ellip2_area)
-    else:
-        if return_large_overlap:
-            return overlap_area / float(ellip2_area)
-
-        return overlap_area / float(ellip1_area)
+    return overlap_area / float(small_ellip_area)
 
 
 def _min_merge_overlap(min_dist):

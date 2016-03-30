@@ -28,8 +28,8 @@ def test_pixel_nooverlap():
     pt1 = (10, 10, 10, 10, 0)
     pt2 = (10, 31, 10, 10, 0)
 
-    npt.assert_almost_equal(0.0,
-                            _ellipse_overlap(pt1, pt2), decimal=3)
+    npt.assert_almost_equal(_ellipse_overlap(pt1, pt2),
+                            0.0, decimal=3)
 
 
 def test_pixel_alloverlap():
@@ -37,8 +37,8 @@ def test_pixel_alloverlap():
     pt1 = (10, 10, 10, 10, 0)
     pt2 = (10, 15, 20, 20, 0)
 
-    npt.assert_almost_equal(1.0,
-                            _ellipse_overlap(pt1, pt2), decimal=3)
+    npt.assert_almost_equal(_ellipse_overlap(pt1, pt2),
+                            1.0, decimal=3)
 
 
 def test_min_merge_overlap():

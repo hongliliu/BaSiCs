@@ -3,7 +3,8 @@ import numpy as np
 import astropy.units as u
 from spectral_cube import SpectralCube
 from astropy.utils.console import ProgressBar
-
+import sys
+from itertools import chain, izip, repeat
 
 from bubble_segment2D import BubbleFinder2D
 from bubble_objects import Bubble3D
@@ -62,28 +63,28 @@ class BubbleFinder(object):
         self._sigma = val
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
-                    **kwargs):
+                    multiprocess=True, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
         '''
 
-        bubble_props = np.empty((0, 6), dtype=float)
-        twod_regions = []
-
         if verbose:
-            iterate = ProgressBar(self.cube.shape[0])
+            output = sys.stdout
         else:
-            iterate = xrange(self.cube.shape[0])
+            output = None
 
-        for i in iterate:
-            bub = BubbleFinder2D(self.cube[i], channel=i,
-                                 mask=self.cube.mask.include(view=(i, )))
-            bub.multiscale_bubblefind(sigma=self.sigma,
-                                      overlap_frac=overlap_frac)
-            if bub.num_regions == 0:
-                continue
-            twod_regions.extend(bub.regions)
+        twod_regions = ProgressBar.map(_region_return,
+                                       [(self.cube[i],
+                                         self.cube.mask.include(view=(i, )),
+                                         i, self.sigma, overlap_frac) for i in
+                                        xrange(self.cube.shape[0])],
+                                       multiprocess=multiprocess,
+                                       file=output,
+                                       step=self.cube.shape[0])
+
+        # Join into one long list
+        twod_regions = chain(*twod_regions)
 
         bubble_props = np.vstack([bub.params for bub in twod_regions])
 
@@ -104,3 +105,10 @@ class BubbleFinder(object):
     def bubbles(self):
         return self._bubbles
 
+
+def _region_return(imps):
+    arr, mask, i, sigma, overlap_frac = imps
+    return BubbleFinder2D(arr, channel=i,
+                          mask=mask).\
+        multiscale_bubblefind(sigma=sigma,
+                              overlap_frac=overlap_frac).regions

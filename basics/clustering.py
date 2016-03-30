@@ -34,7 +34,7 @@ def cluster_2D_regions(twod_region_props, metric='position', cut_val=18):
 
         Warning("cut_val forced to 1.0 for channel clustering.")
 
-        cluster_idx = fclusterdata(twod_region_props[:, -2:], 1.0,
+        cluster_idx = fclusterdata(twod_region_props[:, -1:], 1.0,
                                    criterion='distance', method='single',
                                    metric='cityblock')
 

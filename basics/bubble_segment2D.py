@@ -244,7 +244,7 @@ class BubbleFinder2D(object):
                 if len(coords) > 5 and can_fit_ellipse:
                     with catch_warnings():
                         filterwarnings("ignore",
-                                       r"Number of calls to the function")
+                                       r"Number of calls to function")
                         model = ransac(coords[:, ::-1], EllipseModel,
                                        max(5, int(0.1*len(coords))),
                                        props[2]/2.)[0]
@@ -277,7 +277,7 @@ class BubbleFinder2D(object):
                 if ellip_fail:
                     with catch_warnings():
                         filterwarnings("ignore",
-                                       r"Number of calls to the function")
+                                       r"Number of calls to function")
                         model = ransac(coords[:, ::-1], CircleModel,
                                        max(3, int(0.1*len(coords))),
                                        props[2]/2.)[0]

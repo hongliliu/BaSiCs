@@ -328,6 +328,8 @@ class BubbleFinder2D(object):
         else:
             self._regions = []
 
+        return self
+
     @property
     def regions(self):
         return self._regions

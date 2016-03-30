@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 # Theory behind: http://en.wikipedia.org/wiki/Blob_detection (04.04.2013)
 
 
-def _blob_overlap(blob1, blob2, return_large_overlap=False):
+def _circle_overlap(blob1, blob2, return_large_overlap=False):
     """Finds the overlapping area fraction between two blobs.
 
     Returns a float representing fraction of overlapped area.
@@ -165,8 +165,8 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
             # Also want to check if the fraction of overlap is above
             # min_large_overlap. This stops much larger regions from being
             # removed when small ones are embedded in their edges.
-            large_overlap = _pixel_overlap(blob1, blob2,
-                                           return_large_overlap=True)
+            large_overlap = _ellipse_overlap(blob1, blob2,
+                                             return_large_overlap=True)
             overlap_cond = large_overlap >= min_large_overlap
 
             # If the bigger one is more complete, discard the smaller
@@ -439,7 +439,7 @@ def merge_to_ellipse(blob1, blob2):
     return new_blob
 
 
-def _pixel_overlap(blob1, blob2, grid_space=0.2, return_large_overlap=False):
+def _ellipse_overlap(blob1, blob2, grid_space=1.0, return_large_overlap=False):
     '''
     Ellipse intersection are difficult. But counting common pixels is not!
     This routine creates arrays up-sampled from the original pixel scale to
@@ -525,12 +525,12 @@ def overlap_metric(ellip1, ellip2, return_large_overlap=False):
     '''
 
     if ellip1[2] != ellip1[3] or ellip2[2] != ellip2[3]:
-        return _pixel_overlap(ellip1, ellip2,
-                              return_large_overlap=return_large_overlap)
+        return _ellipse_overlap(ellip1, ellip2,
+                                return_large_overlap=return_large_overlap)
 
     else:
-        blob_overlap = _blob_overlap(ellip1, ellip2,
-                                     return_large_overlap=return_large_overlap)
+        blob_overlap = _circle_overlap(ellip1, ellip2,
+                                       return_large_overlap=return_large_overlap)
         if blob_overlap == 1e-5:
             blob_overlap = 0.0
         return blob_overlap

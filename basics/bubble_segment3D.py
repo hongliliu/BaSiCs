@@ -84,7 +84,7 @@ class BubbleFinder(object):
                                        step=self.cube.shape[0])
 
         # Join into one long list
-        twod_regions = chain(*twod_regions)
+        twod_regions = list(chain(*twod_regions))
 
         bubble_props = np.vstack([bub.params for bub in twod_regions])
 

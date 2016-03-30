@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 # Theory behind: http://en.wikipedia.org/wiki/Blob_detection (04.04.2013)
 
 
-def _blob_overlap(blob1, blob2):
+def _blob_overlap(blob1, blob2, return_large_overlap=False):
     """Finds the overlapping area fraction between two blobs.
 
     Returns a float representing fraction of overlapped area.
@@ -101,6 +101,9 @@ def _blob_overlap(blob1, blob2):
     c = d + r2 - r1
     d = d + r2 + r1
     area = r1 ** 2 * acos1 + r2 ** 2 * acos2 - 0.5 * sqrt(abs(a * b * c * d))
+
+    if return_large_overlap:
+        return area / (math.pi * (max(r1, r2) ** 2))
 
     return area / (math.pi * (min(r1, r2) ** 2))
 
@@ -516,21 +519,18 @@ def _min_merge_overlap(min_dist):
     return term1 - term2
 
 
-def overlap_metric(ellip1, ellip2):
+def overlap_metric(ellip1, ellip2, return_large_overlap=False):
     '''
     Calculate the overlap in ellipses, if they are in adjacent channels.
     '''
 
-    ypos, xpos, major, minor, pa = range(5)
-
-    # if np.abs(ellip1[0] - ellip2[0]) != 1:
-    #     return 0.0
-
-    if ellip1[major] != ellip1[minor] or ellip2[major] != ellip2[minor]:
-        return _pixel_overlap(ellip1[ypos:], ellip2[ypos:])
+    if ellip1[2] != ellip1[3] or ellip2[2] != ellip2[3]:
+        return _pixel_overlap(ellip1, ellip2,
+                              return_large_overlap=return_large_overlap)
 
     else:
-        blob_overlap = _blob_overlap(ellip1[ypos:], ellip2[ypos:])
+        blob_overlap = _blob_overlap(ellip1, ellip2,
+                                     return_large_overlap=return_large_overlap)
         if blob_overlap == 1e-5:
             blob_overlap = 0.0
         return blob_overlap

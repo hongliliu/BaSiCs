@@ -81,7 +81,6 @@ class BubbleFinder(object):
                                  mask=self.cube.mask.include(view=(i, )))
             bub.multiscale_bubblefind(sigma=self.sigma,
                                       overlap_frac=overlap_frac)
-            bub.region_rejection(value_thresh=3*self.sigma)
             if bub.num_regions == 0:
                 continue
             twod_regions.extend(bub.regions)

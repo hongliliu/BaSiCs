@@ -1,6 +1,6 @@
 
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import pdist
 from scipy.cluster.hierarchy import fcluster, fclusterdata, linkage
 from functools import partial
 

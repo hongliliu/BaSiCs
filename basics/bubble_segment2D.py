@@ -4,7 +4,7 @@ import warnings
 from astropy.nddata.utils import extract_array, add_array
 import astropy.units as u
 from skimage.measure import EllipseModel, CircleModel, ransac
-from cv2 import fitEllipse
+from warnings import filterwarnings, catch_warnings
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
@@ -242,9 +242,13 @@ class BubbleFinder2D(object):
                     angular_std >= ellfit_thresh["min_angular_std"]
 
                 if len(coords) > 5 and can_fit_ellipse:
-                    model = ransac(coords[:, ::-1], EllipseModel,
-                                   max(5, int(0.1*len(coords))),
-                                   props[2]/2.)[0]
+                    with catch_warnings():
+                        filterwarnings("ignore",
+                                       r"Number of calls to the function")
+                        model = ransac(coords[:, ::-1], EllipseModel,
+                                       max(5, int(0.1*len(coords))),
+                                       props[2]/2.)[0]
+
                     pars = model.params.copy()
                     eccent = pars[2] / float(pars[3])
                     # Sometimes a < b?? If so, manually correct.
@@ -271,9 +275,12 @@ class BubbleFinder2D(object):
 
                 # If ellipse fitting is not allowed, or it failed, fit a circle
                 if ellip_fail:
-                    model = ransac(coords[:, ::-1], CircleModel,
-                                   max(3, int(0.1*len(coords))),
-                                   props[2]/2.)[0]
+                    with catch_warnings():
+                        filterwarnings("ignore",
+                                       r"Number of calls to the function")
+                        model = ransac(coords[:, ::-1], CircleModel,
+                                       max(3, int(0.1*len(coords))),
+                                       props[2]/2.)[0]
                     fail_conds = model.params[2] > max_rad*props[2] or \
                         model.params[2] < self.beam_pix
                     if fail_conds:
@@ -311,6 +318,7 @@ class BubbleFinder2D(object):
                              return_removal_posns=True)
 
             # Delete the removed region coords
+            remove_posns.sort()
             for pos in remove_posns[::-1]:
                 del all_coords[pos]
 

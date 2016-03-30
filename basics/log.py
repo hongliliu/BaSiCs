@@ -472,6 +472,17 @@ def _ellipse_overlap(blob1, blob2, grid_space=0.2, return_large_overlap=False):
     if bound1[0][1] <= bound2[0][0] or bound1[1][1] <= bound2[1][0]:
         return 0.0
 
+    # Now check if the smaller one is completely inside the larger
+    low_in_large = bound1[0][0] <= bound2[0][0] and \
+        bound1[0][1] >= bound2[0][1]
+    high_in_large = bound1[1][0] <= bound2[1][0] and \
+        bound1[1][1] >= bound2[1][1]
+
+    if low_in_large and high_in_large:
+        if return_large_overlap:
+            return small_ellip_area / large_ellip_area
+        return 1.0
+
     # Only evaluate the overlap between the two.
 
     ybounds = (max(bound1[0][0], bound2[0][0]),

@@ -252,6 +252,9 @@ class BubbleFinder2D(object):
                                        props[2]/2.)[0]
 
                     pars = model.params.copy()
+                    pars[0] += int(ymean)
+                    pars[1] += int(xmean)
+
                     eccent = pars[2] / float(pars[3])
                     # Sometimes a < b?? If so, manually correct.
                     if eccent < 1:
@@ -266,8 +269,8 @@ class BubbleFinder2D(object):
                     if fail_conds:
                         ellip_fail = True
                     else:
-                        new_props[0] = pars[1] + int(ymean)
-                        new_props[1] = pars[0] + int(xmean)
+                        new_props[0] = pars[1]
+                        new_props[1] = pars[0]
                         new_props[2] = pars[2]
                         new_props[3] = pars[3]
                         new_props[4] = pars[4]
@@ -285,16 +288,21 @@ class BubbleFinder2D(object):
                         model = ransac(coords[:, ::-1], CircleModel,
                                        max(3, int(0.1*len(coords))),
                                        props[2]/2.)[0]
-                    fail_conds = model.params[2] > max_rad*props[2] or \
-                        model.params[2] < self.beam_pix or \
-                        not in_circle(props[:2], model.params)
+
+                    pars = model.params.copy()
+                    pars[0] += int(ymean)
+                    pars[1] += int(xmean)
+
+                    fail_conds = pars[2] > max_rad*props[2] or \
+                        pars[2] < self.beam_pix or \
+                        not in_circle(props[:2], pars)
                     if fail_conds:
                         Warning("All fitting failed for: "+str(i))
                         continue
-                    new_props[0] = model.params[1] + int(ymean)
-                    new_props[1] = model.params[0] + int(xmean)
-                    new_props[2] = model.params[2]
-                    new_props[3] = model.params[2]
+                    new_props[0] = pars[1]
+                    new_props[1] = pars[0]
+                    new_props[2] = pars[2]
+                    new_props[3] = pars[2]
                     new_props[4] = 0.0
 
                 props = new_props

@@ -307,9 +307,6 @@ class BubbleFinder2D(object):
             props = np.append(props, shell_frac)
             props = np.append(props, angular_std)
 
-            if self.channel is not None:
-                props = np.append(props, self.channel)
-
             all_props.append(props)
             all_coords.append(np.array(coords))
 
@@ -326,8 +323,8 @@ class BubbleFinder2D(object):
                 del all_coords[pos]
 
             self._regions = \
-                [Bubble2D(props, shell_coords=coords) for props, coords in
-                 zip(all_props, all_coords)]
+                [Bubble2D(props, shell_coords=coords, channel=self.channel)
+                 for props, coords in zip(all_props, all_coords)]
         else:
             self._regions = []
 

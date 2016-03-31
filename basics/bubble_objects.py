@@ -132,7 +132,7 @@ class Bubble2D(BubbleNDBase):
     """
     Class for candidate bubble portions from 2D planes.
     """
-    def __init__(self, props, wcs=None, shell_coords=None):
+    def __init__(self, props, wcs=None, shell_coords=None, channel=None):
         super(Bubble2D, self).__init__()
 
         self._y = props[0]
@@ -149,10 +149,8 @@ class Bubble2D(BubbleNDBase):
         self._shell_coords = shell_coords
 
         # The last position is the velocity channel in the cube
-        try:
-            self._channel_center = props[-1]
-        except IndexError:
-            self._channel_center = 0
+        if channel is not None:
+            self._channel_center = channel
 
         self._wcs = None
 

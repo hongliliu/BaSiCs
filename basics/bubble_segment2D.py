@@ -245,6 +245,8 @@ class BubbleFinder2D(object):
                     with catch_warnings():
                         filterwarnings("ignore",
                                        r"Number of calls to function")
+                        filterwarnings("ignore",
+                                       r"gtol=0.000000 is too small")
                         model = ransac(coords[:, ::-1], EllipseModel,
                                        max(5, int(0.1*len(coords))),
                                        props[2]/2.)[0]
@@ -278,6 +280,8 @@ class BubbleFinder2D(object):
                     with catch_warnings():
                         filterwarnings("ignore",
                                        r"Number of calls to function")
+                        filterwarnings("ignore",
+                                       r"gtol=0.000000 is too small")
                         model = ransac(coords[:, ::-1], CircleModel,
                                        max(3, int(0.1*len(coords))),
                                        props[2]/2.)[0]
@@ -314,8 +318,7 @@ class BubbleFinder2D(object):
             all_props, remove_posns = \
                 _prune_blobs(np.array(all_props), overlap_frac,
                              use_shell_fraction=True,
-                             min_large_overlap=0.5,
-                             return_removal_posns=True)
+                             min_corr=0.75, return_removal_posns=True)
 
             # Delete the removed region coords
             remove_posns.sort()

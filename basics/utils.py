@@ -248,3 +248,30 @@ def floor_int(value):
 
 def ceil_int(value):
     return np.ceil(value).astype(int)
+
+
+def in_circle(point, params):
+    '''
+    Test if a point is within a circle.
+    '''
+    y, x = point
+    y0, x0, r = params
+    return (y-y0)**2 + (x-x0)**2 <= r**2
+
+
+def in_ellipse(point, params):
+    '''
+    Test if a point is within an ellipse.
+    '''
+
+    if params[2] == params[3]:
+        return in_circle(point, params[:3])
+
+    y, x = point
+    y0, x0, a, b, pa = params
+
+    # Transform to frame where ellipse axes are the cartesian axes
+    yprime = (y-y0)*np.cos(pa) - (x-x0)*np.sin(pa)
+    xprime = (x-x0)*np.cos(pa) + (x-x0)*np.sin(pa)
+
+    return (xprime/b)**2 + (yprime/a)**2 <= 1.

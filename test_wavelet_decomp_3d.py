@@ -50,12 +50,10 @@ cols = ['b', 'g', 'c', 'm', 'r', 'y']
 
 i = 0
 for idx in np.unique(cluster_idx[cluster_idx >= 0]):
-    # if idx in remove_idx:
-    #     continue
-    total = bubble_props[cluster_idx == idx].shape[0]
+    props = bubble_props[cluster_idx == idx]
+    total = 1 + props[:, -1].max() - props[:, -1].min()
     if total > 2:
-        # print idx, total
-        for blob in bubble_props[cluster_idx == idx]:
+        for blob in props:
             y, x, rmaj, rmin, pa, chan = blob
             c = Ellipse((x, y), width=2*rmaj, height=2*rmin,
                         angle=np.rad2deg(pa),
@@ -80,12 +78,10 @@ ax.imshow(mom0[500:1500, 500:1500],
 
 i = 0
 for idx in np.unique(cluster_idx[cluster_idx >= 0]):
-    # if idx in remove_idx:
-    #     continue
-    total = bubble_props[cluster_idx == idx].shape[0]
+    props = bubble_props[cluster_idx == idx]
+    total = 1 + props[:, -1].max() - props[:, -1].min()
     if total <= 2:
-        # print idx, total
-        for blob in bubble_props[cluster_idx == idx]:
+        for blob in props:
             y, x, rmaj, rmin, pa, chan = blob
             c = Ellipse((x, y), width=2*rmaj, height=2*rmin,
                         angle=np.rad2deg(pa),

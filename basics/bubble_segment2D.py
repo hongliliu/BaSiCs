@@ -8,7 +8,7 @@ from warnings import filterwarnings, catch_warnings
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
-from basics.utils import sig_clip
+from basics.utils import sig_clip, in_circle, in_ellipse
 from basics.bubble_objects import Bubble2D
 from basics.log import blob_log, _prune_blobs
 from basics.bubble_edge import find_bubble_edges
@@ -261,7 +261,7 @@ class BubbleFinder2D(object):
 
                     fail_conds = pars[3] < self.beam_pix or \
                         pars[2] > max_rad*props[2] or \
-                        eccent > 3.
+                        eccent > 3. or not in_ellipse(props[:2], pars)
 
                     if fail_conds:
                         ellip_fail = True
@@ -286,7 +286,8 @@ class BubbleFinder2D(object):
                                        max(3, int(0.1*len(coords))),
                                        props[2]/2.)[0]
                     fail_conds = model.params[2] > max_rad*props[2] or \
-                        model.params[2] < self.beam_pix
+                        model.params[2] < self.beam_pix or \
+                        not in_circle(props[:2], model.params)
                     if fail_conds:
                         Warning("All fitting failed for: "+str(i))
                         continue

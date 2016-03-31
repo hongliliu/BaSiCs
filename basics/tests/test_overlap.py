@@ -41,6 +41,47 @@ def test_pixel_alloverlap():
                             1.0, decimal=3)
 
 
+def test_circle_corr():
+
+    pt1 = (10, 10, 10, 10, 0)
+    pt2 = (10, 15, 10, 10, 0)
+
+    Aover = 0.68503764247429266 * np.pi * 10**2
+    corr = Aover / (np.pi * 10 * 10)
+
+    npt.assert_almost_equal(_circle_overlap(pt1, pt2, return_corr=True), corr)
+
+
+def test_ellipse_corr():
+
+    pt1 = (10, 10, 10, 10, 0)
+    pt2 = (10, 15, 10, 10, 0)
+
+    npt.assert_almost_equal(_circle_overlap(pt1, pt2, return_corr=True),
+                            _ellipse_overlap(pt1, pt2, return_corr=True),
+                            decimal=2)
+
+
+def test_pixel_nooverlap_corr():
+
+    pt1 = (10, 10, 10, 10, 0)
+    pt2 = (10, 31, 10, 10, 0)
+
+    npt.assert_almost_equal(_ellipse_overlap(pt1, pt2, return_corr=True),
+                            0.0, decimal=3)
+
+
+def test_pixel_alloverlap_corr():
+
+    pt1 = (10, 10, 10, 10, 0)
+    pt2 = (10, 15, 20, 20, 0)
+
+    Aover = _ellipse_overlap(pt1, pt2) * np.pi * 10**2
+
+    npt.assert_almost_equal(_ellipse_overlap(pt1, pt2, return_corr=True),
+                            Aover / (np.pi * 10 * 20), decimal=3)
+
+
 def test_min_merge_overlap():
 
     F = 2.0

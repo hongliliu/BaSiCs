@@ -130,13 +130,8 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
 
     remove_blobs = []
 
-    if use_shell_fraction:
-        slicer = slice(0, -3)
-    else:
-        slicer = slice(None)
-
     # Create a distance matrix to catch all overlap cases.
-    cond_arr = pdist(blobs_array[:, slicer], metric=partial(overlap_metric))
+    cond_arr = pdist(blobs_array[:, :5], metric=partial(overlap_metric))
     dist_arr = dist_uppertri(cond_arr, blobs_array.shape[0])
 
     overlaps = np.where(dist_arr >= overlap)
@@ -165,9 +160,9 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
             # Also want to check if the fraction of overlap is above
             # min_corr. This stops much larger regions from being
             # removed when small ones are embedded in their edges.
-            large_overlap = _ellipse_overlap(blob1, blob2,
-                                             return_corr=True)
-            overlap_cond = large_overlap >= min_corr
+            overlap_corr = _ellipse_overlap(blob1, blob2,
+                                            return_corr=True)
+            overlap_cond = overlap_corr >= min_corr
 
             # If the bigger one is more complete, discard the smaller
             if shell_cond:

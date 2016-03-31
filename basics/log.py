@@ -406,8 +406,8 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
     local_maxima = _merge_blobs(local_maxima, merge_overlap_dist)
 
     # Then prune and return them\
-    # return local_maxima, image_cube
-    return _prune_blobs(local_maxima, overlap)
+    return local_maxima
+    # return _prune_blobs(local_maxima, overlap)
 
 
 def merge_to_ellipse(blob1, blob2):

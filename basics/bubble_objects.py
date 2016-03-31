@@ -427,8 +427,8 @@ class Bubble3D(BubbleNDBase):
         for reg in twod_region_list:
             chan_coord = reg.channel_center * \
                 np.ones((reg.shell_coords.shape[0], 1))
-            all_coords.append(np.hstack(chan_coord, reg.shell_coords))
-        self._shell_coords = np.hstack(all_coords)
+            all_coords.append(np.hstack([chan_coord, reg.shell_coords]))
+        self._shell_coords = np.vstack(all_coords)
 
         return self
 

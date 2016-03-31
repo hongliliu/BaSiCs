@@ -252,8 +252,8 @@ class BubbleFinder2D(object):
                                        props[2]/2.)[0]
 
                     pars = model.params.copy()
-                    pars[0] += int(ymean)
-                    pars[1] += int(xmean)
+                    pars[0] += int(xmean)
+                    pars[1] += int(ymean)
 
                     eccent = pars[2] / float(pars[3])
                     # Sometimes a < b?? If so, manually correct.
@@ -290,8 +290,8 @@ class BubbleFinder2D(object):
                                        props[2]/2.)[0]
 
                     pars = model.params.copy()
-                    pars[0] += int(ymean)
-                    pars[1] += int(xmean)
+                    pars[0] += int(xmean)
+                    pars[1] += int(ymean)
 
                     fail_conds = pars[2] > max_rad*props[2] or \
                         pars[2] < self.beam_pix or \

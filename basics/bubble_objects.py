@@ -63,10 +63,6 @@ class BubbleNDBase(BaseNDClass):
         return self._channel_center
 
     @property
-    def use_extent_props(self):
-        return self._use_extent_props
-
-    @property
     def area(self):
         return np.pi * self.major * self.minor
 
@@ -80,14 +76,6 @@ class BubbleNDBase(BaseNDClass):
     @property
     def extent_mask(self):
         return self._extent_mask
-
-    @property
-    def extent_offset(self):
-        return self._extent_offset
-
-    @property
-    def extent_props(self):
-        return self._extent_props
 
     @property
     def shell_coords(self):
@@ -695,7 +683,7 @@ class Bubble3D(BubbleNDBase):
             fig.colorbar(im2, ax=ax2)
 
             c = self.as_pv_patch(fill=False, color='r', linewidth=2,
-                                 vel_cent=pvslice.data.shape[0]/2,
+                                 chan_cent=pvslice.data.shape[0]/2,
                                  x_cent=pvslice.data.shape[1]/2)
             ax2.add_patch(c)
 

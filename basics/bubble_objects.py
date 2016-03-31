@@ -89,6 +89,10 @@ class BubbleNDBase(BaseNDClass):
     def extent_props(self):
         return self._extent_props
 
+    @property
+    def shell_coords(self):
+        return self._shell_coords
+
     def as_patch(self, x_cent=None, y_cent=None, **kwargs):
         from matplotlib.patches import Ellipse
         y, x, rmaj, rmin, pa = self.params[:5]
@@ -418,6 +422,13 @@ class Bubble3D(BubbleNDBase):
         self = Bubble3D(props, wcs=wcs)
 
         self._twoD_objects = twod_region_list
+
+        all_coords = []
+        for reg in twod_region_list:
+            chan_coord = reg.channel_center * \
+                np.ones((reg.shell_coords.shape[0], 1))
+            all_coords.append(np.hstack(chan_coord, reg.shell_coords))
+        self._shell_coords = np.hstack(all_coords)
 
         return self
 

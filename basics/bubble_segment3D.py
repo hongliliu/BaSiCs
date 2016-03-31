@@ -86,6 +86,11 @@ class BubbleFinder(object):
         # Join into one long list
         twod_regions = list(chain(*twod_regions))
 
+        if len(twod_regions) == 0:
+            Warning("No bubbles found in the given cube.")
+            self._bubbles = []
+            return
+
         bubble_props = np.vstack([bub.params for bub in twod_regions])
 
         cluster_idx = cluster_and_clean(bubble_props, **kwargs)

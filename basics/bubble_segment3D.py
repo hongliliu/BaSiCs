@@ -98,14 +98,14 @@ class BubbleFinder(object):
         self._bubbles = []
 
         for idx in np.unique(cluster_idx[cluster_idx >= 0]):
-            clust = twod_regions[cluster_idx == idx]
-            if len(clust) < min_channels:
+            regions = [twod_regions[idx] for idx in
+                       np.where(cluster_idx == idx)[0]]
+
+            if len(regions) < min_channels:
                 continue
-            chans = np.array([reg.channel_center for reg in clust])
+            chans = np.array([reg.channel_center for reg in regions])
 
             if chans.max() + 1 - chans.min() >= min_channels:
-                regions = [twod_regions[idx] for idx in
-                           np.where(cluster_idx == idx)[0]]
                 self._bubbles.append(Bubble3D.from_2D_regions(regions))
 
         return bubble_props, cluster_idx

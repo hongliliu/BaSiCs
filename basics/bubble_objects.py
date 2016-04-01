@@ -632,6 +632,25 @@ class Bubble3D(BubbleNDBase):
 
         return self.return_cube_region(cube, **kwargs).moment0()
 
+    def visualize_shell(self, cube):
+        '''
+        Make a 3D point plot of the shell coordinates.
+        '''
+
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.pyplot as p
+
+        fig = p.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(self.shell_coords[:, 2], self.shell_coords[:, 1],
+                   self.shell_coords[:, 0])
+
+        ax.set_xlabel("x")
+        ax.set_xlabel("y")
+        ax.set_xlabel("v")
+
+        p.show()
+
     def visualize(self, cube, return_plot=False, use_aplpy=True):
         '''
         Visualize the bubble within the cube.

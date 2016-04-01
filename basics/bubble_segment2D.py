@@ -264,7 +264,7 @@ class BubbleFinder2D(object):
 
                     fail_conds = pars[3] < self.beam_pix or \
                         pars[2] > max_rad*props[2] or \
-                        eccent > 3. or not in_ellipse(props[:2], pars)
+                        eccent > 3. or not in_ellipse(props[:2][::-1], pars)
 
                     if fail_conds:
                         ellip_fail = True
@@ -295,7 +295,7 @@ class BubbleFinder2D(object):
 
                     fail_conds = pars[2] > max_rad*props[2] or \
                         pars[2] < self.beam_pix or \
-                        not in_circle(props[:2], pars)
+                        not in_circle(props[:2][::-1], pars)
                     if fail_conds:
                         Warning("All fitting failed for: "+str(i))
                         continue

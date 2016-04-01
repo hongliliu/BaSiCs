@@ -398,7 +398,7 @@ class Bubble3D(BubbleNDBase):
 
         # Sort by channel
         twod_region_list = \
-            [twod_region_list[i] for i in twoD_properties[:, 0].argsort()]
+            [twod_region_list[i] for i in twoD_properties[:, -1].argsort()]
 
         props = [twoD_properties[:, 0].mean(), twoD_properties[:, 1].mean(),
                  twoD_properties[:, 2].max(), twoD_properties[:, 3].max(),
@@ -645,6 +645,7 @@ class Bubble3D(BubbleNDBase):
         ax.scatter(self.shell_coords[:, 2], self.shell_coords[:, 1],
                    self.shell_coords[:, 0])
 
+        # Flush this out with proper labels, etc...
         ax.set_xlabel("x")
         ax.set_xlabel("y")
         ax.set_xlabel("v")

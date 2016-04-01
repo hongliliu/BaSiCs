@@ -103,6 +103,7 @@ def _circle_overlap(blob1, blob2, return_corr=False):
     area = r1 ** 2 * acos1 + r2 ** 2 * acos2 - 0.5 * sqrt(abs(a * b * c * d))
 
     if return_corr:
+        # Aover / sqrt(A1*A2) = Aover = (pi*r1*r2)
         return area / (math.pi * r1 * r2)
 
     return area / (math.pi * (min(r1, r2) ** 2))

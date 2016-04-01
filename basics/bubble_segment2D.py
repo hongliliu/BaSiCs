@@ -209,7 +209,7 @@ class BubbleFinder2D(object):
         all_coords = []
         for i, props in enumerate(blob_log(self.array,
                                   sigma_list=self.scales,
-                                  overlap=0.99,
+                                  overlap=0.9,
                                   threshold=nsig*sigma,
                                   weighting=self.weightings)):
             # Adjust the region properties based on where the bubble edges are
@@ -321,10 +321,17 @@ class BubbleFinder2D(object):
 
         if not len(all_props) == 0:
 
+            # Take 2 circles. The maximum correlation occurs when the smaller
+            # is completely within the large. So the overlap is the smaller
+            # area and, if f is the ratio of the areas, the maximum
+            # correlation is 1/sqrt(f). Setting to 0.7 will allow the
+            # shell fraction to remove larger regions when the smaller is half
+            # the area.
+
             all_props, remove_posns = \
                 _prune_blobs(np.array(all_props), overlap_frac,
                              use_shell_fraction=True,
-                             min_corr=0.75, return_removal_posns=True)
+                             min_corr=0.7, return_removal_posns=True)
 
             # Delete the removed region coords
             remove_posns.sort()

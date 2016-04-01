@@ -632,7 +632,7 @@ class Bubble3D(BubbleNDBase):
 
         return self.return_cube_region(cube, **kwargs).moment0()
 
-    def visualize_shell(self, cube):
+    def visualize_shell(self):
         '''
         Make a 3D point plot of the shell coordinates.
         '''

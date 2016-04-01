@@ -326,7 +326,8 @@ class BubbleFinder2D(object):
             # area and, if f is the ratio of the areas, the maximum
             # correlation is 1/sqrt(f). Setting to 0.7 will allow the
             # shell fraction to remove larger regions when the smaller is half
-            # the area.
+            # the area. For circles at least, this corresponds to the step
+            # size chosen for the scales.
 
             all_props, remove_posns = \
                 _prune_blobs(np.array(all_props), overlap_frac,

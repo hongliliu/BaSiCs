@@ -3,7 +3,7 @@ import numpy as np
 import warnings
 from astropy.nddata.utils import extract_array, add_array
 import astropy.units as u
-from skimage.measure import EllipseModel, CircleModel, ransac
+from skimage.measure import ransac
 from warnings import filterwarnings, catch_warnings
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
@@ -12,6 +12,7 @@ from basics.utils import sig_clip, in_circle, in_ellipse
 from basics.bubble_objects import Bubble2D
 from basics.log import blob_log, _prune_blobs
 from basics.bubble_edge import find_bubble_edges
+from basics.fit_models import CircleModel, EllipseModel
 
 
 eight_conn = np.ones((3, 3))
@@ -248,8 +249,7 @@ class BubbleFinder2D(object):
                         filterwarnings("ignore",
                                        r"gtol=0.000000 is too small")
                         model = ransac(coords[:, ::-1], EllipseModel,
-                                       max(5, int(0.1*len(coords))),
-                                       props[2]/2.)[0]
+                                       5, props[2]/2.)[0]
 
                     pars = model.params.copy()
                     pars[0] += int(xmean)
@@ -286,8 +286,7 @@ class BubbleFinder2D(object):
                         filterwarnings("ignore",
                                        r"gtol=0.000000 is too small")
                         model = ransac(coords[:, ::-1], CircleModel,
-                                       max(3, int(0.1*len(coords))),
-                                       props[2]/2.)[0]
+                                       3, props[2]/2.)[0]
 
                     pars = model.params.copy()
                     pars[0] += int(xmean)

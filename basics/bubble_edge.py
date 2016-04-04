@@ -5,7 +5,7 @@ from astropy.stats import circvar
 import astropy.units as u
 
 from profile import radial_profiles, _line_profile_coordinates
-from utils import consec_split, find_nearest, floor_int, ceil_int, sig_clip
+from utils import consec_split, find_nearest, floor_int, ceil_int
 
 
 def find_bubble_edges(array, blob, max_extent=1.0,

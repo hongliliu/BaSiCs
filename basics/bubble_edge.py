@@ -114,7 +114,7 @@ def find_bubble_edges(array, blob, max_extent=1.0,
                 segments = consec_split(above_thresh)
 
                 for seg in segments:
-                    if seg.size < 3:
+                    if seg.size < 2:
                         continue
 
                     # Take the first position and use it to define the edge

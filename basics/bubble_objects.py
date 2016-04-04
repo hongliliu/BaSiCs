@@ -377,6 +377,8 @@ class Bubble2D(BubbleNDBase):
         if self.shell_fraction is not None:
             s += "Shell fraction: {0:6f} \n".format(self.shell_fraction)
 
+        return s
+
 
 class Bubble3D(BubbleNDBase):
     """

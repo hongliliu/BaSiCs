@@ -161,8 +161,8 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
             # Also want to check if the fraction of overlap is above
             # min_corr. This stops much larger regions from being
             # removed when small ones are embedded in their edges.
-            overlap_corr = _ellipse_overlap(blob1, blob2,
-                                            return_corr=True)
+            overlap_corr = overlap_metric(blob1, blob2,
+                                          return_corr=True)
             overlap_cond = overlap_corr >= min_corr
 
             # If the bigger one is more complete, discard the smaller

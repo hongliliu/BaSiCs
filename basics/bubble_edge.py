@@ -5,7 +5,7 @@ from astropy.stats import circvar
 import astropy.units as u
 
 from profile import radial_profiles, _line_profile_coordinates
-from utils import consec_split, find_nearest, floor_int, ceil_int
+from utils import consec_split, find_nearest, floor_int, ceil_int, sig_clip
 
 
 def find_bubble_edges(array, blob, max_extent=1.0,
@@ -114,7 +114,7 @@ def find_bubble_edges(array, blob, max_extent=1.0,
                 segments = consec_split(above_thresh)
 
                 for seg in segments:
-                    if seg.size < max(2, int(0.1*above_thresh.size)):
+                    if seg.size < 3:
                         continue
 
                     # Take the first position and use it to define the edge

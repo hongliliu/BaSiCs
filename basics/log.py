@@ -157,7 +157,7 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
                 small = blob1
                 small_pos = posn1
 
-            shell_cond = large[5] >= small[5]
+            shell_cond = large[5] > small[5]
             # Also want to check if the fraction of overlap is above
             # min_corr. This stops much larger regions from being
             # removed when small ones are embedded in their edges.

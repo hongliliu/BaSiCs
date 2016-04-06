@@ -149,7 +149,7 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         return extent_coords, shell_frac, theta_var
 
 
-def intensity_props(data, blob):
+def intensity_props(data, blob, min_rad=4):
     '''
     Return the mean and std for the elliptical region in the given data.
 
@@ -165,8 +165,8 @@ def intensity_props(data, blob):
     y, x, major, minor, pa = blob[:5]
 
     inner_ellipse = \
-        Ellipse2D(True, x, y, max(3, major),
-                  max(3, minor), pa)
+        Ellipse2D(True, x, y, max(min_rad, 0.75*major),
+                  max(min_rad, 0.75*minor), pa)
 
     yy, xx = np.mgrid[:data.shape[-2], :data.shape[-1]]
 

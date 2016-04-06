@@ -1,7 +1,7 @@
 
 import numpy as np
-from scipy.spatial.distance import pdist
-from scipy.cluster.hierarchy import fcluster, fclusterdata, linkage
+from scipy.spatial.distance import pdist, squareform
+from scipy.cluster.hierarchy import fcluster, fclusterdata, linkage, dendrogram
 from functools import partial
 
 try:
@@ -41,10 +41,17 @@ def cluster_2D_regions(twod_region_props, metric='position', cut_val=18,
                 n_jobs = cpu_count()
             sims = pairwise_distances(twod_region_props, metric=overlap_func,
                                       n_jobs=n_jobs)
+            sym_sims = np.triu(sims) + np.triu(sims).T
+            np.fill_diagonal(sym_sims, 0.0)
+            # Convert to condensed form. linkage doesn't handle nxn dist
+            # matrices properly
+            sims = squareform(sym_sims)
         else:
             sims = pdist(twod_region_props, metric=overlap_func)
         sims[sims < 0] = 0.0
+
         link_mat = linkage(1 - sims, 'complete')
+
         cluster_idx = fcluster(link_mat, cut_val, criterion='distance')
 
     # Cluster on the connectivity of regions in the spectral dimension
@@ -83,40 +90,40 @@ def cluster_and_clean(twod_region_props, min_scatter=9):
     '''
 
     # Initial cluster is based on position of the centre
-    cluster_idx = cluster_2D_regions(twod_region_props,
-                                     metric='position',
-                                     cut_val=twod_region_props[:, 2].max())
-
     # cluster_idx = cluster_2D_regions(twod_region_props,
-    #                                  metric='overlap',
-    #                                  cut_val=0.5, multiprocess=True)
+    #                                  metric='position',
+    #                                  cut_val=twod_region_props[:, 2].max())
+
+    cluster_idx = cluster_2D_regions(twod_region_props,
+                                     metric='overlap',
+                                     cut_val=0.7, multiprocess=True)
 
     # Finally, we split based on position. At this point, there should be
     # a close cluster of regions and possibly some outliers with small radii
     # that give a complete overlap.
-    for clust in np.unique(cluster_idx[cluster_idx > 0]):
+    # for clust in np.unique(cluster_idx[cluster_idx > 0]):
 
-        posns = np.where(cluster_idx == clust)[0]
+    #     posns = np.where(cluster_idx == clust)[0]
 
-        if posns.size == 1:
-            continue
+    #     if posns.size == 1:
+    #         continue
 
-        props = twod_region_props[posns]
+    #     props = twod_region_props[posns]
 
-        # Determine max scatter in cluster from the mode of the major axes.
-        maj_mode = max(mode(props[:, 2]), min_scatter)
-        # maj_mode = min_scatter
+    #     # Determine max scatter in cluster from the mode of the major axes.
+    #     maj_mode = max(mode(props[:, 2])/2., min_scatter)
+    #     # maj_mode = min_scatter
 
-        # Cluster on channel and split.
-        pos_idx = cluster_2D_regions(props,
-                                     metric='position', cut_val=maj_mode)
+    #     # Cluster on channel and split.
+    #     pos_idx = cluster_2D_regions(props,
+    #                                  metric='position', cut_val=maj_mode)
 
-        # If not split is found, continue on
-        if pos_idx.max() == 1:
-            continue
+    #     # If not split is found, continue on
+    #     if pos_idx.max() == 1:
+    #         continue
 
-        for idx in np.unique(pos_idx[pos_idx > 1]):
-            cluster_idx[posns[pos_idx == idx]] = cluster_idx.max() + 1
+    #     for idx in np.unique(pos_idx[pos_idx > 1]):
+    #         cluster_idx[posns[pos_idx == idx]] = cluster_idx.max() + 1
 
     # Now we split clusters based on spectral connectivity.
     for clust in np.unique(cluster_idx[cluster_idx > 0]):

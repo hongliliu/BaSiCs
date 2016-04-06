@@ -114,6 +114,50 @@ class BubbleFinder(object):
     def bubbles(self):
         return self._bubbles
 
+    def visualize_channel_maps(self, all_chans=False, subplot=False,
+                               edges=False):
+        '''
+        Plot each channel optionally overlaid with the regions and/or the
+        edges.
+        '''
+
+        # Loop through all, or just those that have at least one region
+        if all_chans:
+            chans = np.arange(self.cube.shape[0])
+        else:
+            chans = []
+            for bub in self.bubbles:
+                chans.extend(list(bub.twoD_region_params()[:, -1]))
+            chans = np.unique(np.array(chans))
+
+        import matplotlib.pyplot as p
+
+        for chan in chans:
+            if subplot:
+                raise NotImplementedError("Need subplots at some point.")
+            else:
+                ax = p.subplot(111)
+
+            ax.imshow(self.cube[chan].value, cmap='afmhot', origin='lower')
+
+            for bub in self.bubbles:
+                if chan < bub.channel_start and chan > bub.channel_end:
+                    continue
+                for twod in bub.twoD_objects:
+                    if twod.channel_center != chan:
+                        continue
+                    ax.add_patch(twod.as_patch(color='b', fill=False,
+                                               linewidth=2))
+                    ax.plot(twod.x, twod.y, 'bD')
+                    if edges:
+                        ax.plot(twod.shell_coords[:, 1],
+                                twod.shell_coords[:, 0], "go")
+
+            p.xlim([0, self.array.shape[1]])
+            p.ylim([0, self.array.shape[0]])
+
+            p.show()
+
 
 def _region_return(imps):
     arr, mask, i, sigma, overlap_frac = imps

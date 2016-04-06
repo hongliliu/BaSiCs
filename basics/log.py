@@ -108,8 +108,9 @@ def _circle_overlap(blob1, blob2, return_corr=False):
     return area / (math.pi * (min(r1, r2) ** 2))
 
 
-def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
-                 min_corr=0.5, return_removal_posns=False):
+def _prune_blobs(blobs_array, overlap, method='size',
+                 min_corr=0.5, return_removal_posns=False,
+                 coords=None):
     """Eliminated blobs with area overlap.
 
     Parameters
@@ -141,7 +142,7 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
         blob1 = blobs_array[posn1]
         blob2 = blobs_array[posn2]
 
-        if use_shell_fraction:
+        if method == "shell fraction":
             area1 = np.pi*blob1[2]*blob1[3]
             area2 = np.pi*blob2[2]*blob2[3]
 
@@ -173,12 +174,44 @@ def _prune_blobs(blobs_array, overlap, use_shell_fraction=False,
                 if overlap_cond:
                     remove_blobs.append(large_pos)
 
-        else:
+        elif method == "shell coords":
+
+            if coords is None:
+                raise TypeError("Coordinates must be given for 'shell coords'")
+
+            if len(coords) != len(blobs_array):
+                raise TypeError("coords must match the number of blobs in the"
+                                " given blob array.")
+
+            area1 = np.pi*blob1[2]*blob1[3]
+            area2 = np.pi*blob2[2]*blob2[3]
+
+            if area1 >= area2:
+                large = blob1
+                large_pos = posn1
+                small = blob2
+                small_pos = posn2
+            else:
+                large = blob2
+                large_pos = posn2
+                small = blob1
+                small_pos = posn1
+
+            shell_cond = \
+                shell_similarity(coords[posn1], coords[posn2]) > min_corr
+            # Discard the smaller one if it is too similar
+            if shell_cond:
+                remove_blobs.append(small_pos)
+
+        elif method == "size":
             cond = blob1[2] > blob2[2]
             if cond:
                 remove_blobs.append(posn2)
             else:
                 remove_blobs.append(posn1)
+        else:
+            raise TypeError("method must be 'size', 'shell fraction' or "
+                            "'shell coords'.")
 
     # Remove duplicates
     remove_blobs = list(set(remove_blobs))

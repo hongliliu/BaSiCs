@@ -123,12 +123,12 @@ class BubbleFinder(object):
 
         # Loop through all, or just those that have at least one region
         if all_chans:
-            chans = np.arange(self.cube.shape[0])
+            chans = np.arange(self.cube.shape[0], dtype=np.int)
         else:
             chans = []
             for bub in self.bubbles:
                 chans.extend(list(bub.twoD_region_params()[:, -1]))
-            chans = np.unique(np.array(chans))
+            chans = np.unique(np.array(chans, dtype=np.int))
 
         import matplotlib.pyplot as p
 
@@ -153,8 +153,8 @@ class BubbleFinder(object):
                         ax.plot(twod.shell_coords[:, 1],
                                 twod.shell_coords[:, 0], "go")
 
-            p.xlim([0, self.array.shape[1]])
-            p.ylim([0, self.array.shape[0]])
+            p.xlim([0, self.cube.shape[2]])
+            p.ylim([0, self.cube.shape[1]])
 
             p.show()
 

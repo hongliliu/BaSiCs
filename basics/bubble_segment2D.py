@@ -191,7 +191,7 @@ class BubbleFinder2D(object):
         return self._bubble_mask
 
     def multiscale_bubblefind(self, scales=None, sigma=None, nsig=2,
-                              overlap_frac=1.0, edge_find=True,
+                              overlap_frac=0.5, edge_find=True,
                               edge_loc_bkg_nsig=2,
                               ellfit_thresh={"min_shell_frac": 0.5,
                                              "min_angular_std": 0.7},
@@ -210,7 +210,7 @@ class BubbleFinder2D(object):
         all_coords = []
         for i, props in enumerate(blob_log(self.array,
                                   sigma_list=self.scales,
-                                  overlap=0.9,
+                                  overlap=None,
                                   threshold=nsig*sigma,
                                   weighting=self.weightings)):
             # Adjust the region properties based on where the bubble edges are
@@ -341,8 +341,9 @@ class BubbleFinder2D(object):
                 del all_coords[pos]
 
             all_props, remove_posns = \
-                _prune_blobs(all_props, 0.9,
-                             return_removal_posns=True)
+                _prune_blobs(all_props, overlap_frac/2., method="shell coords",
+                             min_corr=0.6, return_removal_posns=True,
+                             coords=all_coords)
 
             # Delete the removed region coords
             remove_posns.sort()
@@ -350,9 +351,8 @@ class BubbleFinder2D(object):
                 del all_coords[pos]
 
             all_props, remove_posns = \
-                _prune_blobs(all_props, 0.5, method="shell coords",
-                             return_removal_posns=True,
-                             coords=all_coords)
+                _prune_blobs(all_props, 0.95,
+                             return_removal_posns=True)
 
             # Delete the removed region coords
             remove_posns.sort()

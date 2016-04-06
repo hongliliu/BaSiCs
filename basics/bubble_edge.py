@@ -165,12 +165,17 @@ def intensity_props(data, blob):
     y, x, major, minor, pa = blob[:5]
 
     inner_ellipse = \
-        Ellipse2D(True, x, y, max(3, major/2.),
-                  max(3, minor/2.), pa)
+        Ellipse2D(True, x, y, max(3, major),
+                  max(3, minor), pa)
 
     yy, xx = np.mgrid[:data.shape[-2], :data.shape[-1]]
 
     ellip_mask = inner_ellipse(xx, yy).astype(bool)
 
-    return np.nanmean(data[ellip_mask]), \
-        np.nanstd(data[ellip_mask])
+    vals = data[ellip_mask]
+
+    bottom = np.nanpercentile(vals, 2.5)
+    fifteen = np.nanpercentile(vals, 15.)
+    sig = fifteen - bottom
+
+    return bottom + 2*sig, sig

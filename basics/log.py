@@ -577,7 +577,7 @@ def shell_similarity(coords1, coords2, max_dist=3, verbose=False):
             break
         j = np.argmin(candidates)
         if row[j] < max_dist:
-            matches = np.append(matches, [i, j], axis=0)
+            matches = np.append(matches, np.array([[i, j]]), axis=0)
 
     # Compute the overlap fraction
     if num1 >= num2:

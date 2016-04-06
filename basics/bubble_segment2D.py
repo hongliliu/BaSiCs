@@ -393,7 +393,7 @@ class BubbleFinder2D(object):
         if ax is None:
             ax = p.subplot(111)
 
-        ax.imshow(self.array, cmap='afmhot')
+        ax.imshow(self.array, cmap='afmhot', origin='lower')
 
         for bub in self.regions:
             ax.add_patch(bub.as_patch(color='b', fill=False, linewidth=2))

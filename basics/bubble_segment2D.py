@@ -3,7 +3,7 @@ import numpy as np
 import warnings
 from astropy.nddata.utils import extract_array, add_array
 import astropy.units as u
-from skimage.measure import ransac
+# from skimage.measure import ransac
 from warnings import filterwarnings, catch_warnings
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
@@ -12,7 +12,7 @@ from basics.utils import sig_clip, in_circle, in_ellipse
 from basics.bubble_objects import Bubble2D
 from basics.log import blob_log, _prune_blobs
 from basics.bubble_edge import find_bubble_edges
-from basics.fit_models import CircleModel, EllipseModel
+from basics.fit_models import CircleModel, EllipseModel, ransac
 
 
 eight_conn = np.ones((3, 3))
@@ -225,7 +225,7 @@ class BubbleFinder2D(object):
                 # find_bubble_edges calculates the shell fraction
                 # If it is below the given fraction, we skip the region.
                 # print(len(coords))
-                if len(coords) < 3:
+                if len(coords) < 4:
                     if verbose:
                         print("Skipping %s" % (str(i)))
                         print(coords)
@@ -332,7 +332,7 @@ class BubbleFinder2D(object):
 
             all_props, remove_posns = \
                 _prune_blobs(np.array(all_props), overlap_frac,
-                             use_shell_fraction=True,
+                             method="shell fraction",
                              min_corr=0.71, return_removal_posns=True)
 
             # Delete the removed region coords
@@ -344,6 +344,16 @@ class BubbleFinder2D(object):
                 _prune_blobs(all_props, 0.9,
                              use_shell_fraction=False,
                              return_removal_posns=True)
+
+            # Delete the removed region coords
+            remove_posns.sort()
+            for pos in remove_posns[::-1]:
+                del all_coords[pos]
+
+            all_props, remove_posns = \
+                _prune_blobs(all_props, 0.5, method="shell coords",
+                             return_removal_posns=True,
+                             coords=all_coords)
 
             # Delete the removed region coords
             remove_posns.sort()

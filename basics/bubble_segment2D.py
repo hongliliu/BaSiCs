@@ -342,7 +342,6 @@ class BubbleFinder2D(object):
 
             all_props, remove_posns = \
                 _prune_blobs(all_props, 0.9,
-                             use_shell_fraction=False,
                              return_removal_posns=True)
 
             # Delete the removed region coords

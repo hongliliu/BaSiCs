@@ -41,6 +41,8 @@ def cluster_2D_regions(twod_region_props, metric='position', cut_val=18,
                 n_jobs = cpu_count()
             sims = pairwise_distances(twod_region_props, metric=overlap_func,
                                       n_jobs=n_jobs)
+            # It's minorly not symmetric (~10^-10 differences), probably due
+            # to pixelization. Force it to be symmetric.
             sym_sims = np.triu(sims) + np.triu(sims).T
             np.fill_diagonal(sym_sims, 0.0)
             # Convert to condensed form. linkage doesn't handle nxn dist

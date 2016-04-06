@@ -575,7 +575,7 @@ def shell_similarity(coords1, coords2, max_dist=3, verbose=False):
         # Check if all possible matches have already been used
         if np.isnan(candidates).all():
             break
-        j = np.argmin(candidates)
+        j = np.nanargmin(candidates)
         if row[j] < max_dist:
             matches = np.append(matches, np.array([[i, j]]), axis=0)
 

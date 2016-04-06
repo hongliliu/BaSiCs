@@ -581,9 +581,9 @@ def shell_similarity(coords1, coords2, max_dist=3, verbose=False):
 
     # Compute the overlap fraction
     if num1 >= num2:
-        overlap_frac = matches.shape[0] / float(num1)
-    else:
         overlap_frac = matches.shape[0] / float(num2)
+    else:
+        overlap_frac = matches.shape[0] / float(num1)
 
     if verbose:
         import matplotlib.pyplot as p

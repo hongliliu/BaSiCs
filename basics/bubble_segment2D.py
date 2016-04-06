@@ -250,7 +250,7 @@ class BubbleFinder2D(object):
                         filterwarnings("ignore",
                                        r"gtol=0.000000 is too small")
                         model = ransac(coords[:, ::-1], EllipseModel,
-                                       5, props[2]/2.)
+                                       5, props[2]/2.)[0]
                     pars = model.params.copy()
                     pars[0] += int(xmean)
                     pars[1] += int(ymean)

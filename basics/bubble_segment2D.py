@@ -342,7 +342,7 @@ class BubbleFinder2D(object):
 
             all_props, remove_posns = \
                 _prune_blobs(all_props, overlap_frac/2., method="shell coords",
-                             min_corr=0.6, return_removal_posns=True,
+                             min_corr=0.5, return_removal_posns=True,
                              coords=all_coords)
 
             # Delete the removed region coords
@@ -351,7 +351,7 @@ class BubbleFinder2D(object):
                 del all_coords[pos]
 
             all_props, remove_posns = \
-                _prune_blobs(all_props, 0.95,
+                _prune_blobs(all_props, 0.9,
                              return_removal_posns=True)
 
             # Delete the removed region coords
@@ -378,6 +378,34 @@ class BubbleFinder2D(object):
     @property
     def num_regions(self):
         return len(self.regions)
+
+    def visualize_regions(self, show=True, edges=False, ax=None):
+        '''
+        Show the regions optionally overlaid with the edges.
+        '''
+
+        if len(self.regions) == 0:
+            Warning("No regions were found. Nothing to show.")
+            return
+
+        import matplotlib.pyplot as p
+
+        if ax is None:
+            ax = p.subplot(111)
+
+        ax.imshow(self.array, cmap='afmhot')
+
+        for bub in self.regions:
+            ax.add_patch(bub.as_patch(color='b', fill=False, linewidth=2))
+            ax.plot(bub.x, bub.y, 'bD')
+            if edges:
+                ax.plot(bub.shell_coords[:, 1], bub.shell_coords[:, 0], "go")
+
+        p.xlim([0, self.array.shape[1]])
+        p.ylim([0, self.array.shape[0]])
+
+        if show:
+            p.show()
 
     def region_rejection(self, value_thresh=0.0, grad_thresh=1,
                          frac_thresh=0.3, border_clear=True):

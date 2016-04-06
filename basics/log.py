@@ -1,16 +1,15 @@
 
 import numpy as np
 from scipy.ndimage import gaussian_laplace
-import itertools as itt
 import math
 from math import sqrt, hypot, log
 from numpy import arccos
 from skimage.util import img_as_float
 from skimage.feature import peak_local_max
-from skimage.morphology import disk
 from astropy.modeling.models import Ellipse2D
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import pdist, squareform, cdist
 from functools import partial
+
 # from .._shared.utils import assert_nD
 
 from basics.utils import dist_uppertri
@@ -542,3 +541,58 @@ def overlap_metric(ellip1, ellip2, return_corr=False):
         if blob_overlap == 1e-5:
             blob_overlap = 0.0
         return blob_overlap
+
+
+def shell_similarity(coords1, coords2, max_dist=3, verbose=False):
+    '''
+    Check how similar 2 sets of shell coordinates are. This is based off a
+    distance threshold; if two points are within the threshold of each other,
+    they are considered a match.
+    '''
+
+    # There shouldn't ever be huge number of coordinates for the shells, so
+    # the lazy O(n^2) solution is fine for now.
+
+    num1 = len(coords1)
+    num2 = len(coords2)
+
+    if num1 >= num2:
+        dist = cdist(coords2, coords1)
+        ind1 = 1
+        ind2 = 0
+    else:
+        dist = cdist(coords1, coords2)
+        ind1 = 0
+        ind2 = 1
+
+    # Smaller number of coords is the first dimension
+    matches = np.empty((0, 2), dtype=np.int)
+    for i, row in enumerate(dist):
+        # Find the minimum, excluding points that have already been used.
+        candidates = row.copy()
+        # Set used ones to NaN
+        candidates[matches[:, 1]] = np.NaN
+        # Check if all possible matches have already been used
+        if np.isnan(candidates).all():
+            break
+        j = np.argmin(candidates)
+        if row[j] < max_dist:
+            matches = np.append(matches, [i, j], axis=0)
+
+    # Compute the overlap fraction
+    if num1 >= num2:
+        overlap_frac = matches.shape[0] / float(num1)
+    else:
+        overlap_frac = matches.shape[0] / float(num2)
+
+    if verbose:
+        import matplotlib.pyplot as p
+        p.plot(coords1[:, 1], coords1[:, 0], 'bD')
+        p.plot(coords2[:, 1], coords2[:, 0], 'gD')
+        p.plot(coords1[:, 1][matches[:, ind1]],
+               coords1[:, 0][matches[:, ind1]], 'ro')
+        p.plot(coords2[:, 1][matches[:, ind2]],
+               coords2[:, 0][matches[:, ind2]], 'ro')
+        p.show()
+
+    return overlap_frac

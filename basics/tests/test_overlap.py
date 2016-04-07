@@ -54,6 +54,17 @@ def test_circle_corr():
     npt.assert_almost_equal(_circle_overlap(pt1, pt2, return_corr=True), corr)
 
 
+def test_circle_corr_inside():
+
+    pt1 = (10, 10, 10, 10, 0)
+    pt2 = (10, 10, 8, 8, 0)
+
+    # Reduces to ratio of the radii for this case
+    corr = 0.8
+
+    npt.assert_almost_equal(_circle_overlap(pt1, pt2, return_corr=True), corr)
+
+
 def test_ellipse_corr():
 
     pt1 = (10, 10, 10, 10, 0)
@@ -71,6 +82,17 @@ def test_pixel_nooverlap_corr():
 
     npt.assert_almost_equal(_ellipse_overlap(pt1, pt2, return_corr=True),
                             0.0, decimal=3)
+
+
+def test_pixel_corr_inside():
+
+    pt1 = (10, 10, 10, 8, 0)
+    pt2 = (10, 10, 8, 6, 0)
+
+    # Reduces to ratio of the radii for this case
+    corr = np.sqrt(48/80.)
+
+    npt.assert_almost_equal(_ellipse_overlap(pt1, pt2, return_corr=True), corr)
 
 
 def test_pixel_alloverlap_corr():

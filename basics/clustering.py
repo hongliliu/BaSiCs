@@ -17,7 +17,7 @@ from utils import mode
 
 
 def cluster_2D_regions(twod_region_props, metric='position', cut_val=18,
-                       multiprocess=False, n_jobs=None):
+                       multiprocess=False, n_jobs=None, verbose=False):
     '''
     Cluster 2D Bubble regions by their postion or overlap.
     '''
@@ -53,6 +53,11 @@ def cluster_2D_regions(twod_region_props, metric='position', cut_val=18,
         sims[sims < 0] = 0.0
 
         link_mat = linkage(1 - sims, 'complete')
+
+        if verbose:
+            import matplotlib.pyplot as p
+            dendrogram(link_mat)
+            p.show()
 
         cluster_idx = fcluster(link_mat, cut_val, criterion='distance')
 

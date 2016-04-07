@@ -78,14 +78,21 @@ def _circle_overlap(blob1, blob2, return_corr=False):
     d = hypot(blob1[0] - blob2[0], blob1[1] - blob2[1])
 
     if d > r1 + r2:
-        return 0
-
-    if d == r1 + r2:
-        return 1e-5
+        return 0.0
 
     # one blob is inside the other, the smaller blob must die
     if d <= abs(r1 - r2):
-        return 1
+        if return_corr:
+            # Overlap area is the smaller area. This becomes the ratio of the
+            # radii!
+            if r1 == r2:
+                return 1.0
+            elif r1 > r2:
+                return r2 / float(r1)
+            else:
+                return r1 / float(r2)
+
+        return 1.0
 
     ratio1 = (d ** 2 + r1 ** 2 - r2 ** 2) / (2 * d * r1)
     ratio1 = np.clip(ratio1, -1, 1)
@@ -571,8 +578,6 @@ def overlap_metric(ellip1, ellip2, return_corr=False):
     else:
         blob_overlap = _circle_overlap(ellip1, ellip2,
                                        return_corr=return_corr)
-        if blob_overlap == 1e-5:
-            blob_overlap = 0.0
         return blob_overlap
 
 

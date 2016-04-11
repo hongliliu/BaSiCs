@@ -3,14 +3,17 @@ import numpy as np
 from astropy.modeling.models import Ellipse2D
 from astropy.stats import circvar
 import astropy.units as u
+import skimage.morphology as mo
+import scipy.ndimage as nd
 
 from profile import radial_profiles, _line_profile_coordinates
-from utils import consec_split, find_nearest, floor_int, ceil_int
+from utils import consec_split, find_nearest, floor_int, ceil_int, eight_conn
 
 
 def find_bubble_edges(array, blob, max_extent=1.0,
                       nsig_thresh=1, value_thresh=None, min_radius_frac=0.5,
-                      radius=None, return_mask=False, **kwargs):
+                      radius=None, return_mask=False, min_pixels=16,
+                      filter_size=4, **kwargs):
         '''
         Expand/contract to match the contours in the data.
 
@@ -81,7 +84,14 @@ def find_bubble_edges(array, blob, max_extent=1.0,
 
         centre = [arr[0] for arr in np.where(dist_arr == 0.0)]
 
-        for vals in zip(*radial_profiles(array, blob,
+        # y, x = blob[:2]
+        # arr = array[y-int(y_range/2):y+int(y_range/2)+1,
+        #             x-int(x_range/2):x+int(x_range/2)+1]
+        # mask = arr > value_thresh
+        smooth_mask = \
+            _smooth_edges(array > value_thresh, filter_size, min_pixels)
+
+        for vals in zip(*radial_profiles(smooth_mask, blob,
                                          extend_factor=max_extent,
                                          append_end=True,
                                          ntheta=ntheta,
@@ -103,7 +113,8 @@ def find_bubble_edges(array, blob, max_extent=1.0,
             prof = prof[dist >= min_radius_frac * minor]
             dist = dist[dist >= min_radius_frac * minor]
 
-            above_thresh = np.where(prof >= value_thresh)[0]
+            # above_thresh = np.where(prof >= value_thresh)[0]
+            above_thresh = np.where(prof > 0)[0]
 
             # This angle does not coincide with a shell.
             if above_thresh.size == 0:
@@ -179,3 +190,13 @@ def intensity_props(data, blob, min_rad=4):
     sig = fifteen - bottom
 
     return bottom + 2*sig, sig
+
+
+def _smooth_edges(mask, filter_size, min_pixels):
+
+    open_close = \
+        nd.binary_closing(nd.binary_opening(mask, eight_conn), eight_conn)
+
+    medianed = nd.median_filter(open_close, filter_size)
+
+    return mo.remove_small_objects(medianed, min_size=min_pixels)

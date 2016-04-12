@@ -97,6 +97,14 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         local_center = (int(y_range)/2, int(x_range)/2)
         bubble_mask = _make_bubble_mask(smooth_mask, region_mask, local_center)
 
+        # If the center is not contained within a bubble region, return
+        # empties.
+        if not bubble_mask.any():
+            if return_mask:
+                return np.array([]), 0.0, 0.0, bubble_mask
+
+            return np.array([]), 0.0, 0.0
+
         orig_perim = perimeter_points(region_mask)
         new_perim = perimeter_points(bubble_mask)
         coords = np.array(list(set(new_perim) - set(orig_perim)))
@@ -224,6 +232,6 @@ def _make_bubble_mask(edge_mask, region_mask, center):
         if n == contains_center:
             continue
 
-        final_mask[labels == n] = 1
+        final_mask[labels == n] = True
 
     return final_mask

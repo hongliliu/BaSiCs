@@ -99,7 +99,7 @@ def find_bubble_edges(array, blob, max_extent=1.0,
 
         # If the center is not contained within a bubble region, return
         # empties.
-        if not bubble_mask.any():
+        if not bubble_mask.any() or (bubble_mask == region_mask).all():
             if return_mask:
                 return np.array([]), 0.0, 0.0, bubble_mask
 
@@ -107,19 +107,15 @@ def find_bubble_edges(array, blob, max_extent=1.0,
 
         orig_perim = perimeter_points(region_mask)
         new_perim = perimeter_points(bubble_mask)
-        # Test is there is an exact match of points
-        if orig_perim == new_perim:
-            coords = np.array(orig_perim)
-        else:
-            coords = np.array(list(set(new_perim) - set(orig_perim)))
+        coords = np.array(list(set(new_perim) - set(orig_perim)))
         extent_mask = np.zeros_like(region_mask)
         extent_mask[coords[:, 0], coords[:, 1]] = True
         extent_mask = mo.medial_axis(extent_mask)
 
         # Based on the curvature of the shell, only fit points whose
         # orientation matches the assumed centre.
-        incoord, outcoord = shell_orientation(extent_mask, local_center,
-                                              verbose=False)
+        # incoord, outcoord = shell_orientation(extent_mask, local_center,
+        #                                       verbose=False)
 
         shell_frac = np.sum(extent_mask) / float(len(coords))
         shell_thetas = np.arctan2(coords[:, 0], coords[:, 1])

@@ -15,7 +15,6 @@ def shell_orientation(mask, center, diff_thresh=0.50, verbose=False):
 
     # Label the shells portions
     labels, num = nd.label(mask, eight_conn)
-    print(num)
     inlier_coords = []
     outlier_coords = []
 
@@ -59,16 +58,6 @@ def shell_orientation(mask, center, diff_thresh=0.50, verbose=False):
             diff_theta = np.abs(np.arctan2(np.sin(theta_curve-theta_real),
                                            np.cos(theta_curve-theta_real)))
 
-            import matplotlib.pyplot as p
-            p.imshow(segment, origin="lower")
-            p.plot(coords[:, 1], coords[:, 0], 'mo')
-            p.plot(center[1], center[0], 'kD')
-            p.plot(pt2_center[1], pt2_center[0], 'ko')
-            p.plot(pt1[1], pt1[0], 'bD')
-            p.plot(pt2[1], pt2[0], 'rD')
-            p.plot(pt3[1], pt3[0], 'gD')
-            p.show()
-
             # before/after
             if diff_theta < diff_thresh:
                 if j == num_diff:
@@ -91,8 +80,14 @@ def shell_orientation(mask, center, diff_thresh=0.50, verbose=False):
         import matplotlib.pyplot as p
 
         p.imshow(mask, origin='lower', interpolation='nearest')
-        p.plot(inlier_coords[:, 1], inlier_coords[:, 0], 'bo')
-        p.plot(outlier_coords[:, 1], outlier_coords[:, 0], 'ro')
+        try:
+            p.plot(inlier_coords[:, 1], inlier_coords[:, 0], 'bo')
+        except IndexError:
+            pass
+        try:
+            p.plot(outlier_coords[:, 1], outlier_coords[:, 0], 'ro')
+        except IndexError:
+            pass
         p.plot(center[1], center[0], 'gD')
 
         p.show()

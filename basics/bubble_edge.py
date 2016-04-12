@@ -213,12 +213,11 @@ def _make_bubble_mask(edge_mask, region_mask, center):
     '''
 
     hole_regions = np.logical_and(region_mask, ~edge_mask)
-    final_mask = np.logical_and(region_mask, edge_mask)
 
     labels, num = nd.label(hole_regions)
 
     if num == 1:
-        return final_mask
+        return hole_regions
 
     contains_center = 0
 
@@ -236,6 +235,6 @@ def _make_bubble_mask(edge_mask, region_mask, center):
         if n == contains_center:
             continue
 
-        final_mask[labels == n] = True
+        hole_regions[labels == n] = False
 
-    return final_mask
+    return hole_regions

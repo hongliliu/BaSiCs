@@ -94,8 +94,11 @@ def find_bubble_edges(array, blob, max_extent=1.0,
             Ellipse2D(True, 0.0, 0.0, major*max_extent, minor*max_extent,
                       pa)(yy, xx).astype(bool)
 
+        local_center = (int(y_range)/2, int(x_range)/2)
+        bubble_mask = _make_bubble_mask(smooth_mask, region_mask, local_center)
+
         orig_perim = perimeter_points(region_mask)
-        new_perim = perimeter_points(np.logical_and(smooth_mask, region_mask))
+        new_perim = perimeter_points(bubble_mask)
         coords = np.array(list(set(new_perim) - set(orig_perim)))
         extent_mask = np.zeros_like(region_mask)
         extent_mask[coords[:, 0], coords[:, 1]] = True
@@ -103,9 +106,8 @@ def find_bubble_edges(array, blob, max_extent=1.0,
 
         # Based on the curvature of the shell, only fit points whose
         # orientation matches the assumed centre.
-        # local_center = (int(y_range)/2, int(x_range)/2)
-        # incoord, outcoord = shell_orientation(extent_mask, local_center,
-        #                                       verbose=True)
+        incoord, outcoord = shell_orientation(extent_mask, local_center,
+                                              verbose=False)
 
         shell_frac = np.sum(extent_mask) / float(len(coords))
         shell_thetas = np.arctan2(coords[:, 0], coords[:, 1])
@@ -119,7 +121,7 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         if verbose:
             import matplotlib.pyplot as p
             ax = p.subplot(121)
-            ax.imshow(np.logical_and(smooth_mask, region_mask), origin='lower',
+            ax.imshow(bubble_mask, origin='lower',
                       interpolation='nearest')
             ax.contour(smooth_mask, colors='b')
             ax.contour(region_mask, colors='r')
@@ -189,3 +191,39 @@ def perimeter_points(mask, method='erode'):
     else:
         raise TypeError("method must be 'erode' or 'dilate'.")
     return [(y, x) for y, x in zip(*np.where(perim))]
+
+
+def _make_bubble_mask(edge_mask, region_mask, center):
+    '''
+    When a region is too large, unconnected and unrelated edges may be picked
+    up. This removes those and only keeps the region that contains the center
+    point.
+    '''
+
+    hole_regions = np.logical_and(region_mask, ~edge_mask)
+    final_mask = np.logical_and(region_mask, edge_mask)
+
+    labels, num = nd.label(hole_regions)
+
+    if num == 1:
+        return final_mask
+
+    contains_center = 0
+
+    for n in range(1, num+1):
+        pts = zip(*np.where(labels == n))
+
+        if center in pts:
+            contains_center = n
+            break
+
+    if contains_center == 0:
+        Warning("The center is not within any hole region.")
+
+    for n in range(1, num + 1):
+        if n == contains_center:
+            continue
+
+        final_mask[labels == n] = 1
+
+    return final_mask

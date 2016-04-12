@@ -47,7 +47,7 @@ def shell_orientation(mask, center, diff_thresh=0.50, verbose=False):
             pt3 = coords[j+num_diff]
 
             # Find the center of the circle the passes through the points
-            pt2_center = circle_center(pt1, pt2, pt3)
+            pt2_center = circle_center(pt1, pt2, pt3, cent=center)
 
             # Now find the difference in the angles to the centers
             theta_real = np.arctan2(pt2[1] - center[1],
@@ -59,13 +59,15 @@ def shell_orientation(mask, center, diff_thresh=0.50, verbose=False):
             diff_theta = np.abs(np.arctan2(np.sin(theta_curve-theta_real),
                                            np.cos(theta_curve-theta_real)))
 
-            # import matplotlib.pyplot as p
-            # p.imshow(segment, origin="lower")
-            # p.plot(coords[:, 1], coords[:, 0], 'mo')
-            # p.plot(pt1[1], pt1[0], 'bD')
-            # p.plot(pt2[1], pt2[0], 'rD')
-            # p.plot(pt3[1], pt3[0], 'gD')
-            # p.show()
+            import matplotlib.pyplot as p
+            p.imshow(segment, origin="lower")
+            p.plot(coords[:, 1], coords[:, 0], 'mo')
+            p.plot(center[1], center[0], 'kD')
+            p.plot(pt2_center[1], pt2_center[0], 'ko')
+            p.plot(pt1[1], pt1[0], 'bD')
+            p.plot(pt2[1], pt2[0], 'rD')
+            p.plot(pt3[1], pt3[0], 'gD')
+            p.show()
 
             # before/after
             if diff_theta < diff_thresh:
@@ -127,7 +129,7 @@ four_conn_posns = [1, 3, 5, 7]
 eight_conn_posns = [0, 2, 6, 8]
 
 
-def circle_center(pt1, pt2, pt3):
+def circle_center(pt1, pt2, pt3, cent=None):
     '''
     Find the center of the circle through 3 points.
     '''
@@ -140,8 +142,31 @@ def circle_center(pt1, pt2, pt3):
     b2 = norm13**2 * (norm23**2 + norm12**2 - norm13**2)
     b3 = norm12**2 * (norm23**2 + norm13**2 - norm12**2)
 
-    P = np.vstack([pt1, pt2, pt3]).T.dot(np.vstack([b1, b2, b3]))
-    P /= b1 + b2 + b3
+    # Check for straight segments
+    if b1 + b2 + b3 == 0.0:
+        if cent is None:
+            return np.NaN
+
+        seg_theta = np.arctan2(pt3[1] - pt1[1], pt3[0] - pt1[0])
+
+        theta_cent = np.arctan2(cent[1] - pt2[1], cent[0] - pt2[0])
+
+        norm_thetas = \
+            np.unwrap(np.array([seg_theta - 0.5*np.pi, seg_theta + 0.5*np.pi]),
+                      discont=-np.pi)
+
+        theta_diff = np.abs(np.arctan2(np.sin(norm_thetas - theta_cent),
+                                       np.cos(norm_thetas - theta_cent)))
+
+        theta_norm = norm_thetas[np.argmin(theta_diff)]
+
+        R = np.sqrt((pt2[0] - cent[0])**2 + (pt2[1] - cent[1])**2)
+
+        P = (pt2[0] + R*np.cos(theta_norm), pt2[1] + R*np.sin(theta_norm))
+
+    else:
+        P = np.vstack([pt1, pt2, pt3]).T.dot(np.vstack([b1, b2, b3]))
+        P /= b1 + b2 + b3
 
     return P
 

@@ -66,8 +66,6 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         y_range = ceil_int(bbox[0][1] - bbox[0][0] + 1)
         x_range = ceil_int(bbox[1][1] - bbox[1][0] + 1)
 
-        offset = (int(y - (y_range / 2)), int(x - (x_range / 2)))
-
         extent_mask = np.zeros_like(array, dtype=bool)
         shell_thetas = []
 
@@ -82,6 +80,9 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         x_max = xx.shape[1] - max(0, x + int(x_range / 2) + 1 - array.shape[1])
         y_min = -min(0, y - int(y_range / 2))
         y_max = yy.shape[0] - max(0, y + int(y_range / 2) + 1 - array.shape[0])
+
+        offset = (max(0, int(y - (y_range / 2))),
+                  max(0, int(x - (x_range / 2))))
 
         yy = yy[y_min:y_max, x_min:x_max]
         xx = xx[y_min:y_max, x_min:x_max]

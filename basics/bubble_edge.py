@@ -60,12 +60,11 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         y, x, major, minor, pa = blob[:5]
 
         # Use the ellipse model to define a bounding box for the mask.
-        bbox = Ellipse2D(True, 0.0, 0.0, major, minor, pa).bounding_box
+        bbox = Ellipse2D(True, 0.0, 0.0, major*max_extent, minor*max_extent,
+                         pa).bounding_box
 
-        y_range = ceil_int((max_extent * 2) *
-                           (bbox[0][1] - bbox[0][0]))
-        x_range = ceil_int((max_extent * 2) *
-                           (bbox[1][1] - bbox[1][0]))
+        y_range = ceil_int(bbox[0][1] - bbox[0][0] + 1)
+        x_range = ceil_int(bbox[1][1] - bbox[1][0] + 1)
 
         offset = (int(y - (y_range / 2)), int(x - (x_range / 2)))
 

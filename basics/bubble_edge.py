@@ -94,7 +94,7 @@ def find_bubble_edges(array, blob, max_extent=1.0,
             Ellipse2D(True, 0.0, 0.0, major*max_extent, minor*max_extent,
                       pa)(yy, xx).astype(bool)
 
-        local_center = (int(y_range)/2, int(x_range)/2)
+        local_center = zip(*np.where(yy + xx == 0.0))[0]
         bubble_mask = _make_bubble_mask(smooth_mask, region_mask, local_center)
 
         # If the center is not contained within a bubble region, return
@@ -133,10 +133,11 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         if verbose:
             import matplotlib.pyplot as p
             ax = p.subplot(121)
-            ax.imshow(bubble_mask, origin='lower',
+            ax.imshow(arr, origin='lower',
                       interpolation='nearest')
             ax.contour(smooth_mask, colors='b')
             ax.contour(region_mask, colors='r')
+            ax.contour(bubble_mask, colors='g')
             p.plot(coords[:, 1], coords[:, 0], 'bD')
             ax2 = p.subplot(122)
             ax2.imshow(extent_mask, origin='lower',

@@ -107,7 +107,11 @@ def find_bubble_edges(array, blob, max_extent=1.0,
 
         orig_perim = perimeter_points(region_mask)
         new_perim = perimeter_points(bubble_mask)
-        coords = np.array(list(set(new_perim) - set(orig_perim)))
+        # Test is there is an exact match of points
+        if orig_perim == new_perim:
+            coords = orig_perim
+        else:
+            coords = np.array(list(set(new_perim) - set(orig_perim)))
         extent_mask = np.zeros_like(region_mask)
         extent_mask[coords[:, 0], coords[:, 1]] = True
         extent_mask = mo.medial_axis(extent_mask)

@@ -8,12 +8,13 @@ import scipy.ndimage as nd
 
 from profile import radial_profiles, _line_profile_coordinates
 from utils import consec_split, find_nearest, floor_int, ceil_int, eight_conn
+from contour_orientation import shell_orientation
 
 
 def find_bubble_edges(array, blob, max_extent=1.0,
-                      nsig_thresh=1, value_thresh=None, min_radius_frac=0.5,
+                      nsig_thresh=1, value_thresh=None,
                       radius=None, return_mask=False, min_pixels=16,
-                      filter_size=4, **kwargs):
+                      filter_size=4, verbose=False, **kwargs):
         '''
         Expand/contract to match the contours in the data.
 
@@ -31,9 +32,6 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         value_thresh : float, optional
             When given, sets the minimum intensity for defining a bubble edge.
             The natural choice is a few times the noise level in the cube.
-        min_radius_frac : float, optional
-            Sets a minimum distance to search for the bubble boundary. Defaults
-            to 1/2 of the major radius.
         radius : float, optional
             Give an optional radius to use instead of the major radius defined
             for the bubble.
@@ -61,9 +59,6 @@ def find_bubble_edges(array, blob, max_extent=1.0,
 
         y, x, major, minor, pa = blob[:5]
 
-        perimeter = 2 * np.pi * np.sqrt(0.5*(major**2 + minor**2))
-        ntheta = ceil_int(1.5 * perimeter)
-
         # Use the ellipse model to define a bounding box for the mask.
         bbox = Ellipse2D(True, 0.0, 0.0, major, minor, pa).bounding_box
 
@@ -80,79 +75,63 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         yy, xx = np.mgrid[-int(y_range / 2): int(y_range / 2) + 1,
                           -int(x_range / 2): int(x_range / 2) + 1]
 
-        dist_arr = np.sqrt(yy**2 + xx**2)
+        arr = array[max(0, y-int(y_range/2)):y+int(y_range/2)+1,
+                    max(0, x-int(x_range/2)):x+int(x_range/2)+1]
 
-        centre = [arr[0] for arr in np.where(dist_arr == 0.0)]
+        # Adjust meshes if they exceed the array shape
+        x_min = -min(0, x - int(x_range / 2))
+        x_max = xx.shape[1] - max(0, x + int(x_range / 2) + 1 - array.shape[1])
+        y_min = -min(0, y - int(y_range / 2))
+        y_max = yy.shape[0] - max(0, y + int(y_range / 2) + 1 - array.shape[0])
 
-        # y, x = blob[:2]
-        # arr = array[y-int(y_range/2):y+int(y_range/2)+1,
-        #             x-int(x_range/2):x+int(x_range/2)+1]
-        # mask = arr > value_thresh
+        yy = yy[y_min:y_max, x_min:x_max]
+        xx = xx[y_min:y_max, x_min:x_max]
+
         smooth_mask = \
-            _smooth_edges(array > value_thresh, filter_size, min_pixels)
+            _smooth_edges(arr > value_thresh, filter_size, min_pixels)
 
-        for vals in zip(*radial_profiles(smooth_mask, blob,
-                                         extend_factor=max_extent,
-                                         append_end=True,
-                                         ntheta=ntheta,
-                                         return_thetas=True,
-                                         **kwargs)):
+        region_mask = \
+            Ellipse2D(True, 0.0, 0.0, major*max_extent, minor*max_extent,
+                      pa)(yy, xx).astype(bool)
 
-            (dist, prof, end), theta = vals
+        orig_perim = perimeter_points(region_mask)
+        new_perim = perimeter_points(np.logical_and(smooth_mask, region_mask))
+        coords = np.array(list(set(new_perim) - set(orig_perim)))
+        extent_mask = np.zeros_like(region_mask)
+        extent_mask[coords[:, 0], coords[:, 1]] = True
+        extent_mask = mo.medial_axis(extent_mask)
 
-            new_end = (max_extent * (end[0] - y),
-                       max_extent * (end[1] - x))
+        # Based on the curvature of the shell, only fit points whose
+        # orientation matches the assumed centre.
+        # local_center = (int(y_range)/2, int(x_range)/2)
+        # incoord, outcoord = shell_orientation(extent_mask, local_center,
+        #                                       verbose=True)
 
-            line_posns = []
-            coords = [floor_int(coord)+cent for coord, cent in
-                      zip(_line_profile_coordinates((0, 0), new_end), centre)]
-            for coord in coords:
-                line_posns.append(coord[dist_arr[coords] >=
-                                  min_radius_frac*minor])
-
-            prof = prof[dist >= min_radius_frac * minor]
-            dist = dist[dist >= min_radius_frac * minor]
-
-            # above_thresh = np.where(prof >= value_thresh)[0]
-            above_thresh = np.where(prof > 0)[0]
-
-            # This angle does not coincide with a shell.
-            if above_thresh.size == 0:
-                continue
-            else:
-                # Pick the end point on the first segment with > 2 pixels
-                # above the threshold.
-                segments = consec_split(above_thresh)
-
-                for seg in segments:
-                    if seg.size < 2:
-                        continue
-
-                    # Take the first position and use it to define the edge
-                    dist_val = dist[seg[0]]
-
-                    nearest_idx = \
-                        find_nearest(dist_arr[line_posns],
-                                     dist_val).astype(int)
-                    end_posn = tuple([posn[nearest_idx] + off for
-                                      posn, off in zip(line_posns, offset)])
-                    extent_mask[end_posn] = True
-                    shell_thetas.append(theta)
-                    break
-                else:
-                    continue
-
-        # Calculate the fraction of the region associated with a shell
-        shell_frac = len(shell_thetas) / float(ntheta)
+        shell_frac = np.sum(extent_mask) / float(len(coords))
+        shell_thetas = np.arctan2(coords[:, 0], coords[:, 1])
 
         # Use the theta values to find the standard deviation i.e. how
         # dispersed the shell locations are. Assumes a circle, but we only
         # consider moderately elongated ellipses, so the statistics approx.
         # hold.
-        shell_thetas = np.array(shell_thetas)
         theta_var = np.sqrt(circvar(shell_thetas*u.rad)).value
 
-        extent_coords = np.vstack(np.where(extent_mask)).T
+        if verbose:
+            import matplotlib.pyplot as p
+            ax = p.subplot(121)
+            ax.imshow(np.logical_and(smooth_mask, region_mask), origin='lower',
+                      interpolation='nearest')
+            ax.contour(smooth_mask, colors='b')
+            ax.contour(region_mask, colors='r')
+            p.plot(coords[:, 1], coords[:, 0], 'bD')
+            ax2 = p.subplot(122)
+            ax2.imshow(extent_mask, origin='lower',
+                       interpolation='nearest')
+            p.show()
+
+        extent_coords = \
+            np.vstack([pt + off for pt, off in
+                       zip(np.where(extent_mask), offset)]).T
 
         if return_mask:
             return extent_coords, shell_frac, theta_var, extent_mask
@@ -200,3 +179,13 @@ def _smooth_edges(mask, filter_size, min_pixels):
     medianed = nd.median_filter(open_close, filter_size)
 
     return mo.remove_small_objects(medianed, min_size=min_pixels)
+
+
+def perimeter_points(mask, method='erode'):
+    if method is 'dilate':
+        perim = np.logical_xor(nd.binary_dilation(mask, eight_conn), mask)
+    elif method is 'erode':
+        perim = np.logical_xor(mask, nd.binary_erosion(mask, eight_conn))
+    else:
+        raise TypeError("method must be 'erode' or 'dilate'.")
+    return [(y, x) for y, x in zip(*np.where(perim))]

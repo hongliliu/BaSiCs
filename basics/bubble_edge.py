@@ -94,7 +94,7 @@ def find_bubble_edges(array, blob, max_extent=1.0,
             Ellipse2D(True, 0.0, 0.0, major*max_extent, minor*max_extent,
                       pa)(yy, xx).astype(bool)
 
-        local_center = zip(*np.where(yy + xx == 0.0))[0]
+        local_center = zip(*np.where(np.sqrt(yy**2 + xx**2) == 0.0))[0]
         bubble_mask = _make_bubble_mask(smooth_mask, region_mask, local_center)
 
         # If the center is not contained within a bubble region, return
@@ -196,7 +196,7 @@ def _smooth_edges(mask, filter_size, min_pixels):
     return mo.remove_small_objects(medianed, min_size=min_pixels)
 
 
-def perimeter_points(mask, method='erode'):
+def perimeter_points(mask, method='dilate'):
     if method is 'dilate':
         perim = np.logical_xor(nd.binary_dilation(mask, eight_conn), mask)
     elif method is 'erode':

@@ -192,12 +192,16 @@ def intensity_props(data, blob, min_rad=4):
 
 def _smooth_edges(mask, filter_size, min_pixels):
 
+    no_small = mo.remove_small_holes(mask, min_size=min_pixels,
+                                     connectivity=2)
+
     open_close = \
-        nd.binary_closing(nd.binary_opening(mask, eight_conn), eight_conn)
+        nd.binary_closing(nd.binary_opening(no_small, eight_conn), eight_conn)
 
     medianed = nd.median_filter(open_close, filter_size)
 
-    return mo.remove_small_holes(medianed, min_size=min_pixels, connectivity=2)
+    return mo.remove_small_holes(medianed, min_size=min_pixels,
+                                 connectivity=2)
 
 
 def perimeter_points(mask, method='dilate'):

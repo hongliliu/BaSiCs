@@ -13,9 +13,9 @@ from contour_orientation import shell_orientation
 
 def find_bubble_edges(array, blob, max_extent=1.0,
                       nsig_thresh=1, value_thresh=None,
-                      radius=None, return_mask=False, min_pixels=81,
-                      filter_size=4, verbose=False,
-                      min_radius_frac=0.0, **kwargs):
+                      radius=None, return_mask=False, min_pixels=16,
+                      filter_size=4, verbose=True,
+                      min_radius_frac=0.5, **kwargs):
         '''
         Expand/contract to match the contours in the data.
 
@@ -109,22 +109,56 @@ def find_bubble_edges(array, blob, max_extent=1.0,
 
             return np.array([]), 0.0, 0.0
 
-        new_perim = perimeter_points(smooth_mask)
-        coords = np.array([pt for pt in new_perim if region_mask[pt]])
+        orig_perim = perimeter_points(region_mask)
         extent_mask = np.zeros_like(region_mask)
-        extent_mask[coords[:, 0], coords[:, 1]] = True
-        extent_mask = mo.medial_axis(extent_mask)
+
+        shell_thetas = []
+
+        for pt in orig_perim:
+
+            theta = np.arctan2(pt[0] - local_center[0],
+                               pt[1] - local_center[1])
+
+            num_pts = int(np.round(np.hypot(pt[0] - local_center[0],
+                                            pt[1] - local_center[1]),
+                                   decimals=0))
+
+            y = np.round(np.linspace(local_center[0], pt[0], num_pts),
+                         decimals=0).astype(np.int)
+
+            x = np.round(np.linspace(local_center[1], pt[1], num_pts),
+                         decimals=0).astype(np.int)
+
+            dist = np.sqrt(y**2 + x**2)
+
+            prof = smooth_mask[y, x]
+
+            prof = prof[dist >= min_radius_frac * minor]
+            y = y[dist >= min_radius_frac * minor]
+            x = x[dist >= min_radius_frac * minor]
+
+            # Look for the first 0 and ignore all others past it
+            zeros = np.where(prof == 0)[0]
+
+            # If none, move on
+            if not zeros.any():
+                continue
+
+            edge = zeros[0]
+
+            extent_mask[y[edge], x[edge]] = True
+
+            shell_thetas.append(theta)
+
+        # Calculate the fraction of the region associated with a shell
+        shell_frac = len(shell_thetas) / float(len(orig_perim))
 
         # Based on the curvature of the shell, only fit points whose
         # orientation matches the assumed centre.
         # incoord, outcoord = shell_orientation(extent_mask, local_center,
         #                                       verbose=False)
 
-        shell_frac = np.sum(extent_mask) / float(len(coords))
-        # shell_frac = len(shell_thetas) / float(len(orig_perim))
-        shell_thetas = np.arctan2(coords[:, 0] - local_center[0],
-                                  coords[:, 1] - local_center[1])
-        # shell_thetas = np.array(shell_thetas)
+        shell_thetas = np.array(shell_thetas)
 
         # Use the theta values to find the standard deviation i.e. how
         # dispersed the shell locations are. Assumes a circle, but we only

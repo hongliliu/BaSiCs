@@ -14,7 +14,7 @@ from contour_orientation import shell_orientation
 def find_bubble_edges(array, blob, max_extent=1.0,
                       nsig_thresh=1, value_thresh=None,
                       radius=None, return_mask=False, min_pixels=81,
-                      filter_size=4, verbose=True,
+                      filter_size=4, verbose=False,
                       min_radius_frac=0.0, **kwargs):
         '''
         Expand/contract to match the contours in the data.
@@ -103,7 +103,7 @@ def find_bubble_edges(array, blob, max_extent=1.0,
 
         # If the center is not contained within a bubble region, return
         # empties.
-        if not smooth_mask.any():
+        if not smooth_mask.any() or smooth_mask.all():
             if return_mask:
                 return np.array([]), 0.0, 0.0, smooth_mask
 

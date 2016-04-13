@@ -6,15 +6,16 @@ import astropy.units as u
 import skimage.morphology as mo
 import scipy.ndimage as nd
 
-from profile import radial_profiles, _line_profile_coordinates
+from profile import profile_line, _line_profile_coordinates
 from utils import consec_split, find_nearest, floor_int, ceil_int, eight_conn
 from contour_orientation import shell_orientation
 
 
 def find_bubble_edges(array, blob, max_extent=1.0,
                       nsig_thresh=1, value_thresh=None,
-                      radius=None, return_mask=False, min_pixels=16,
-                      filter_size=4, verbose=False, **kwargs):
+                      radius=None, return_mask=False, min_pixels=81,
+                      filter_size=4, verbose=True,
+                      min_radius_frac=0.0, **kwargs):
         '''
         Expand/contract to match the contours in the data.
 
@@ -63,8 +64,8 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         bbox = Ellipse2D(True, 0.0, 0.0, major*max_extent, minor*max_extent,
                          pa).bounding_box
 
-        y_range = ceil_int(bbox[0][1] - bbox[0][0] + 1)
-        x_range = ceil_int(bbox[1][1] - bbox[1][0] + 1)
+        y_range = ceil_int(bbox[0][1] - bbox[0][0] + 1 + filter_size)
+        x_range = ceil_int(bbox[1][1] - bbox[1][0] + 1 + filter_size)
 
         extent_mask = np.zeros_like(array, dtype=bool)
         shell_thetas = []
@@ -87,27 +88,29 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         yy = yy[y_min:y_max, x_min:x_max]
         xx = xx[y_min:y_max, x_min:x_max]
 
+        dist_arr = np.sqrt(yy**2 + xx**2)
+
         smooth_mask = \
-            _smooth_edges(arr > value_thresh, filter_size, min_pixels)
+            _smooth_edges(arr <= value_thresh, filter_size, min_pixels)
 
         region_mask = \
             Ellipse2D(True, 0.0, 0.0, major*max_extent, minor*max_extent,
                       pa)(yy, xx).astype(bool)
+        region_mask = nd.binary_dilation(region_mask, eight_conn)
 
-        local_center = zip(*np.where(np.sqrt(yy**2 + xx**2) == 0.0))[0]
-        bubble_mask = _make_bubble_mask(smooth_mask, region_mask, local_center)
+        local_center = zip(*np.where(dist_arr == 0.0))[0]
+        _make_bubble_mask(smooth_mask, local_center)
 
         # If the center is not contained within a bubble region, return
         # empties.
-        if not bubble_mask.any() or (bubble_mask == region_mask).all():
+        if not smooth_mask.any():
             if return_mask:
-                return np.array([]), 0.0, 0.0, bubble_mask
+                return np.array([]), 0.0, 0.0, smooth_mask
 
             return np.array([]), 0.0, 0.0
 
-        orig_perim = perimeter_points(region_mask)
-        new_perim = perimeter_points(bubble_mask)
-        coords = np.array(list(set(new_perim) - set(orig_perim)))
+        new_perim = perimeter_points(smooth_mask)
+        coords = np.array([pt for pt in new_perim if region_mask[pt]])
         extent_mask = np.zeros_like(region_mask)
         extent_mask[coords[:, 0], coords[:, 1]] = True
         extent_mask = mo.medial_axis(extent_mask)
@@ -118,7 +121,9 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         #                                       verbose=False)
 
         shell_frac = np.sum(extent_mask) / float(len(coords))
+        # shell_frac = len(shell_thetas) / float(len(orig_perim))
         shell_thetas = np.arctan2(coords[:, 0], coords[:, 1])
+        # shell_thetas = np.array(shell_thetas)
 
         # Use the theta values to find the standard deviation i.e. how
         # dispersed the shell locations are. Assumes a circle, but we only
@@ -126,23 +131,25 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         # hold.
         theta_var = np.sqrt(circvar(shell_thetas*u.rad)).value
 
+        extent_coords = \
+            np.vstack([pt + off for pt, off in
+                       zip(np.where(extent_mask), offset)]).T
+
         if verbose:
+            coords = np.array(zip(*np.where(extent_mask)))
             import matplotlib.pyplot as p
             ax = p.subplot(121)
             ax.imshow(arr, origin='lower',
                       interpolation='nearest')
             ax.contour(smooth_mask, colors='b')
             ax.contour(region_mask, colors='r')
-            ax.contour(bubble_mask, colors='g')
+            # ax.contour(bubble_mask, colors='g')
             p.plot(coords[:, 1], coords[:, 0], 'bD')
+            p.plot(local_center[1], local_center[0], 'gD')
             ax2 = p.subplot(122)
             ax2.imshow(extent_mask, origin='lower',
                        interpolation='nearest')
             p.show()
-
-        extent_coords = \
-            np.vstack([pt + off for pt, off in
-                       zip(np.where(extent_mask), offset)]).T
 
         if return_mask:
             return extent_coords, shell_frac, theta_var, extent_mask
@@ -189,7 +196,7 @@ def _smooth_edges(mask, filter_size, min_pixels):
 
     medianed = nd.median_filter(open_close, filter_size)
 
-    return mo.remove_small_objects(medianed, min_size=min_pixels)
+    return mo.remove_small_holes(medianed, min_size=min_pixels, connectivity=2)
 
 
 def perimeter_points(mask, method='dilate'):
@@ -202,19 +209,17 @@ def perimeter_points(mask, method='dilate'):
     return [(y, x) for y, x in zip(*np.where(perim))]
 
 
-def _make_bubble_mask(edge_mask, region_mask, center):
+def _make_bubble_mask(edge_mask, center):
     '''
     When a region is too large, unconnected and unrelated edges may be picked
     up. This removes those and only keeps the region that contains the center
     point.
     '''
 
-    hole_regions = np.logical_and(region_mask, ~edge_mask)
-
-    labels, num = nd.label(hole_regions)
+    labels, num = nd.label(edge_mask)
 
     if num == 1:
-        return hole_regions
+        return edge_mask
 
     contains_center = 0
 
@@ -232,6 +237,4 @@ def _make_bubble_mask(edge_mask, region_mask, center):
         if n == contains_center:
             continue
 
-        hole_regions[labels == n] = False
-
-    return hole_regions
+        edge_mask[labels == n] = False

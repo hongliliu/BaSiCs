@@ -122,7 +122,8 @@ def find_bubble_edges(array, blob, max_extent=1.0,
 
         shell_frac = np.sum(extent_mask) / float(len(coords))
         # shell_frac = len(shell_thetas) / float(len(orig_perim))
-        shell_thetas = np.arctan2(coords[:, 0], coords[:, 1])
+        shell_thetas = np.arctan2(coords[:, 0] - local_center[0],
+                                  coords[:, 1] - local_center[1])
         # shell_thetas = np.array(shell_thetas)
 
         # Use the theta values to find the standard deviation i.e. how

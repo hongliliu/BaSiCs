@@ -275,3 +275,17 @@ def in_ellipse(point, params):
     xprime = (x-x0)*np.cos(pa) + (x-x0)*np.sin(pa)
 
     return (xprime/b)**2 + (yprime/a)**2 <= 1.
+
+
+def wrap_to_pi(angle):
+    '''
+    Wrap angles onto 0 to pi. Useful for symmetric objects (like ellipses!)
+    '''
+
+    # Map onto -pi to pi
+    angle = np.arctan2(np.sin(angle), np.cos(angle))
+
+    if angle < 0:
+        angle += np.pi
+
+    return angle

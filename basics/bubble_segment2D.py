@@ -217,7 +217,7 @@ class BubbleFinder2D(object):
             if edge_find:
                 # Use twice the sigma used to find local minima. Ensures the
                 # edges that are found are real.
-                coords, shell_frac, angular_std = \
+                coords, shell_frac, angular_std, value_thresh = \
                     find_bubble_edges(self.array, props, max_extent=1.35,
                                       value_thresh=(nsig + 1)*sigma,
                                       nsig_thresh=edge_loc_bkg_nsig,
@@ -311,10 +311,19 @@ class BubbleFinder2D(object):
 
                 props = new_props
 
-            coords, shell_frac, angular_std = \
-                find_bubble_edges(self.array, props, max_extent=1.35,
-                                  value_thresh=(nsig + 1)*sigma,
-                                  nsig_thresh=edge_loc_bkg_nsig)
+                coords, shell_frac, angular_std = \
+                    find_bubble_edges(self.array, props, max_extent=1.35,
+                                      value_thresh=value_thresh,
+                                      nsig_thresh=edge_loc_bkg_nsig,
+                                      try_local_bkg=False)[:-1]
+
+            else:
+                value_thresh = (nsig + 1)*sigma
+
+                coords, shell_frac, angular_std = \
+                    find_bubble_edges(self.array, props, max_extent=1.35,
+                                      value_thresh=value_thresh,
+                                      nsig_thresh=edge_loc_bkg_nsig)[:-1]
 
             if len(coords) < 3:
                 continue

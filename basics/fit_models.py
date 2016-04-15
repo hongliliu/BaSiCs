@@ -4,6 +4,8 @@ from scipy import optimize
 
 from skimage.measure import regionprops
 
+from basics.utils import wrap_to_pi
+
 
 def _check_data_dim(data, dim):
     if data.ndim != 2 or data.shape[1] != dim:
@@ -271,8 +273,7 @@ class EllipseModel(BaseModel):
 
         self.params = output[0][:5]
 
-        # self.params[-1] = np.arctan2(np.sin(self.params[-1]),
-        #                              np.cos(self.params[-1]))
+        self.params[-1] = wrap_to_pi(self.params[-1])
 
         # Did it work?
         if output[-1] in [1, 2, 3, 4]:

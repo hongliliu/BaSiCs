@@ -8,7 +8,7 @@ from warnings import filterwarnings, catch_warnings
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
-from basics.utils import sig_clip, in_circle, in_ellipse
+from basics.utils import sig_clip, in_circle, in_ellipse, wrap_to_pi
 from basics.bubble_objects import Bubble2D
 from basics.log import blob_log, _prune_blobs
 from basics.bubble_edge import find_bubble_edges
@@ -263,7 +263,7 @@ class BubbleFinder2D(object):
                     if eccent < 1:
                         eccent = 1. / eccent
                         pars[2], pars[3] = pars[3], pars[2]
-                        pars[4] = np.angle(np.exp(1j*(pars[4] + 0.5*np.pi)))
+                        pars[4] = wrap_to_pi(pars[4] + 0.5*np.pi)
 
                     fail_conds = pars[3] < self.beam_pix or \
                         pars[2] > max_rad*props[2] or \
@@ -331,11 +331,9 @@ class BubbleFinder2D(object):
             else:
                 resid = np.NaN
 
-            print resid, props
-
             # Append the shell fraction onto the properties
             props = np.append(props, shell_frac)
-            props = np.append(props, resid)
+            # props = np.append(props, resid)
             props = np.append(props, angular_std)
 
             all_props.append(props)

@@ -212,14 +212,14 @@ class BubbleFinder2D(object):
                                   sigma_list=self.scales,
                                   overlap=None,
                                   threshold=nsig*sigma,
-                                  weighting=self.weightings)):
+                                  weighting=self.weightings)[::-1]):
             # Adjust the region properties based on where the bubble edges are
             if edge_find:
                 # Use twice the sigma used to find local minima. Ensures the
                 # edges that are found are real.
                 coords, shell_frac, angular_std = \
                     find_bubble_edges(self.array, props, max_extent=1.35,
-                                      value_thresh=2*nsig*sigma,
+                                      value_thresh=(nsig + 1)*sigma,
                                       nsig_thresh=edge_loc_bkg_nsig,
                                       return_mask=False)
                 # find_bubble_edges calculates the shell fraction
@@ -250,7 +250,10 @@ class BubbleFinder2D(object):
                         filterwarnings("ignore",
                                        r"gtol=0.000000 is too small")
                         model = ransac(coords[:, ::-1], EllipseModel,
-                                       5, props[2]/2.)[0]
+                                       5, props[2]/2., max_trials=60)[0]
+
+                    dof = len(coords) - 5
+
                     pars = model.params.copy()
                     pars[0] += int(xmean)
                     pars[1] += int(ymean)
@@ -286,7 +289,9 @@ class BubbleFinder2D(object):
                         filterwarnings("ignore",
                                        r"gtol=0.000000 is too small")
                         model = ransac(coords[:, ::-1], CircleModel,
-                                       3, props[2]/2.)[0]
+                                       3, props[2]/2., max_trials=30)[0]
+
+                    dof = len(coords) - 3
 
                     pars = model.params.copy()
                     pars[0] += int(xmean)
@@ -305,16 +310,32 @@ class BubbleFinder2D(object):
                     new_props[4] = 0.0
 
                 props = new_props
-                coords[:, 0] += int(ymean)
-                coords[:, 1] += int(xmean)
 
             coords, shell_frac, angular_std = \
                 find_bubble_edges(self.array, props, max_extent=1.35,
-                                  value_thresh=2*nsig*sigma,
+                                  value_thresh=(nsig + 1)*sigma,
                                   nsig_thresh=edge_loc_bkg_nsig)
+
+            if len(coords) < 3:
+                continue
+
+            if edge_find:
+                # Calculate the model residual
+                coords[:, 0] -= int(props[0])
+                coords[:, 1] -= int(props[1])
+
+                resid = model.residuals(coords[:, ::-1]).sum() / dof
+
+                coords[:, 0] += int(props[0])
+                coords[:, 1] += int(props[1])
+            else:
+                resid = np.NaN
+
+            print resid, props
 
             # Append the shell fraction onto the properties
             props = np.append(props, shell_frac)
+            props = np.append(props, resid)
             props = np.append(props, angular_std)
 
             all_props.append(props)
@@ -333,7 +354,7 @@ class BubbleFinder2D(object):
             all_props, remove_posns = \
                 _prune_blobs(np.array(all_props), overlap_frac,
                              method="shell fraction",
-                             min_corr=0.71, return_removal_posns=True)
+                             min_corr=0.58, return_removal_posns=True)
 
             # Delete the removed region coords
             remove_posns.sort()
@@ -406,6 +427,8 @@ class BubbleFinder2D(object):
 
         if show:
             p.show()
+        else:
+            return ax
 
     def region_rejection(self, value_thresh=0.0, grad_thresh=1,
                          frac_thresh=0.3, border_clear=True):

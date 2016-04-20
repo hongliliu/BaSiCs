@@ -4,18 +4,20 @@ from astropy.modeling.models import Ellipse2D
 from astropy.stats import circvar
 import astropy.units as u
 import skimage.morphology as mo
+from skimage.measure import approximate_polygon, find_contours
 import scipy.ndimage as nd
 
-from profile import profile_line, _line_profile_coordinates
-from utils import consec_split, find_nearest, floor_int, ceil_int, eight_conn
+from utils import ceil_int, eight_conn
 from contour_orientation import shell_orientation
+from polar_projection import reproject_image_into_polar
 
 
 def find_bubble_edges(array, blob, max_extent=1.0,
                       nsig_thresh=1, value_thresh=None,
                       radius=None, return_mask=False, min_pixels=16,
-                      filter_size=4, verbose=True,
-                      min_radius_frac=0.5, **kwargs):
+                      filter_size=4, verbose=False,
+                      min_radius_frac=0.5, try_local_bkg=True,
+                      **kwargs):
         '''
         Expand/contract to match the contours in the data.
 
@@ -44,17 +46,18 @@ def find_bubble_edges(array, blob, max_extent=1.0,
             Array with the positions of edges.
         '''
 
-        mean, std = intensity_props(array, blob)
-        background_thresh = mean + nsig_thresh * std
+        if try_local_bkg:
+            mean, std = intensity_props(array, blob)
+            background_thresh = mean + nsig_thresh * std
 
-        # Define a suitable background based on the intensity within the
-        # elliptical region
-        if value_thresh is None:
-            value_thresh = background_thresh
-        else:
-            # If value_thresh is higher use it. Otherwise use the bkg.
-            if value_thresh < background_thresh:
+            # Define a suitable background based on the intensity within the
+            # elliptical region
+            if value_thresh is None:
                 value_thresh = background_thresh
+            else:
+                # If value_thresh is higher use it. Otherwise use the bkg.
+                if value_thresh < background_thresh:
+                    value_thresh = background_thresh
 
         # Set the number of theta to be ~ the perimeter.
 
@@ -76,6 +79,21 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         arr = array[max(0, y-int(y_range/2)):y+int(y_range/2)+1,
                     max(0, x-int(x_range/2)):x+int(x_range/2)+1]
 
+        # import matplotlib.pyplot as p
+        # p.subplot(121)
+        # p.imshow(arr, origin='lower')
+        # p.contour(arr <= value_thresh, colors='b')
+        # p.subplot(122)
+        # polar, r, theta = reproject_image_into_polar(arr)
+        # p.imshow(polar, origin='lower')
+        # p.contour(polar <= value_thresh, colors='b')
+        # from skimage.filter import sobel_h
+        # p.contour(sobel_h(polar), colors='r')
+        # p.draw()
+        # import time; time.sleep(0.1)
+        # raw_input("?")
+        # p.clf()
+
         # Adjust meshes if they exceed the array shape
         x_min = -min(0, x - int(x_range / 2))
         x_max = xx.shape[1] - max(0, x + int(x_range / 2) + 1 - array.shape[1])
@@ -95,8 +113,8 @@ def find_bubble_edges(array, blob, max_extent=1.0,
 
         region_mask = \
             Ellipse2D(True, 0.0, 0.0, major*max_extent, minor*max_extent,
-                      pa)(yy, xx).astype(bool)
-        region_mask = nd.binary_dilation(region_mask, eight_conn)
+                      pa)(xx, yy).astype(bool)
+        region_mask = nd.binary_dilation(region_mask, eight_conn, iterations=2)
 
         local_center = zip(*np.where(dist_arr == 0.0))[0]
         _make_bubble_mask(smooth_mask, local_center)
@@ -105,15 +123,45 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         # empties.
         if not smooth_mask.any() or smooth_mask.all():
             if return_mask:
-                return np.array([]), 0.0, 0.0, smooth_mask
+                return np.array([]), 0.0, 0.0, value_thresh, smooth_mask
 
-            return np.array([]), 0.0, 0.0
+            return np.array([]), 0.0, 0.0, value_thresh
 
-        orig_perim = perimeter_points(region_mask)
+        orig_perim = find_contours(region_mask, 0, fully_connected='high')[0]
+        # new_perim = find_contours(smooth_mask, 0, fully_connected='high')
+        coords = []
         extent_mask = np.zeros_like(region_mask)
+        # for perim in new_perim:
+        #     perim = perim.astype(np.int)
+        #     good_pts = \
+        #         np.array([pos for pos, pt in enumerate(perim)
+        #                   if region_mask[pt[0], pt[1]]])
+        #     if not good_pts.any():
+        #         continue
 
-        shell_thetas = []
+        #     # Now split into sections
+        #     split_pts = consec_split(good_pts)
 
+        #     # Remove the duplicated end point if it was initially connected
+        #     if len(split_pts) > 1:
+        #         # Join these if the end pts initially matched
+        #         if split_pts[0][0] == split_pts[-1][-1]:
+        #             split_pts[0] = np.append(split_pts[0],
+        #                                      split_pts[-1][::-1])
+        #             split_pts.pop(-1)
+
+        #     for split in split_pts:
+        #         coords.append(perim[split])
+
+        #     extent_mask[perim[good_pts][:, 0], perim[good_pts][:, 1]] = True
+
+        # Based on the curvature of the shell, only fit points whose
+        # orientation matches the assumed centre.
+        incoord, outcoord = shell_orientation(coords, local_center,
+                                              verbose=False)
+
+
+        # Now only keep the points that are not blocked from the centre pixel
         for pt in orig_perim:
 
             theta = np.arctan2(pt[0] - local_center[0],
@@ -147,18 +195,29 @@ def find_bubble_edges(array, blob, max_extent=1.0,
             edge = zeros[0]
 
             extent_mask[y[edge], x[edge]] = True
-
+            coords.append((y[edge], x[edge]))
             shell_thetas.append(theta)
+
+        # Sum the difference in angles (assuming points are in order)
+        # arc_length = 0
+        # for pts in coords:
+
+        #     y, x = pts[:, 0], pts[:, 1]
+
+        #     thetas = np.unwrap(np.arctan2(y - local_center[0],
+        #                                   x - local_center[1]))
+
+        #     arc_length += np.sum(np.diff(thetas))
 
         # Calculate the fraction of the region associated with a shell
         shell_frac = len(shell_thetas) / float(len(orig_perim))
-
-        # Based on the curvature of the shell, only fit points whose
-        # orientation matches the assumed centre.
-        # incoord, outcoord = shell_orientation(extent_mask, local_center,
-        #                                       verbose=False)
+        # shell_frac = arc_length / (2*np.pi)
+        # coords = np.vstack(coords)
+        # shell_thetas = np.arctan2(coords[:, 0] - local_center[0],
+        #                           coords[:, 1] - local_center[1])
 
         shell_thetas = np.array(shell_thetas)
+        coords = np.array(coords)
 
         # Use the theta values to find the standard deviation i.e. how
         # dispersed the shell locations are. Assumes a circle, but we only
@@ -171,25 +230,31 @@ def find_bubble_edges(array, blob, max_extent=1.0,
                        zip(np.where(extent_mask), offset)]).T
 
         if verbose:
-            coords = np.array(zip(*np.where(extent_mask)))
             import matplotlib.pyplot as p
             ax = p.subplot(121)
             ax.imshow(arr, origin='lower',
                       interpolation='nearest')
             ax.contour(smooth_mask, colors='b')
             ax.contour(region_mask, colors='r')
-            # ax.contour(bubble_mask, colors='g')
             p.plot(coords[:, 1], coords[:, 0], 'bD')
+            # for coord in coords:
+            #     p.plot(coord[:, 1], coord[:, 0], 'bD')
+            #     approx_coords = approximate_polygon(coord, np.sqrt(2))
+            #     p.plot(approx_coords[:, 1], approx_coords[:, 0], 'mo')
             p.plot(local_center[1], local_center[0], 'gD')
             ax2 = p.subplot(122)
             ax2.imshow(extent_mask, origin='lower',
                        interpolation='nearest')
-            p.show()
+            import time; time.sleep(0.1)
+            p.draw()
+            raw_input("?")
+            p.clf()
 
         if return_mask:
-            return extent_coords, shell_frac, theta_var, extent_mask
+            return extent_coords, shell_frac, theta_var, value_thresh, \
+                extent_mask
 
-        return extent_coords, shell_frac, theta_var
+        return extent_coords, shell_frac, theta_var, value_thresh
 
 
 def intensity_props(data, blob, min_rad=4):
@@ -221,7 +286,7 @@ def intensity_props(data, blob, min_rad=4):
     fifteen = np.nanpercentile(vals, 15.)
     sig = fifteen - bottom
 
-    return bottom + 2*sig, sig
+    return bottom + 2 * sig, sig
 
 
 def _smooth_edges(mask, filter_size, min_pixels):
@@ -236,16 +301,6 @@ def _smooth_edges(mask, filter_size, min_pixels):
 
     return mo.remove_small_holes(medianed, min_size=min_pixels,
                                  connectivity=2)
-
-
-def perimeter_points(mask, method='dilate'):
-    if method is 'dilate':
-        perim = np.logical_xor(nd.binary_dilation(mask, eight_conn), mask)
-    elif method is 'erode':
-        perim = np.logical_xor(mask, nd.binary_erosion(mask, eight_conn))
-    else:
-        raise TypeError("method must be 'erode' or 'dilate'.")
-    return [(y, x) for y, x in zip(*np.where(perim))]
 
 
 def _make_bubble_mask(edge_mask, center):
@@ -277,3 +332,32 @@ def _make_bubble_mask(edge_mask, center):
             continue
 
         edge_mask[labels == n] = False
+
+
+# Walking around the 3x3 neighbourhood starting at 0,0 and going clockwise
+# Each is C-4 symmetric, so needs to be rotated 90 deg 3 more times than shown
+connectivity = {1: [3, 4, 5, 6, 7], 2: [5, 6, 7]}
+neighborhood = np.array([[3, 4, 5], [2, 0, 6], [1, 8, 7]])
+
+
+def skeleton_gap_filling(mask):
+    '''
+    Fill single missing points in a skeleton using hit-or-miss transforms.
+    '''
+
+    hits = np.zeros_like(mask)
+
+    for key in connectivity:
+        element = neighborhood == key
+        for posn in connectivity[key]:
+            elem = np.logical_or(element, neighborhood == posn)
+            hits += \
+                nd.binary_hit_or_miss(mask, elem)
+            print(elem.astype(int))
+            for i in [1, 2, 3]:
+                hits += \
+                    nd.binary_hit_or_miss(mask, np.rot90(elem, k=i))
+                print(np.rot90(elem, k=i).astype(int))
+            raw_input("?")
+
+    return mask + hits

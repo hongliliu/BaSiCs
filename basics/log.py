@@ -470,7 +470,7 @@ def merge_to_ellipse(blob1, blob2):
     new_blob.append((blob1[1] + blob2[1]) / 2.)
 
     # Semi-major axis = r + d/2
-    new_blob.append(blob1[2] + d/2.)
+    new_blob.append(blob1[2] + d / 2.)
 
     # Semi-minor axis = r
     new_blob.append(blob1[2])
@@ -481,6 +481,8 @@ def merge_to_ellipse(blob1, blob2):
     if pa < 0:
         pa += np.pi
     new_blob.append(pa)
+
+    new_blob.append(max(blob1[-1], blob2[-1]))
 
     return new_blob
 

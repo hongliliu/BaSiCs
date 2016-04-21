@@ -164,7 +164,7 @@ def _prune_blobs(blobs_array, overlap, method='size',
                 small = blob1
                 small_pos = posn1
 
-            shell_cond = large[5] > small[5]
+            shell_cond = large[5] > small[5] or large[7] <= small[7]
             # Also want to check if the fraction of overlap is above
             # min_corr. This stops much larger regions from being
             # removed when small ones are embedded in their edges.
@@ -216,10 +216,16 @@ def _prune_blobs(blobs_array, overlap, method='size',
                 remove_blobs.append(posn2)
             else:
                 remove_blobs.append(posn1)
-        else:
-            raise TypeError("method must be 'size', 'shell fraction' or "
-                            "'shell coords'.")
 
+        elif method == "response":
+            cond = blob1[5] > blob2[5]
+            if cond:
+                remove_blobs.append(posn2)
+            else:
+                remove_blobs.append(posn1)
+        else:
+            raise TypeError("method must be 'size', 'shell fraction',"
+                            " 'response' or 'shell coords'.")
     # Remove duplicates
     remove_blobs = list(set(remove_blobs))
 
@@ -254,7 +260,7 @@ def _merge_blobs(blobs_array, min_distance_merge=1.0):
     # Distance between centres equal to the radius
     max_merge_overlap = 1.0
 
-    merged_blobs = np.empty((0, 5), dtype=np.float64)
+    merged_blobs = np.empty((0, 6), dtype=np.float64)
 
     # Create a distance matrix to catch all overlap cases.
     cond_arr = pdist(blobs_array, metric=partial(overlap_metric))
@@ -399,7 +405,7 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
     if weighting is not None:
         if len(weighting) != len(sigma_list):
             raise IndexError("weighting must have the same number of elements"
-                             " as scales ("+str(len(sigma_list))+").")
+                             " as scales (" + str(len(sigma_list)) + ").")
     else:
         weighting = np.ones_like(sigma_list)
 
@@ -413,7 +419,7 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
     for i, scale in enumerate(sigma_list):
         scale_peaks = peak_local_max(image_cube[:, :, i],
                                      threshold_abs=threshold,
-                                     min_distance=1.5*scale,
+                                     min_distance=1.5 * scale,
                                      threshold_rel=0.0,
                                      exclude_border=False)
         scale_peaks = \
@@ -423,6 +429,9 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
         else:
             local_maxima = np.vstack([local_maxima, scale_peaks])
 
+    vals = np.array([image_cube[tuple(pos)] for pos in local_maxima])
+    vals = vals.reshape((len(local_maxima), 1))
+
     # Convert local_maxima to float64
     lm = local_maxima.astype(np.float64)
     # Convert the last index to its corresponding scale value
@@ -431,6 +440,8 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
     # Add on semi-minor axis and position angle for generalization to ellipses
     lm = np.hstack([lm, lm[:, 2:3]])
     lm = np.hstack([lm, np.zeros_like(lm[:, 0:1], dtype=np.float64)])
+    # Finally append on the transform response value
+    lm = np.hstack([lm, vals])
 
     local_maxima = lm
 

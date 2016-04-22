@@ -277,6 +277,8 @@ class EllipseModel(BaseModel):
             if len(params0) != 5:
                 raise ValueError("params0 must have a length of 5.")
             params0 = tuple(params0)
+            xc0 = params0[0]
+            yc0 = params0[1]
 
         all_params0[:5] = params0
         all_params0[5:] = np.arctan2(y - yc0, x - xc0)

@@ -53,7 +53,7 @@ class CircleModel(BaseModel):
 
     """
 
-    def estimate(self, data):
+    def estimate(self, data, params0=None):
         """Estimate circle model from data using total least squares.
 
         Parameters
@@ -93,10 +93,16 @@ class CircleModel(BaseModel):
             #A[2, :] = -1
             return A
 
-        xc0 = np.median(x)
-        yc0 = np.median(y)
-        r0 = np.median(np.sqrt((x - xc0)**2 + (y - yc0)**2))
-        params0 = (xc0, yc0, r0)
+        if params0 is None:
+            xc0 = np.median(x)
+            yc0 = np.median(y)
+            r0 = np.median(np.sqrt((x - xc0)**2 + (y - yc0)**2))
+            params0 = (xc0, yc0, r0)
+        else:
+            if len(params0) != 3:
+                raise ValueError("params0 must have a length of 3.")
+            params0 = tuple(params0)
+
         output = optimize.leastsq(fun, params0, Dfun=Dfun, col_deriv=True,
                                   full_output=True)
 
@@ -199,7 +205,7 @@ class EllipseModel(BaseModel):
 
     """
 
-    def estimate(self, data):
+    def estimate(self, data, params0=None):
         """Estimate circle model from data using total least squares.
 
         Parameters
@@ -261,14 +267,21 @@ class EllipseModel(BaseModel):
             return A
 
         # initial guess of parameters using a circle model
-        params0 = np.empty((N + 5, ), dtype=np.double)
-        xc0 = np.median(x)
-        yc0 = np.median(y)
-        r0 = np.median(np.sqrt((x - xc0)**2 + (y - yc0)**2))
-        params0[:5] = (xc0, yc0, r0, r0, 0)
-        params0[5:] = np.arctan2(y - yc0, x - xc0)
+        all_params0 = np.empty((N + 5, ), dtype=np.double)
+        if params0 is None:
+            xc0 = np.median(x)
+            yc0 = np.median(y)
+            r0 = np.median(np.sqrt((x - xc0)**2 + (y - yc0)**2))
+            params0 = (xc0, yc0, r0, r0, 0)
+        else:
+            if len(params0) != 5:
+                raise ValueError("params0 must have a length of 5.")
+            params0 = tuple(params0)
 
-        output = optimize.leastsq(fun, params0, Dfun=Dfun, col_deriv=True,
+        all_params0[:5] = params0
+        all_params0[5:] = np.arctan2(y - yc0, x - xc0)
+
+        output = optimize.leastsq(fun, all_params0, Dfun=Dfun, col_deriv=True,
                                   full_output=True)
 
         self.params = output[0][:5]

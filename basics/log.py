@@ -7,12 +7,14 @@ from numpy import arccos
 from skimage.util import img_as_float
 from skimage.feature import peak_local_max
 from astropy.modeling.models import Ellipse2D
+from skimage.measure import regionprops
 from scipy.spatial.distance import pdist, squareform, cdist
 from functools import partial
 
 # from .._shared.utils import assert_nD
 
 from basics.utils import dist_uppertri
+from basics.utils import wrap_to_pi
 
 '''
 Copyright (C) 2011, the scikit-image team
@@ -419,31 +421,21 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
     for i, scale in enumerate(sigma_list):
         scale_peaks = peak_local_max(image_cube[:, :, i],
                                      threshold_abs=threshold,
-                                     min_distance=1.5 * scale,
+                                     min_distance=np.sqrt(2) * scale,
                                      threshold_rel=0.0,
                                      exclude_border=False)
-        scale_peaks = \
-            np.hstack([scale_peaks, np.ones_like(scale_peaks[:, :1]) * i])
+
+        new_scale_peaks = np.empty((len(scale_peaks), 6))
+        for j, peak in enumerate(scale_peaks):
+            new_peak = np.array([peak[0], peak[1], scale, scale, 0.0])
+            new_scale_peaks[j] = \
+                shape_from_blob_moments(new_peak, image_cube[:, :, i])
+            # new_scale_peaks[j, 3:5] *= np.sqrt(2)
+
         if i == 0:
-            local_maxima = scale_peaks
+            local_maxima = new_scale_peaks
         else:
-            local_maxima = np.vstack([local_maxima, scale_peaks])
-
-    vals = np.array([image_cube[tuple(pos)] for pos in local_maxima])
-    vals = vals.reshape((len(local_maxima), 1))
-
-    # Convert local_maxima to float64
-    lm = local_maxima.astype(np.float64)
-    # Convert the last index to its corresponding scale value
-    lm[:, 2] = sigma_list[local_maxima[:, 2]] * np.sqrt(2)
-
-    # Add on semi-minor axis and position angle for generalization to ellipses
-    lm = np.hstack([lm, lm[:, 2:3]])
-    lm = np.hstack([lm, np.zeros_like(lm[:, 0:1], dtype=np.float64)])
-    # Finally append on the transform response value
-    lm = np.hstack([lm, vals])
-
-    local_maxima = lm
+            local_maxima = np.vstack([local_maxima, new_scale_peaks])
 
     if local_maxima.size == 0:
         return local_maxima
@@ -647,3 +639,82 @@ def shell_similarity(coords1, coords2, max_dist=3, verbose=False):
         p.show()
 
     return overlap_frac
+
+
+def shape_from_blob_moments(blob, response, expand_factor=np.sqrt(2)):
+    '''
+    Use blob properties to define a region, then correct its shape by
+    using the response surface
+    '''
+    yy, xx = np.mgrid[:response.shape[0], :response.shape[1]]
+
+    mask = Ellipse2D.evaluate(yy, xx, True, blob[0],
+                              blob[1], expand_factor * blob[2],
+                              expand_factor * blob[3], blob[4]).astype(np.int)
+
+    resp = response.copy()
+    # We don't care about the negative values here, so set to 0
+    resp[resp < 0.0] = 0.0
+
+    props = regionprops(mask, intensity_image=resp)[0]
+
+    # Now use the moments to refine the shape
+    wprops = weighted_props(props)
+    y, x, major, minor, pa = wprops
+
+    new_mask = Ellipse2D.evaluate(yy, xx, True, y,
+                                  x, major,
+                                  minor, pa).astype(bool)
+
+    # Find the maximum value in the response
+    max_resp = np.max(response[new_mask])
+
+    # print(blob)
+    # print((y, x, major, minor, pa, max_resp))
+    # import matplotlib.pyplot as p
+    # p.imshow(response, origin='lower', cmap='afmhot')
+    # p.contour(mask, colors='r')
+    # p.contour(new_mask, colors='g')
+    # p.draw()
+    # import time; time.sleep(0.1)
+    # raw_input("?")
+    # p.clf()
+
+    return np.array([y, x, major, minor, pa, max_resp])
+
+
+def weighted_props(regprops):
+    '''
+    Return the shape properties based on the weighted moments.
+    '''
+
+    wmu = regprops.weighted_moments_central
+    # Create the inertia tensor from the moments
+    a = wmu[2, 0] / wmu[0, 0]
+    b = -wmu[1, 1] / wmu[0, 0]
+    c = wmu[0, 2] / wmu[0, 0]
+    # inertia_tensor = np.array([[a, b], [b, c]])
+
+    # The eigenvalues give the axes lengths
+    l1 = (a + c) / 2 + sqrt(4 * b ** 2 + (a - c) ** 2) / 2
+    l2 = (a + c) / 2 - sqrt(4 * b ** 2 + (a - c) ** 2) / 2
+
+    # These are the radii, not the lengths
+    major = 2 * np.sqrt(l1)
+    minor = 2 * np.sqrt(l2)
+
+    # And finally the orientation
+    absb = -b  # need this to be > 0
+    if a - c == 0:
+        if absb > 0:
+            pa = -np.pi / 4.
+        else:
+            pa = np.pi / 4.
+    else:
+        pa = - 0.5 * np.arctan2(2 * absb, (a - c))
+
+    pa = wrap_to_pi(pa + 0.5 * np.pi)
+
+    centroid = regprops.weighted_centroid
+
+    return np.array([centroid[0], centroid[1], major, minor, pa])

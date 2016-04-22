@@ -437,8 +437,10 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
             # sqrt(2) size correction
             new_scale_peaks[:, 2:4] = np.sqrt(2) * scale
             new_scale_peaks[:, 5] = 0.0
-            vals = np.array([image_cube[pos[0], pos[1]]
-                             for pos in scale_peaks])
+            vals = \
+                np.array([image_cube[pos[0], pos[1], i]
+                          for pos in scale_peaks]).reshape((len(scale_peaks),
+                                                            1))
             new_scale_peaks = np.hstack([new_scale_peaks, vals])
 
         if i == 0:

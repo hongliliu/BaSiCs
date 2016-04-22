@@ -300,7 +300,8 @@ def _merge_blobs(blobs_array, min_distance_merge=1.0):
 def blob_log(image, sigma_list=None, scale_choice='linear',
              min_sigma=1, max_sigma=50, num_sigma=10,
              threshold=.2, overlap=.5, sigma_ratio=2.,
-             weighting=None, merge_overlap_dist=1.0):
+             weighting=None, merge_overlap_dist=1.0,
+             refine_shape=False):
     """Finds blobs in the given grayscale image.
 
     Blobs are found using the Laplacian of Gaussian (LoG) method [1]_.
@@ -426,11 +427,19 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
                                      exclude_border=False)
 
         new_scale_peaks = np.empty((len(scale_peaks), 6))
-        for j, peak in enumerate(scale_peaks):
-            new_peak = np.array([peak[0], peak[1], scale, scale, 0.0])
-            new_scale_peaks[j] = \
-                shape_from_blob_moments(new_peak, image_cube[:, :, i])
-            # new_scale_peaks[j, 3:5] *= np.sqrt(2)
+        if refine_shape:
+            for j, peak in enumerate(scale_peaks):
+                new_peak = np.array([peak[0], peak[1], scale, scale, 0.0])
+                new_scale_peaks[j] = \
+                    shape_from_blob_moments(new_peak, image_cube[:, :, i])
+        else:
+            new_scale_peaks[:, :2] = scale_peaks
+            # sqrt(2) size correction
+            new_scale_peaks[:, 2:4] = np.sqrt(2) * scale
+            new_scale_peaks[:, 5] = 0.0
+            vals = np.array([image_cube[pos[0], pos[1]]
+                             for pos in scale_peaks])
+            new_scale_peaks = np.hstack([new_scale_peaks, vals])
 
         if i == 0:
             local_maxima = new_scale_peaks
@@ -441,7 +450,7 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
         return local_maxima
 
     # Merge regions into ellipses
-    local_maxima = _merge_blobs(local_maxima, merge_overlap_dist)
+    # local_maxima = _merge_blobs(local_maxima, merge_overlap_dist)
 
     # Then prune and return them\
     return local_maxima

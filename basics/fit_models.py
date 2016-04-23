@@ -103,14 +103,27 @@ class CircleModel(BaseModel):
                 raise ValueError("params0 must have a length of 3.")
             params0 = tuple(params0)
 
-        output = optimize.leastsq(fun, params0, Dfun=Dfun, col_deriv=True,
-                                  full_output=True)
+        pfit, pcov, infodict, errmsg, success = \
+            optimize.leastsq(fun, params0, Dfun=Dfun, col_deriv=True,
+                             full_output=True)
 
-        self.params = output[0]
+        self.params = pfit
+        # Sometimes you get negative (but reasonable) radii out. Force to be
+        # positive.
         self.params[-1] = np.abs(self.params[-1])
 
+        # Need to multiply the fractional covariance matrix from leastsq with
+        # the reduced chi-square value
+        s_sq = (self.residuals(data) ** 2).sum() / (len(data) - 3)
+        pcov *= s_sq
+
+        self.param_errors = np.empty((len(pfit)))
+        # Standard errors are sqrt of the cov matrix diagonals
+        for i in range(len(pfit)):
+            self.param_errors[i] = np.sqrt(np.abs(pcov[i, i]))
+
         # Did it work?
-        if output[-1] in [1, 2, 3, 4]:
+        if success in [1, 2, 3, 4]:
             return True
 
         # If not, print fail message and return false
@@ -284,15 +297,26 @@ class EllipseModel(BaseModel):
         all_params0[:5] = params0
         all_params0[5:] = np.arctan2(y - yc0, x - xc0)
 
-        output = optimize.leastsq(fun, all_params0, Dfun=Dfun, col_deriv=True,
-                                  full_output=True)
+        pfit, pcov, infodict, errmsg, success = \
+            optimize.leastsq(fun, all_params0, Dfun=Dfun, col_deriv=True,
+                             full_output=True)
 
-        self.params = output[0][:5]
+        self.params = pfit[:5]
         self.params[2:4] = np.abs(self.params[2:4])
         self.params[-1] = wrap_to_pi(self.params[-1])
 
+        # Need to multiply the fractional covariance matrix from leastsq with
+        # the reduced chi-square value
+        s_sq = (self.residuals(data) ** 2).sum() / (len(data) - 5)
+        pcov *= s_sq
+
+        self.param_errors = np.empty((len(pfit)))
+        # Standard errors are sqrt of the cov matrix diagonals
+        for i in range(len(pfit)):
+            self.param_errors[i] = np.sqrt(np.abs(pcov[i, i]))
+
         # Did it work?
-        if output[-1] in [1, 2, 3, 4]:
+        if success in [1, 2, 3, 4]:
             return True
 
         # If not, print fail message and return false

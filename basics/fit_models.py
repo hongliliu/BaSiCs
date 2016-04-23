@@ -114,7 +114,7 @@ class CircleModel(BaseModel):
 
         # Need to multiply the fractional covariance matrix from leastsq with
         # the reduced chi-square value
-        if len(data) > 3:
+        if len(data) > 3 and pcov is not None:
             s_sq = (self.residuals(data) ** 2).sum() / (len(data) - 3)
             pcov *= s_sq
 
@@ -309,7 +309,7 @@ class EllipseModel(BaseModel):
 
         # Need to multiply the fractional covariance matrix from leastsq with
         # the reduced chi-square value
-        if len(data) > 5:
+        if len(data) > 5 and pcov is not None:
             s_sq = (self.residuals(data) ** 2).sum() / (len(data) - 5)
             pcov *= s_sq
 

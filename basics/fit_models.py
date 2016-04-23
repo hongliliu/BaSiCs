@@ -107,6 +107,7 @@ class CircleModel(BaseModel):
                                   full_output=True)
 
         self.params = output[0]
+        self.params[-1] = np.abs(self.params[-1])
 
         # Did it work?
         if output[-1] in [1, 2, 3, 4]:
@@ -287,7 +288,7 @@ class EllipseModel(BaseModel):
                                   full_output=True)
 
         self.params = output[0][:5]
-
+        self.params[2:4] = np.abs(self.params[2:4])
         self.params[-1] = wrap_to_pi(self.params[-1])
 
         # Did it work?

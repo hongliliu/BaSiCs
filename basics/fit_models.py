@@ -114,14 +114,16 @@ class CircleModel(BaseModel):
 
         # Need to multiply the fractional covariance matrix from leastsq with
         # the reduced chi-square value
-        s_sq = (self.residuals(data) ** 2).sum() / (len(data) - 3)
-        pcov *= s_sq
+        if len(data) > 3:
+            s_sq = (self.residuals(data) ** 2).sum() / (len(data) - 3)
+            pcov *= s_sq
 
-        self.param_errors = np.empty((len(pfit)))
-        # Standard errors are sqrt of the cov matrix diagonals
-        for i in range(len(pfit)):
-            self.param_errors[i] = np.sqrt(np.abs(pcov[i, i]))
-
+            self.param_errors = np.empty((len(pfit)))
+            # Standard errors are sqrt of the cov matrix diagonals
+            for i in range(len(pfit)):
+                self.param_errors[i] = np.sqrt(np.abs(pcov[i, i]))
+        else:
+            self.param_errors = np.array([np.NaN] * len(pfit))
         # Did it work?
         if success in [1, 2, 3, 4]:
             return True
@@ -307,13 +309,17 @@ class EllipseModel(BaseModel):
 
         # Need to multiply the fractional covariance matrix from leastsq with
         # the reduced chi-square value
-        s_sq = (self.residuals(data) ** 2).sum() / (len(data) - 5)
-        pcov *= s_sq
+        if len(data) > 5:
+            s_sq = (self.residuals(data) ** 2).sum() / (len(data) - 5)
+            pcov *= s_sq
 
-        self.param_errors = np.empty((len(pfit)))
-        # Standard errors are sqrt of the cov matrix diagonals
-        for i in range(len(pfit)):
-            self.param_errors[i] = np.sqrt(np.abs(pcov[i, i]))
+            self.param_errors = np.empty((len(pfit)))
+            # Standard errors are sqrt of the cov matrix diagonals
+            for i in range(len(pfit)):
+                self.param_errors[i] = np.sqrt(np.abs(pcov[i, i]))
+
+        else:
+            self.param_errors = np.array([np.NaN] * len(pfit))
 
         # Did it work?
         if success in [1, 2, 3, 4]:

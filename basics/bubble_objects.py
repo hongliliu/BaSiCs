@@ -135,8 +135,9 @@ class Bubble2D(BubbleNDBase):
 
         # > 6, some shell properties were included
         if len(props) > 6:
-            self._shell_fraction = props[5]
-            self._angular_std = props[6]
+            self._peak_response = props[5]
+            self._shell_fraction = props[6]
+            self._angular_std = props[7]
 
         self._shell_coords = shell_coords
 

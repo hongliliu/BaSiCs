@@ -166,7 +166,8 @@ def _prune_blobs(blobs_array, overlap, method='size',
                 small = blob1
                 small_pos = posn1
 
-            shell_cond = large[5] > small[5] or large[7] <= small[7]
+            shell_cond = large[6] > small[6]  # or large[7] <= small[7]
+            # shell_cond = large[7] <= small[7]
             # Also want to check if the fraction of overlap is above
             # min_corr. This stops much larger regions from being
             # removed when small ones are embedded in their edges.
@@ -426,7 +427,7 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
                                      threshold_rel=0.0,
                                      exclude_border=False)
 
-        new_scale_peaks = np.empty((len(scale_peaks), 6))
+        new_scale_peaks = np.empty((len(scale_peaks), 5))
         if refine_shape:
             for j, peak in enumerate(scale_peaks):
                 new_peak = np.array([peak[0], peak[1], scale, scale, 0.0])
@@ -436,7 +437,7 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
             new_scale_peaks[:, :2] = scale_peaks
             # sqrt(2) size correction
             new_scale_peaks[:, 2:4] = np.sqrt(2) * scale
-            new_scale_peaks[:, 5] = 0.0
+            new_scale_peaks[:, 4] = 0.0
             vals = \
                 np.array([image_cube[pos[0], pos[1], i]
                           for pos in scale_peaks]).reshape((len(scale_peaks),
@@ -456,7 +457,7 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
 
     # Then prune and return them\
     return local_maxima
-    # return _prune_blobs(local_maxima, overlap)
+    # return _prune_blobs(local_maxima, overlap, method='response')
 
 
 def merge_to_ellipse(blob1, blob2):

@@ -144,6 +144,8 @@ class Bubble2D(BubbleNDBase):
         # The last position is the velocity channel in the cube
         if channel is not None:
             self._channel_center = channel
+        else:
+            self._channel_center = 0
 
         self._wcs = None
 

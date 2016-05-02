@@ -1,7 +1,8 @@
 
 import numpy as np
 from skimage.measure import subdivide_polygon, approximate_polygon
-from scipy.signal import savgol_filter
+import scipy.ndimage as nd
+
 
 def shell_orientation(coords, center=None, diff_thresh=0.5, smooth_width=5,
                       verbose=False, interactive=True):
@@ -17,6 +18,12 @@ def shell_orientation(coords, center=None, diff_thresh=0.5, smooth_width=5,
     # Loop through each segment, highlighting which points belong to the
     # region.
     for coord in coords:
+
+        # Is it a closed contour?
+        if (coord[0] == coord[-1]).all():
+            is_closed = True
+        else:
+            is_closed = False
 
         # Approx w/ splines
         # coords = subdivide_polygon(coords, preserve_ends=True)
@@ -43,8 +50,17 @@ def shell_orientation(coords, center=None, diff_thresh=0.5, smooth_width=5,
             if smooth_width < 1.0:
                 smooth_width = max(3, smooth_width * len(coord))
 
-            y = savgol_filter(y.copy(), smooth_width, 2, mode='nearest')
-            x = savgol_filter(x.copy(), smooth_width, 2, mode='nearest')
+            if is_closed:
+                mode = 'wrap'
+            else:
+                mode = 'mirror'
+
+            y = nd.gaussian_filter1d(y.copy(), smooth_width, mode=mode)
+            x = nd.gaussian_filter1d(x.copy(), smooth_width, mode=mode)
+
+            if is_closed:
+                y[-1] = y[0]
+                x[-1] = x[0]
 
         yprime = richardson_diff(y)
         xprime = richardson_diff(x)
@@ -55,7 +71,7 @@ def shell_orientation(coords, center=None, diff_thresh=0.5, smooth_width=5,
 
         curvature = thetaprime / np.sqrt(yprime**2 + xprime**2)
 
-        break_idx = np.where(curvature > diff_thresh)[0]
+        break_idx = np.where(np.abs(curvature) > diff_thresh)[0]
 
         if center is None:
             pts = np.vstack([y[break_idx] + ymean, x[break_idx] + xmean]).T

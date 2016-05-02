@@ -3,6 +3,8 @@ import numpy as np
 from skimage.measure import subdivide_polygon, approximate_polygon
 import scipy.ndimage as nd
 
+execfile("basics/utils.py")
+
 
 def shell_orientation(coords, center=None, diff_thresh=0.5, smooth_width=5,
                       verbose=False, interactive=True):
@@ -72,6 +74,19 @@ def shell_orientation(coords, center=None, diff_thresh=0.5, smooth_width=5,
         curvature = thetaprime / np.sqrt(yprime**2 + xprime**2)
 
         break_idx = np.where(np.abs(curvature) > diff_thresh)[0]
+
+        # Take the middle point if consecutive break points are found
+        if len(break_idx) > 0:
+            consec = consec_split(break_idx)
+            break_idx = []
+            for b in consec:
+                if len(b) > 1:
+                    max_pt = curvature[b].argmax()
+                    b_pt = b[max_pt]
+                else:
+                    b_pt = b[0]
+                break_idx.append(b_pt)
+            break_idx = np.array(break_idx)
 
         if center is None:
             pts = np.vstack([y[break_idx] + ymean, x[break_idx] + xmean]).T

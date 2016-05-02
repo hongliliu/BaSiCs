@@ -1,127 +1,101 @@
 
 import numpy as np
-import scipy.ndimage as nd
-from skimage.morphology import medial_axis
 from skimage.measure import subdivide_polygon, approximate_polygon
+from scipy.signal import savgol_filter
 
-from basics.utils import eight_conn
-
-
-def shell_orientation(mask, center, diff_thresh=0.50, verbose=False):
+def shell_orientation(coords, center=None, diff_thresh=0.5, smooth_width=5,
+                      verbose=False, interactive=True):
     '''
     Reject coordinate points if their local curvature does not point
     to the center of the ellipse.
     '''
 
-    # Label the shells portions
-    labels, num = nd.label(mask, eight_conn)
-    inlier_coords = []
-    outlier_coords = []
+    breaks = np.empty((0, 2))
+
+    new_coords = []
 
     # Loop through each segment, highlighting which points belong to the
     # region.
-    for i in range(1, num+1):
-        segment = labels == i
-
-        # Order the points
-        coords = walk_through_skeleton(segment)
+    for coord in coords:
 
         # Approx w/ splines
-        coords = subdivide_polygon(coords, preserve_ends=True)
+        # coords = subdivide_polygon(coords, preserve_ends=True)
         # coords = approximate_polygon(coords, tolerance=2)
 
+        num_diff = 2
+
         # Can't calculate with < 3 points.
-        if len(coords) < 3:
-            outlier_coords.extend(coords)
+        if len(coord) < 2 * num_diff + 1:
             continue
 
-        y, x = coords.T
+        y, x = coord.T.copy()
 
-        num_diff = 5
+        if center is None:
+            ymean = y.mean()
+            xmean = x.mean()
+            y -= ymean
+            x -= xmean
+        else:
+            y -= center[0]
+            x -= center[1]
 
-        for j in range(num_diff, len(coords) - num_diff):
+        if smooth_width is not None:
+            if smooth_width < 1.0:
+                smooth_width = max(3, smooth_width * len(coord))
 
-            pt1 = coords[j-num_diff]
-            pt2 = coords[j]
-            pt3 = coords[j+num_diff]
+            y = savgol_filter(y.copy(), smooth_width, 2, mode='nearest')
+            x = savgol_filter(x.copy(), smooth_width, 2, mode='nearest')
 
-            # Find the center of the circle the passes through the points
-            pt2_center = circle_center(pt1, pt2, pt3, cent=center)
+        yprime = richardson_diff(y)
+        xprime = richardson_diff(x)
 
-            # Now find the difference in the angles to the centers
-            theta_real = np.arctan2(pt2[1] - center[1],
-                                    pt2[0] - center[0])
-            theta_curve = np.arctan2(pt2[1] - pt2_center[1],
-                                     pt2[0] - pt2_center[0])
+        theta = np.unwrap(np.arctan2(yprime, xprime))
 
-            # Find the difference of the angles
-            diff_theta = np.abs(np.arctan2(np.sin(theta_curve-theta_real),
-                                           np.cos(theta_curve-theta_real)))
+        thetaprime = richardson_diff(theta)
 
-            # before/after
-            if diff_theta < diff_thresh:
-                if j == num_diff:
-                    inlier_coords.extend(coords[:num_diff])
-                elif j == len(coords) - num_diff - 1:
-                    inlier_coords.extend(coords[-num_diff:])
-                inlier_coords.append(pt2)
+        curvature = thetaprime / np.sqrt(yprime**2 + xprime**2)
+
+        break_idx = np.where(curvature > diff_thresh)[0]
+
+        if center is None:
+            pts = np.vstack([y[break_idx] + ymean, x[break_idx] + xmean]).T
+        else:
+            pts = np.vstack([y[break_idx] + center[0],
+                             x[break_idx] + center[1]]).T
+
+        breaks = np.vstack([breaks, pts])
+
+        prev_idx = 0
+        for idx in break_idx:
+            new_split = coord[prev_idx:idx]
+            prev_idx = idx
+            if len(new_split) < 3:
+                continue
+            new_coords.append(new_split)
+
+        if verbose:
+            import matplotlib.pyplot as p
+
+            p.subplot(131)
+            p.plot(theta, 'bD-')
+            p.subplot(132)
+            p.plot(curvature, 'bD-')
+            p.subplot(133)
+            p.plot(x, y, 'bD-')
+            p.plot(x[np.c_[0, -1]], y[np.c_[0, -1]], 'rD')
+            p.plot(x[np.c_[break_idx]], y[np.c_[break_idx]], 'kD')
+            p.plot(0, 0, 'gD')
+
+            if interactive:
+                p.draw()
+                raw_input("?")
+                p.clf()
             else:
-                if j == num_diff:
-                    outlier_coords.extend(coords[:num_diff])
-                elif j == len(coords) - num_diff - 1:
-                    outlier_coords.extend(coords[-num_diff:])
-                outlier_coords.append(pt2)
+                p.show()
 
-    # Convert to arrays
-    inlier_coords = np.array(inlier_coords)
-    outlier_coords = np.array(outlier_coords)
+    breaks = np.array(breaks)
 
-    if verbose:
-        import matplotlib.pyplot as p
-
-        p.imshow(mask, origin='lower', interpolation='nearest')
-        try:
-            p.plot(inlier_coords[:, 1], inlier_coords[:, 0], 'bo')
-        except IndexError:
-            pass
-        try:
-            p.plot(outlier_coords[:, 1], outlier_coords[:, 0], 'ro')
-        except IndexError:
-            pass
-        p.plot(center[1], center[0], 'gD')
-
-        p.show()
-
-    return inlier_coords, outlier_coords
-
-
-end_structs = [np.array([[1, 0, 0],
-                         [0, 1, 0],
-                         [0, 0, 0]]),
-               np.array([[0, 1, 0],
-                         [0, 1, 0],
-                         [0, 0, 0]]),
-               np.array([[0, 0, 1],
-                         [0, 1, 0],
-                         [0, 0, 0]]),
-               np.array([[0, 0, 0],
-                         [1, 1, 0],
-                         [0, 0, 0]]),
-               np.array([[0, 0, 0],
-                         [0, 1, 1],
-                         [0, 0, 0]]),
-               np.array([[0, 0, 0],
-                         [0, 1, 0],
-                         [1, 0, 0]]),
-               np.array([[0, 0, 0],
-                         [0, 1, 0],
-                         [0, 1, 0]]),
-               np.array([[0, 0, 0],
-                         [0, 1, 0],
-                         [0, 0, 1]])]
-
-four_conn_posns = [1, 3, 5, 7]
-eight_conn_posns = [0, 2, 6, 8]
+    return new_coords, breaks
 
 
 def circle_center(pt1, pt2, pt3, cent=None):
@@ -166,87 +140,112 @@ def circle_center(pt1, pt2, pt3, cent=None):
     return P
 
 
-def walk_through_skeleton(skeleton):
+def richardson_diff(pts, is_closed=False):
     '''
-    Starting from one end, walk through a skeleton in order. Intended for use
-    with skeletons that contain no branches.
+    Richardson difference for approximating the derivative.
+
+    Method from:
+    http://iopscience.iop.org/article/10.1088/0957-0233/16/9/007/meta
     '''
 
-    # Calculate the end points
-    end_pts = return_ends(skeleton)
-    if len(end_pts) != 2:
-        raise ValueError("Skeleton must contain no intersections.")
+    if len(pts) < 5:
+        raise IndexError("Cannot compute with less than 5 points.")
 
-    all_pts = int(np.sum(skeleton))
+    if pts[-1] == pts[0]:
+        is_closed = True
 
-    yy, xx = np.mgrid[-1:2, -1:2]
-    yy = yy.ravel()
-    xx = xx.ravel()
+    if is_closed:
+        numer = [pts[(t + 2) % len(pts)] - pts[t - 2] +
+                 8 * (pts[(t + 1) % len(pts)] - pts[t - 1])
+                 for t in range(len(pts))]
+    else:
+        numer = [pts[t + 2] - pts[t - 2] + 8 * (pts[t + 1] - pts[t - 1])
+                 for t in range(2, len(pts) - 2)]
 
-    for i in xrange(all_pts):
-        if i == 0:
-            ordered_pts = [end_pts[0]]
-            prev_pt = end_pts[0]
-        else:
-            # Check for neighbors
-            y, x = prev_pt
-            # Extract the connected region
-            neighbors = skeleton[y-1:y+2, x-1:x+2].ravel()
-            # Define the corresponding array indices.
-            yy_inds = yy + y
-            xx_inds = xx + x
+        # Append an extra two points on either side, assuming that the
+        # difference for the end points is the same as the one before/after
 
-            hits = [int(elem) for elem in np.argwhere(neighbors)]
-            # Remove the centre point and any points already in the list
-            for pos, (y_ind, x_ind) in enumerate(zip(yy_inds, xx_inds)):
-                if (y_ind, x_ind) in ordered_pts:
-                    hits.remove(pos)
+        numer = [numer[0]] * 2 + numer
+        numer = numer + [numer[-1]] * 2
 
-            num_hits = len(hits)
+    return np.array(numer) / 12.
 
-            if num_hits == 0:
-                # You've reached the end. It better be the other end point
-                if prev_pt[0] != end_pts[1][0] or prev_pt[1] != end_pts[1][1]:
-                    raise ValueError("Final point does not match expected"
-                                     " end point. Check input skeleton for"
-                                     " intersections.")
-                ordered_pts.append(end_pts[1])
-                break
-            elif num_hits == 1:
-                # You have found the next point
-                posn = hits[0]
-                next_pt = (y+yy[posn], x+xx[posn])
-                ordered_pts.append(next_pt)
+
+def contour_breaks(coords, ntheta=180, prob_thresh=0.5):
+    '''
+    Find break points in contours using the rotation method of Shen et al.(2010)
+    http://dx.doi.org/10.1016/S0167-8655(99)00130-0
+    '''
+
+    thetas = np.linspace(0., 2 * np.pi, ntheta)
+
+    for coord in coords:
+
+        is_closed = False
+        if (coord[-1] == coord[0]).all():
+            is_closed = True
+            coord = coord.copy()[: -1]
+
+        # coord = subdivide_polygon(coord.copy(), preserve_ends=True)
+
+        prob_break = np.zeros_like(coord[:, 0], dtype=np.float)
+
+        coord = coord.copy() - coord.mean(0)
+
+        for theta in thetas:
+            ang_coord = rotate_points(coord, theta)
+
+            if is_closed:
+                breaks = [is_break_point(ang_coord[i - 1], ang_coord[i],
+                                         ang_coord[(i + 1) % len(coord)])
+                          for i in range(len(coord))]
             else:
-                # There's at least a couple neighbours (for some reason)
-                # Pick the 4-connected component since it is the closest
-                for fours in four_conn_posns:
-                    if fours in hits:
-                        posn = hits[hits.index(fours)]
-                        break
-                else:
-                    raise ValueError("Disconnected eight-connected pixels?")
-                next_pt = (y+yy[posn], x+xx[posn])
-                ordered_pts.append(next_pt)
-            prev_pt = next_pt
+                # Set the first and last points to False by default
+                breaks = [False]
+                breaks.extend([is_break_point(ang_coord[i - 1], ang_coord[i],
+                                              ang_coord[i + 1])
+                               for i in range(1, len(coord) - 1)])
+                breaks.append(False)
 
-    return np.array(ordered_pts)
+            breaks = np.array(breaks).astype(np.int8)
+
+            prob_break += breaks
+
+        prob_break /= float(ntheta)
+
+        coord_breaks = np.where(prob_break > prob_thresh)[0]
+
+        import matplotlib.pyplot as p
+
+        p.subplot(121)
+        p.plot(coord[:, 1], coord[:, 0], 'bD-')
+        p.plot(coord[coord_breaks, 1], coord[coord_breaks, 0], 'ro')
+        p.plot(coord[:, 1][np.c_[0, -1]], coord[:, 0][np.c_[0, -1]], 'gD')
+        p.subplot(122)
+        p.plot(prob_break)
+        p.draw()
+        import time
+        time.sleep(0.1)
+        raw_input("?")
+        p.clf()
 
 
-def return_ends(skeleton):
-    '''
-    Find the endpoints of the skeleton.
-    '''
+def rotate_points(coord, theta):
 
-    end_points = []
+    y_rot = coord[:, 0] * np.sin(theta)
+    x_rot = coord[:, 1] * np.cos(theta)
 
-    for i, struct in enumerate(end_structs):
-        hits = nd.binary_hit_or_miss(skeleton, structure1=struct)
+    return np.vstack([y_rot, x_rot]).T
 
-        if not np.any(hits):
-            continue
 
-        for y, x in zip(*np.where(hits)):
-            end_points.append((y, x))
+def is_break_point(pt1, pt2, pt3):
+    y1, x1 = pt1
+    y2, x2 = pt2
+    y3, x3 = pt3
+    cond1 = np.logical_and(x1 > x2, x2 < x3)
+    cond2 = np.logical_and(x1 < x2, x2 > x3)
+    cond3 = np.logical_and(y1 > y2, y2 < y3)
+    cond4 = np.logical_and(y1 < y2, y2 > y3)
 
-    return end_points
+    return np.logical_or(np.logical_or(cond1, cond2),
+                         np.logical_or(cond3, cond4))

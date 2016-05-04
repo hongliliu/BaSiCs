@@ -1,10 +1,11 @@
 
 import numpy as np
-import warnings
 from astropy.nddata.utils import extract_array, add_array
 import astropy.units as u
-# from skimage.measure import ransac
-from warnings import filterwarnings, catch_warnings
+from warnings import filterwarnings, catch_warnings, warn
+import scipy.ndimage as nd
+import skimage.morphology as mo
+from skimage.filters import threshold_adaptive
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
@@ -13,6 +14,9 @@ from basics.bubble_objects import Bubble2D
 from basics.log import blob_log, _prune_blobs
 from basics.bubble_edge import find_bubble_edges
 from basics.fit_models import CircleModel, EllipseModel, ransac
+from basics.bubble_edge import _smooth_edges
+from basics.iterative_watershed import remove_spurs
+from masking_utils import smooth_edges
 
 
 eight_conn = np.ones((3, 3))
@@ -22,7 +26,7 @@ class BubbleFinder2D(object):
     """
     Image segmentation for bubbles in a 2D image.
     """
-    def __init__(self, array, scales=None, threshold=None, channel=None,
+    def __init__(self, array, scales=None, sigma=None, channel=None,
                  mask=None, cut_to_box=False, pad_size=0, structure="beam",
                  beam=None, wcs=None):
 
@@ -51,8 +55,20 @@ class BubbleFinder2D(object):
             else:
                 raise KeyError("Must specify the wcs with the wcs keyword.")
 
-        self._threshold = threshold
-        self.mask = mask
+        if sigma is None:
+            # Sigma clip the array to estimate the noise level
+            self.sigma = sig_clip(self.array, nsig=10)
+        else:
+            self.sigma = sigma
+
+        # Set to avoid computing an array with nothing in it
+        self._empty_mask_flag = False
+
+        if mask is None:
+            # Should pass kwargs here
+            self.create_mask()
+        else:
+            self.mask = mask
         self.pad_size = pad_size
 
         self.array = np.nan_to_num(self.array)
@@ -61,11 +77,12 @@ class BubbleFinder2D(object):
 
         pixscale = np.abs(self.wcs.pixel_scale_matrix[0, 0])
         fwhm_beam_pix = self.beam.major.value / pixscale
-        self.beam_pix = np.ceil(fwhm_beam_pix / np.sqrt(8*np.log(2)))
+        self.beam_pix = np.ceil(fwhm_beam_pix / np.sqrt(8 * np.log(2)))
 
         if scales is None:
-            # Scales based on 2^n times the major beam radius
-            # self.scales = beam_pix * 2 ** np.arange(0., 3.1)
+            # Scales incremented by sqrt(2)
+            # The edge finding allows regions to expand by this factor to
+            # ensure all scales are covered in between
             self.scales = self.beam_pix * \
                 np.arange(1., 8 + np.sqrt(2), np.sqrt(2))
         else:
@@ -80,12 +97,6 @@ class BubbleFinder2D(object):
             # Will need to run a proper noise test to better determine
             # what it should be set to
             self.weightings[0] = 0.8
-
-        # When using non-gaussian like kernels, adjust the
-        # widths to match the FWHM areas
-        # self.tophat_scales = np.floor(self.scales * np.sqrt(2))
-
-        self._atan_flag = False
 
     @property
     def mask(self):
@@ -123,11 +134,11 @@ class BubbleFinder2D(object):
         self._pad_size = value
 
     @property
-    def threshold(self):
+    def sigma(self):
         return self._threshold
 
-    @threshold.setter
-    def threshold(self, value):
+    @sigma.setter
+    def sigma(self, value):
 
         if value is None:
             value = self.array.min()
@@ -140,6 +151,59 @@ class BubbleFinder2D(object):
                                " as the array " + str(self.array.unit))
 
         self._threshold = value
+
+    def create_mask(self, median_radius=3, bkg_nsig=2, adap_patch=81,
+                    edge_smooth_radius=5, min_pixels=30, fill_radius=3,
+                    region_min_nsig=5):
+        '''
+        Create the adaptive thresholded mask, which defines potential bubble
+        edges.
+        '''
+
+        if median_radius > self.beam_pix:
+            warn("It is not recommended to use a median filter larger"
+                 " than the beam!")
+        if fill_radius > self.beam_pix:
+            warn("It is not recommended to use a median filter larger"
+                 " than the beam!")
+
+        medianed = nd.median_filter(self.array,
+                                    footprint=mo.disk(median_radius))
+        glob_mask = self.array > bkg_nsig * self.sigma
+        if not glob_mask.any():
+            warn("No values in the array are above the background threshold."
+                 " The mask is empty.")
+            self._empty_mask_flag = True
+            self.mask = glob_mask
+            return
+
+        orig_adap = threshold_adaptive(medianed, adap_patch)
+        # Smooth the edges on small scales and remove small regions
+        adap_mask = ~smooth_edges(glob_mask * orig_adap, edge_smooth_radius,
+                                  min_pixels)
+        # We've flipped the mask, so now remove small "objects"
+        adap_mask = mo.remove_small_holes(adap_mask, connectivity=2,
+                                          min_size=min_pixels)
+        # Finally, fill in regions whose distance from an edge is small (ie.
+        # unimportant 1-2 pixel cracks)
+        adap_mask = remove_spurs(adap_mask, min_distance=fill_radius)
+
+        # Remove any region which does not have a peak >5 sigma
+        labels, num = nd.label(~adap_mask, np.ones((3, 3)))
+
+        # Finally remove all mask holes (i.e. regions with signal) if if
+        # does not contain a significantly bright peak (default to ~5 sigma)
+        maxes = nd.maximum(self.array, labels, range(1, num + 1))
+        for idx in np.where(maxes < region_min_nsig * self.sigma)[0]:
+            adap_mask[labels == idx + 1] = True
+
+        if not adap_mask.any():
+            warn("No significant regions were found by the adaptive "
+                 "thresholding. Try lowering the minimum peak required for "
+                 "regions (region_min_nsig)")
+            self._empty_mask_flag = True
+
+        self.mask = adap_mask
 
     def cut_to_bounding_box(self, pad_size=0):
         '''
@@ -190,7 +254,7 @@ class BubbleFinder2D(object):
     def bubble_mask(self):
         return self._bubble_mask
 
-    def multiscale_bubblefind(self, scales=None, sigma=None, nsig=2,
+    def multiscale_bubblefind(self, scales=None, nsig=2,
                               overlap_frac=0.5, edge_find=True,
                               edge_loc_bkg_nsig=3,
                               ellfit_thresh={"min_shell_frac": 0.5,
@@ -203,15 +267,12 @@ class BubbleFinder2D(object):
         if scales is not None:
             self.scales = scales
 
-        if sigma is None:
-            sigma = sig_clip(self.array, nsig=10)
-
         all_props = []
         all_coords = []
         for i, props in enumerate(blob_log(self.array,
                                   sigma_list=self.scales,
                                   overlap=None,
-                                  threshold=nsig * sigma,
+                                  threshold=nsig * self.sigma,
                                   weighting=self.weightings)):
             response_value = props[-1]
 
@@ -221,9 +282,10 @@ class BubbleFinder2D(object):
                 # edges that are found are real.
                 coords, shell_frac, angular_std, value_thresh = \
                     find_bubble_edges(self.array, props, max_extent=1.35,
-                                      value_thresh=(nsig + 1) * sigma,
+                                      value_thresh=(nsig + 1) * self.sigma,
                                       nsig_thresh=edge_loc_bkg_nsig,
-                                      return_mask=False)
+                                      return_mask=False,
+                                      edge_mask=self.mask)
                 # find_bubble_edges calculates the shell fraction
                 # If it is below the given fraction, we skip the region.
                 if len(coords) < 4:
@@ -269,8 +331,8 @@ class BubbleFinder2D(object):
                         pars[4] = wrap_to_pi(pars[4] + 0.5 * np.pi)
 
                     fail_conds = pars[3] < self.beam_pix or \
-                        eccent > 3. #or not in_ellipse(props[:2][::-1], pars)
-                        # pars[2] > max_rad*props[2] or \
+                        pars[2] > max_rad * props[2] or \
+                        eccent > 3. or not in_ellipse(props[:2][::-1], pars)
 
                     if fail_conds:
                         ellip_fail = True
@@ -303,8 +365,8 @@ class BubbleFinder2D(object):
                     pars[1] += int(ymean)
 
                     fail_conds = pars[2] > max_rad * props[2] or \
-                        pars[2] < self.beam_pix  # or \
-                        # not in_circle(props[:2][::-1], pars)
+                        pars[2] < self.beam_pix or \
+                        not in_circle(props[:2][::-1], pars)
                     if fail_conds:
                         if verbose:
                             print("All fitting failed for: " + str(i))
@@ -334,14 +396,16 @@ class BubbleFinder2D(object):
                     find_bubble_edges(self.array, props, max_extent=1.05,
                                       value_thresh=value_thresh,
                                       nsig_thresh=edge_loc_bkg_nsig,
-                                      try_local_bkg=False)[:-1]
+                                      try_local_bkg=False,
+                                      edge_mask=self.mask)[:-1]
             else:
-                value_thresh = (nsig + 1) * sigma
+                value_thresh = (nsig + 1) * self.sigma
 
                 coords, shell_frac, angular_std = \
                     find_bubble_edges(self.array, props, max_extent=1.35,
                                       value_thresh=value_thresh,
-                                      nsig_thresh=edge_loc_bkg_nsig,)[:-1]
+                                      nsig_thresh=edge_loc_bkg_nsig,
+                                      edge_mask=self.mask)[:-1]
                 # No model, so no residual
                 resid = np.NaN
 

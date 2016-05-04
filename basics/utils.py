@@ -13,10 +13,6 @@ except ImportError:
 eight_conn = np.ones((3, 3), dtype=bool)
 
 
-def arctan_transform(array, thresh):
-    return np.arctan(array/thresh)
-
-
 def dist_uppertri(cond_arr, shape):
     '''
     Convert a condensed distance matrix into the upper triangle. This is what
@@ -40,7 +36,7 @@ def dist_uppertri(cond_arr, shape):
     dist_arr = np.zeros((shape, ) * 2, dtype=cond_arr.dtype)
 
     def unrav_ind(i, j, n):
-        return n*j - j*(j+1)/2 + i - 1 - j
+        return n * j - j * (j + 1) / 2 + i - 1 - j
 
     arr_ind = partial(unrav_ind, n=shape)
 
@@ -62,8 +58,8 @@ def beam_struct(beam, scale, pixscale, return_beam=False):
     if scale == 1:
         scale_beam = beam
     else:
-        scale_beam = Beam(major=scale*beam.major,
-                          minor=scale*beam.minor,
+        scale_beam = Beam(major=scale * beam.major,
+                          minor=scale * beam.minor,
                           pa=beam.pa)
 
     struct = scale_beam.as_tophat_kernel(pixscale).array
@@ -95,7 +91,7 @@ def sig_clip(array, nsig=6, tol=0.01, max_iters=500,
 
     iters = 0
     while True:
-        good_pix = np.abs(array*mask) <= thresh
+        good_pix = np.abs(array * mask) <= thresh
         new_thresh = nsig * np.nanstd(array[good_pix])
         diff = np.abs(new_thresh - thresh) / thresh
         thresh = new_thresh
@@ -231,14 +227,14 @@ def consec_split(data, stepsize=1):
     Split an array into consecutive sequences.
     http://stackoverflow.com/questions/7352684/how-to-find-the-groups-of-consecutive-elements-from-an-array-in-numpy
     '''
-    return np.split(data, np.where(np.diff(data) != stepsize)[0]+1)
+    return np.split(data, np.where(np.diff(data) != stepsize)[0] + 1)
 
 
 def find_nearest(array, value):
     '''
     http://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
     '''
-    idx = (np.abs(array-value)).argmin()
+    idx = (np.abs(array - value)).argmin()
     return idx
 
 
@@ -256,7 +252,7 @@ def in_circle(point, params):
     '''
     y, x = point
     y0, x0, r = params
-    return (y-y0)**2 + (x-x0)**2 <= r**2
+    return (y - y0)**2 + (x - x0)**2 <= r**2
 
 
 def in_ellipse(point, params):
@@ -271,10 +267,10 @@ def in_ellipse(point, params):
     y0, x0, a, b, pa = params
 
     # Transform to frame where ellipse axes are the cartesian axes
-    yprime = (y-y0)*np.cos(pa) - (x-x0)*np.sin(pa)
-    xprime = (x-x0)*np.cos(pa) + (x-x0)*np.sin(pa)
+    yprime = (y - y0) * np.cos(pa) - (x - x0) * np.sin(pa)
+    xprime = (x - x0) * np.cos(pa) + (x - x0) * np.sin(pa)
 
-    return (xprime/b)**2 + (yprime/a)**2 <= 1.
+    return (xprime / b)**2 + (yprime / a)**2 <= 1.
 
 
 def wrap_to_pi(angle):

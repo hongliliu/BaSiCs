@@ -3,11 +3,11 @@ import numpy as np
 from astropy.modeling.models import Ellipse2D
 from astropy.stats import circvar
 import astropy.units as u
-import skimage.morphology as mo
 from skimage.measure import find_contours
 import scipy.ndimage as nd
 
 from utils import ceil_int, eight_conn
+from masking_utils import smooth_edges
 # from contour_orientation import shell_orientation
 
 
@@ -100,7 +100,7 @@ def find_bubble_edges(array, blob, max_extent=1.0,
             smooth_mask = arr
         else:
             smooth_mask = \
-                _smooth_edges(arr <= value_thresh, filter_size, min_pixels)
+                smooth_edges(arr <= value_thresh, filter_size, min_pixels)
 
         region_mask = \
             Ellipse2D(True, 0.0, 0.0, major * max_extent, minor * max_extent,
@@ -112,7 +112,9 @@ def find_bubble_edges(array, blob, max_extent=1.0,
 
         # If the center is not contained within a bubble region, return
         # empties.
-        if not smooth_mask.any() or smooth_mask.all():
+        bad_case = not smooth_mask.any() or smooth_mask.all() or \
+            (smooth_mask * region_mask).all()
+        if bad_case:
             if return_mask:
                 return np.array([]), 0.0, 0.0, value_thresh, smooth_mask
 
@@ -272,20 +274,6 @@ def intensity_props(data, blob, min_rad=4):
     sig = fifteen - bottom
 
     return bottom + 2 * sig, sig
-
-
-def _smooth_edges(mask, filter_size, min_pixels):
-
-    no_small = mo.remove_small_holes(mask, min_size=min_pixels,
-                                     connectivity=2)
-
-    open_close = \
-        nd.binary_closing(nd.binary_opening(no_small, eight_conn), eight_conn)
-
-    medianed = nd.median_filter(open_close, filter_size)
-
-    return mo.remove_small_holes(medianed, min_size=min_pixels,
-                                 connectivity=2)
 
 
 def _make_bubble_mask(edge_mask, center):

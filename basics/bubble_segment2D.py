@@ -145,12 +145,18 @@ class BubbleFinder2D(object):
         if value is None:
             value = self.array.min()
 
-        if not isinstance(value, u.Quantity):
-            raise TypeError("Threshold must be an astropy Quantity.")
+        if hasattr(value, 'unit'):
+            value = value.value
 
-        if value.unit not in self.unit.find_equivalent_units():
-            raise u.UnitsError("Threshold must have equivalent units"
-                               " as the array " + str(self.unit))
+        if value < 0.0 or ~np.isfinite(value):
+            raise TypeError("sigma cannot be negative.")
+
+        # if not isinstance(value, u.Quantity):
+        #     raise TypeError("Threshold must be an astropy Quantity.")
+
+        # if value.unit not in self.unit.find_equivalent_units():
+        #     raise u.UnitsError("Threshold must have equivalent units"
+        #                        " as the array " + str(self.unit))
 
         self._threshold = value
 

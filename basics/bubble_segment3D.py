@@ -63,7 +63,7 @@ class BubbleFinder(object):
         self._sigma = val
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
-                    multiprocess=True, **kwargs):
+                    multiprocess=True, use_cube_mask=False, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -74,14 +74,16 @@ class BubbleFinder(object):
         else:
             output = None
 
-        twod_regions = ProgressBar.map(_region_return,
-                                       [(self.cube[i],
-                                         self.cube.mask.include(view=(i, )),
-                                         i, self.sigma, overlap_frac) for i in
-                                        xrange(self.cube.shape[0])],
-                                       multiprocess=multiprocess,
-                                       file=output,
-                                       step=self.cube.shape[0])
+        twod_regions = \
+            ProgressBar.map(_region_return,
+                            [(self.cube[i],
+                              self.cube.mask.include(view=(i, ))
+                              if use_cube_mask else None,
+                              i, self.sigma, overlap_frac) for i in
+                             xrange(self.cube.shape[0])],
+                            multiprocess=multiprocess,
+                            file=output,
+                            step=self.cube.shape[0])
 
         # Join into one long list
         twod_regions = list(chain(*twod_regions))
@@ -162,6 +164,5 @@ class BubbleFinder(object):
 def _region_return(imps):
     arr, mask, i, sigma, overlap_frac = imps
     return BubbleFinder2D(arr, channel=i,
-                          mask=mask).\
-        multiscale_bubblefind(sigma=sigma,
-                              overlap_frac=overlap_frac).regions
+                          mask=mask, sigma=sigma).\
+        multiscale_bubblefind(overlap_frac=overlap_frac).regions

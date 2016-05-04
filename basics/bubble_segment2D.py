@@ -66,6 +66,10 @@ class BubbleFinder2D(object):
         # Set to avoid computing an array with nothing in it
         self._empty_mask_flag = False
 
+        pixscale = np.abs(self.wcs.pixel_scale_matrix[0, 0])
+        fwhm_beam_pix = self.beam.major.value / pixscale
+        self.beam_pix = np.ceil(fwhm_beam_pix / np.sqrt(8 * np.log(2)))
+
         if mask is None:
             # Should pass kwargs here
             self.create_mask()
@@ -76,10 +80,6 @@ class BubbleFinder2D(object):
         self.array = np.nan_to_num(self.array)
         self._orig_shape = self.array.shape
         self.channel = channel
-
-        pixscale = np.abs(self.wcs.pixel_scale_matrix[0, 0])
-        fwhm_beam_pix = self.beam.major.value / pixscale
-        self.beam_pix = np.ceil(fwhm_beam_pix / np.sqrt(8 * np.log(2)))
 
         if scales is None:
             # Scales incremented by sqrt(2)

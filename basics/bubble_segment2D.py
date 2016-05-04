@@ -267,7 +267,8 @@ class BubbleFinder2D(object):
                               edge_loc_bkg_nsig=3,
                               ellfit_thresh={"min_shell_frac": 0.5,
                                              "min_angular_std": 0.7},
-                              max_rad=3.0, verbose=False):
+                              max_rad=3.0, verbose=False,
+                              use_ransac=False, ransac_trials=50):
         '''
         Run find_bubbles on the specified scales.
         '''
@@ -320,10 +321,13 @@ class BubbleFinder2D(object):
                                        r"Number of calls to function")
                         filterwarnings("ignore",
                                        r"gtol=0.000000 is too small")
-                        # model, inliers = ransac(coords[:, ::-1], EllipseModel,
-                        #                         5, 4., max_trials=40)
-                        model = EllipseModel()
-                        model.estimate(coords[:, ::-1])
+                        if use_ransac:
+                            model, inliers = \
+                                ransac(coords[:, ::-1], EllipseModel, 5,
+                                       self.beam_pix, max_trials=ransac_trials)
+                        else:
+                            model = EllipseModel()
+                            model.estimate(coords[:, ::-1])
 
                     dof = len(coords) - 5
 
@@ -361,10 +365,13 @@ class BubbleFinder2D(object):
                                        r"Number of calls to function")
                         filterwarnings("ignore",
                                        r"gtol=0.000000 is too small")
-                        # model, inliers = ransac(coords[:, ::-1], CircleModel,
-                        #                         3, 4., max_trials=70)
-                        model = CircleModel()
-                        model.estimate(coords[:, ::-1])
+                        if use_ransac:
+                            model, inliers = \
+                                ransac(coords[:, ::-1], CircleModel, 3,
+                                       self.beam_pix, max_trials=ransac_trials)
+                        else:
+                            model = CircleModel()
+                            model.estimate(coords[:, ::-1])
 
                     dof = len(coords) - 3
 
@@ -440,34 +447,34 @@ class BubbleFinder2D(object):
             # the area. For circles at least, this corresponds to the step
             # size chosen for the scales.
 
-            all_props, remove_posns = \
-                _prune_blobs(np.array(all_props), overlap_frac,
-                             method="shell fraction",
-                             min_corr=0.58, return_removal_posns=True)
+            # all_props, remove_posns = \
+            #     _prune_blobs(np.array(all_props), overlap_frac,
+            #                  method="shell fraction",
+            #                  min_corr=0.58, return_removal_posns=True)
 
-            # Delete the removed region coords
-            remove_posns.sort()
-            for pos in remove_posns[::-1]:
-                del all_coords[pos]
+            # # Delete the removed region coords
+            # remove_posns.sort()
+            # for pos in remove_posns[::-1]:
+            #     del all_coords[pos]
 
-            all_props, remove_posns = \
-                _prune_blobs(all_props, overlap_frac/2., method="shell coords",
-                             min_corr=0.5, return_removal_posns=True,
-                             coords=all_coords)
+            # all_props, remove_posns = \
+            #     _prune_blobs(all_props, overlap_frac/2., method="shell coords",
+            #                  min_corr=0.5, return_removal_posns=True,
+            #                  coords=all_coords)
 
-            # Delete the removed region coords
-            remove_posns.sort()
-            for pos in remove_posns[::-1]:
-                del all_coords[pos]
+            # # Delete the removed region coords
+            # remove_posns.sort()
+            # for pos in remove_posns[::-1]:
+            #     del all_coords[pos]
 
-            all_props, remove_posns = \
-                _prune_blobs(all_props, 0.75, method='response',
-                             return_removal_posns=True)
+            # all_props, remove_posns = \
+            #     _prune_blobs(all_props, 0.75, method='response',
+            #                  return_removal_posns=True)
 
-            # Delete the removed region coords
-            remove_posns.sort()
-            for pos in remove_posns[::-1]:
-                del all_coords[pos]
+            # # Delete the removed region coords
+            # remove_posns.sort()
+            # for pos in remove_posns[::-1]:
+            #     del all_coords[pos]
 
             self._regions = \
                 [Bubble2D(props, shell_coords=coords, channel=self.channel)

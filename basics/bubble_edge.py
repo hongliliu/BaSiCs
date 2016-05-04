@@ -8,7 +8,8 @@ from skimage.measure import find_contours
 import scipy.ndimage as nd
 
 from utils import ceil_int, eight_conn
-from contour_orientation import shell_orientation
+# from contour_orientation import shell_orientation
+
 
 def find_bubble_edges(array, blob, max_extent=1.0,
                       edge_mask=None,

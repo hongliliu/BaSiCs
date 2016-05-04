@@ -27,10 +27,11 @@ class BubbleFinder2D(object):
     """
     def __init__(self, array, scales=None, sigma=None, channel=None,
                  mask=None, cut_to_box=False, pad_size=0, structure="beam",
-                 beam=None, wcs=None):
+                 beam=None, wcs=None, unit=None):
 
         if isinstance(array, LowerDimensionalObject):
             self.array = array.value
+            self.unit = array.unit
             self.wcs = array.wcs
 
             if 'beam' in array.meta:
@@ -53,6 +54,8 @@ class BubbleFinder2D(object):
                 self.wcs = wcs
             else:
                 raise KeyError("Must specify the wcs with the wcs keyword.")
+
+            self.unit = unit
 
         if sigma is None:
             # Sigma clip the array to estimate the noise level
@@ -145,9 +148,9 @@ class BubbleFinder2D(object):
         if not isinstance(value, u.Quantity):
             raise TypeError("Threshold must be an astropy Quantity.")
 
-        if value.unit not in self.array.unit.find_equivalent_units():
+        if value.unit not in self.unit.find_equivalent_units():
             raise u.UnitsError("Threshold must have equivalent units"
-                               " as the array " + str(self.array.unit))
+                               " as the array " + str(self.unit))
 
         self._threshold = value
 

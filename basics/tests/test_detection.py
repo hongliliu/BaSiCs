@@ -16,8 +16,9 @@ def test_random_gray_holes():
                            max_corr=0.1, rad_max=40)
     test_gray_holes = Projection(gray_holes, wcs=wcs.WCS())
 
-    test_bubble = BubbleFinder2D(test_gray_holes, beam=Beam(10), channel=0)
-    test_bubble.multiscale_bubblefind(sigma=10, edge_find=True, nsig=5)
+    test_bubble = BubbleFinder2D(test_gray_holes, beam=Beam(10), sigma=10,
+                                 channel=0)
+    test_bubble.multiscale_bubblefind(edge_find=True, nsig=5)
 
     test_bubble.visualize_regions(edges=True)
 

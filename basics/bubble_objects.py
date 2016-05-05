@@ -369,7 +369,7 @@ class Bubble2D(BubbleNDBase):
         return overlap_metric(self.params, other_bubble2D.params)
 
     def __repr__(self):
-        s = "2D Bubble at: ({0:6f}, {0:6f})\n".format(self.y, self.x)
+        s = "2D Bubble at: ({0:6f}, {1:6f})\n".format(self.y, self.x)
         if self.major == self.minor:
             s += "Radius: {0:6f} \n".format(self.major)
         else:

@@ -162,7 +162,7 @@ class BubbleFinder2D(object):
 
     def create_mask(self, median_radius=3, bkg_nsig=2, adap_patch=81,
                     edge_smooth_radius=5, min_pixels=30, fill_radius=3,
-                    region_min_nsig=5):
+                    region_min_nsig=4):
         '''
         Create the adaptive thresholded mask, which defines potential bubble
         edges.
@@ -458,8 +458,8 @@ class BubbleFinder2D(object):
             #     del all_coords[pos]
 
             # all_props, remove_posns = \
-            #     _prune_blobs(all_props, overlap_frac/2., method="shell coords",
-            #                  min_corr=0.5, return_removal_posns=True,
+            #     _prune_blobs(all_props, overlap_frac, method="shell coords",
+            #                  min_corr=0.9, return_removal_posns=True,
             #                  coords=all_coords)
 
             # # Delete the removed region coords
@@ -528,37 +528,3 @@ class BubbleFinder2D(object):
             p.show()
         else:
             return ax
-
-    def region_rejection(self, value_thresh=0.0, grad_thresh=1,
-                         frac_thresh=0.3, border_clear=True):
-        '''
-        2D bubble candidate rejection. Profile lines from the centre to edges
-        of the should show a general increase in the intensity profile.
-        Regions are removed when the fraction of sight lines without clear
-        increases are below frac_thresh.
-        '''
-
-        # spec_shape = bubble_mask_cube.shape[0]
-
-        # dy, dx = np.gradient(array, 9)
-        # magnitude = np.sqrt(dy**2+dx**2)
-        # orientation = np.arctan2(dy, dx)
-
-        # grad_thresh = np.mean(magnitude) + grad_thresh * np.std(magnitude)
-
-        if self.num_regions == 0:
-            return
-
-        rejected_regions = []
-
-        for region in self.regions:
-
-            region.find_shell_fraction(self.array, value_thresh=value_thresh,
-                                       grad_thresh=grad_thresh)
-
-            if region.shell_fraction < frac_thresh:
-                rejected_regions.append(region)
-
-        # Now remove
-        self._regions = \
-            list(set(self._regions) - set(rejected_regions))

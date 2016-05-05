@@ -117,9 +117,8 @@ def _circle_overlap(blob1, blob2, return_corr=False):
     return area / (math.pi * (min(r1, r2) ** 2))
 
 
-def _prune_blobs(blobs_array, overlap, method='size',
-                 min_corr=0.5, return_removal_posns=False,
-                 coords=None):
+def _prune_blobs(blobs_array, coords, overlap, method='size',
+                 min_corr=0.7):
     """Eliminated blobs with area overlap.
 
     Parameters
@@ -140,104 +139,99 @@ def _prune_blobs(blobs_array, overlap, method='size',
 
     remove_blobs = []
 
-    # Create a distance matrix to catch all overlap cases.
-    cond_arr = pdist(blobs_array[:, :5], metric=partial(overlap_metric))
-    dist_arr = dist_uppertri(cond_arr, blobs_array.shape[0])
+    # First sort all of the blobs by their area
+    areas = np.pi * blobs_array[:, 2] * blobs_array[:, 3]
 
-    overlaps = np.where(dist_arr >= overlap)
+    blobs_array = blobs_array[np.argsort(areas)[::-1]]
+    coords = [coords[i] for i in np.argsort(areas)[::-1]]
+    areas = [areas[i] for i in np.argsort(areas)[::-1]]
 
-    for posn1, posn2 in zip(*overlaps):
+    # Now go through column-by-column, where the largest region is th first
+    for large_pos, large_blob in enumerate(blobs_array):
 
-        blob1 = blobs_array[posn1]
-        blob2 = blobs_array[posn2]
-
-        if method == "shell fraction":
-            area1 = np.pi*blob1[2]*blob1[3]
-            area2 = np.pi*blob2[2]*blob2[3]
-
-            if area1 >= area2:
-                large = blob1
-                large_pos = posn1
-                small = blob2
-                small_pos = posn2
-            else:
-                large = blob2
-                large_pos = posn2
-                small = blob1
-                small_pos = posn1
-
-            shell_cond = large[6] > small[6]  # or large[7] <= small[7]
-            # shell_cond = large[7] <= small[7]
-            # Also want to check if the fraction of overlap is above
-            # min_corr. This stops much larger regions from being
-            # removed when small ones are embedded in their edges.
-            overlap_corr = overlap_metric(blob1, blob2,
-                                          return_corr=True)
-            overlap_cond = overlap_corr >= min_corr
-
-            # If the bigger one is more complete, discard the smaller
-            if shell_cond:
-                remove_blobs.append(small_pos)
-            # Otherwise, only remove the larger one if the smaller overlaps
-            # >= min_corr
-            else:
-                if overlap_cond:
-                    remove_blobs.append(large_pos)
-
-        elif method == "shell coords":
-
-            if coords is None:
-                raise TypeError("Coordinates must be given for 'shell coords'")
-
-            if len(coords) != len(blobs_array):
-                raise TypeError("coords must match the number of blobs in the"
-                                " given blob array.")
-
-            area1 = np.pi*blob1[2]*blob1[3]
-            area2 = np.pi*blob2[2]*blob2[3]
-
-            if area1 >= area2:
-                large = blob1
-                large_pos = posn1
-                small = blob2
-                small_pos = posn2
-            else:
-                large = blob2
-                large_pos = posn2
-                small = blob1
-                small_pos = posn1
-
-            shell_cond = \
-                shell_similarity(coords[posn1], coords[posn2]) > min_corr
-            # Discard the smaller one if it is too similar
-            if shell_cond:
-                remove_blobs.append(small_pos)
-
-        elif method == "size":
-            cond = blob1[2] > blob2[2]
-            if cond:
-                remove_blobs.append(posn2)
-            else:
-                remove_blobs.append(posn1)
-
-        elif method == "response":
-            cond = blob1[5] > blob2[5]
-            if cond:
-                remove_blobs.append(posn2)
-            else:
-                remove_blobs.append(posn1)
+        # Find overlapping smaller regions
+        if method == 'shell fraction':
+            return_corr = True
         else:
-            raise TypeError("method must be 'size', 'shell fraction',"
-                            " 'response' or 'shell coords'.")
+            return_corr = False
+
+        small_posns = \
+            np.array([i for i, blob in enumerate(blobs_array) if
+                      overlap_metric(large_blob, blob,
+                                     return_corr=return_corr) >
+                      overlap and i != large_pos and
+                      areas[large_pos] > areas[i]])
+
+        # Look in the overlap array for associated smaller regions
+        # small_posns = np.where(overlaps[large_pos])[0]
+        # Skip if there are no overlapping regions
+        if not small_posns.any():
+            continue
+
+        remove_large_flag = False
+        smaller_blob_remove = []
+
+        for small_pos in small_posns:
+
+            small_blob = blobs_array[small_pos]
+
+            if method == "shell fraction":
+
+                shell_cond = large_blob[6] >= small_blob[6]
+
+                # If the bigger one is more complete, discard the smaller
+                if shell_cond:
+                    smaller_blob_remove.append(small_pos)
+                else:
+                    remove_large_flag = True
+                    break
+
+            elif method == "shell coords":
+
+                if coords is None:
+                    raise TypeError("Coordinates must be given for 'shell "
+                                    "coords'")
+
+                if len(coords) != len(blobs_array):
+                    raise TypeError("coords must match the number of blobs in"
+                                    " the given blob array.")
+
+                shell_cond = shell_similarity(coords[large_pos],
+                                              coords[small_pos]) > min_corr
+                # Discard the smaller one if it is too similar
+                if shell_cond:
+                    smaller_blob_remove.append(small_pos)
+                else:
+                    remove_large_flag = True
+                    break
+
+            elif method == "size":
+                smaller_blob_remove.append(small_pos)
+
+            elif method == "response":
+                cond = large_blob[5] > small_blob[5]
+                if cond:
+                    smaller_blob_remove.append(small_pos)
+                else:
+                    remove_large_flag = True
+                    break
+            else:
+                raise TypeError("method must be 'size', 'shell fraction',"
+                                " 'response' or 'shell coords'.")
+
+        if remove_large_flag:
+            remove_blobs.append(large_pos)
+        else:
+            # Only remove the small regions if the large region isn't removed
+            remove_blobs.extend(smaller_blob_remove)
+
     # Remove duplicates
     remove_blobs = list(set(remove_blobs))
 
     blobs_array = np.delete(blobs_array, remove_blobs, axis=0)
+    coords = [coord for i, coord in enumerate(coords) if i not in remove_blobs]
 
-    if return_removal_posns:
-        return blobs_array, remove_blobs
-
-    return blobs_array
+    return blobs_array, coords
 
 
 def _merge_blobs(blobs_array, min_distance_merge=1.0):

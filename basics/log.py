@@ -117,7 +117,7 @@ def _circle_overlap(blob1, blob2, return_corr=False):
     return area / (math.pi * (min(r1, r2) ** 2))
 
 
-def _prune_blobs(blobs_array, coords, overlap, method='size',
+def _prune_blobs(blobs_array, coords, overlap=0.75, method='size',
                  min_corr=0.7):
     """Eliminated blobs with area overlap.
 
@@ -152,6 +152,7 @@ def _prune_blobs(blobs_array, coords, overlap, method='size',
         # Find overlapping smaller regions
         if method == 'shell fraction':
             return_corr = True
+            overlap = min_corr
         else:
             return_corr = False
 

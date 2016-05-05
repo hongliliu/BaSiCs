@@ -14,8 +14,7 @@ from basics.bubble_objects import Bubble2D
 from basics.log import blob_log, _prune_blobs
 from basics.bubble_edge import find_bubble_edges
 from basics.fit_models import CircleModel, EllipseModel, ransac
-from basics.iterative_watershed import remove_spurs
-from basics.masking_utils import smooth_edges
+from basics.masking_utils import smooth_edges,  remove_spurs
 
 
 eight_conn = np.ones((3, 3))

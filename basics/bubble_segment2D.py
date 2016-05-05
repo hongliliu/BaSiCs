@@ -449,34 +449,19 @@ class BubbleFinder2D(object):
             # the area. For circles at least, this corresponds to the step
             # size chosen for the scales.
 
-            # all_props, remove_posns = \
-            #     _prune_blobs(np.array(all_props), overlap_frac,
-            #                  method="shell fraction",
-            #                  min_corr=0.58, return_removal_posns=True)
+            all_props, all_coords = \
+                _prune_blobs(np.array(all_props), all_coords, 0.58,
+                             method="shell fraction",
+                             min_corr=0.58)
 
-            # # Delete the removed region coords
-            # remove_posns.sort()
-            # for pos in remove_posns[::-1]:
-            #     del all_coords[pos]
+            # all_props, all_coords = \
+            #     _prune_blobs(all_props, overlap_frac, all_coords,
+            #                  method="shell coords",
+            #                  min_corr=0.9, return_removal_posns=True)
 
-            # all_props, remove_posns = \
-            #     _prune_blobs(all_props, overlap_frac, method="shell coords",
-            #                  min_corr=0.9, return_removal_posns=True,
-            #                  coords=all_coords)
-
-            # # Delete the removed region coords
-            # remove_posns.sort()
-            # for pos in remove_posns[::-1]:
-            #     del all_coords[pos]
-
-            # all_props, remove_posns = \
-            #     _prune_blobs(all_props, 0.75, method='response',
+            # all_props, all_coords = \
+            #     _prune_blobs(all_props, all_coords, 0.75, method='response',
             #                  return_removal_posns=True)
-
-            # # Delete the removed region coords
-            # remove_posns.sort()
-            # for pos in remove_posns[::-1]:
-            #     del all_coords[pos]
 
             self._regions = \
                 [Bubble2D(props, shell_coords=coords, channel=self.channel)

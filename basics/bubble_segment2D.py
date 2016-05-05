@@ -262,7 +262,7 @@ class BubbleFinder2D(object):
         return self._bubble_mask
 
     def multiscale_bubblefind(self, scales=None, nsig=2,
-                              overlap_frac=0.5, edge_find=True,
+                              overlap_frac=0.75, edge_find=True,
                               edge_loc_bkg_nsig=3,
                               ellfit_thresh={"min_shell_frac": 0.5,
                                              "min_angular_std": 0.7},
@@ -441,27 +441,18 @@ class BubbleFinder2D(object):
 
         if not len(all_props) == 0:
 
-            # Take 2 circles. The maximum correlation occurs when the smaller
-            # is completely within the large. So the overlap is the smaller
-            # area and, if f is the ratio of the areas, the maximum
-            # correlation is 1/sqrt(f). Setting to 0.7 will allow the
-            # shell fraction to remove larger regions when the smaller is half
-            # the area. For circles at least, this corresponds to the step
-            # size chosen for the scales.
-
             all_props, all_coords = \
-                _prune_blobs(np.array(all_props), all_coords, 0.58,
+                _prune_blobs(all_props, all_coords,
                              method="shell fraction",
-                             min_corr=0.58)
+                             min_corr=0.75)
 
-            # all_props, all_coords = \
-            #     _prune_blobs(all_props, overlap_frac, all_coords,
-            #                  method="shell coords",
-            #                  min_corr=0.9, return_removal_posns=True)
-
-            # all_props, all_coords = \
-            #     _prune_blobs(all_props, all_coords, 0.75, method='response',
-            #                  return_removal_posns=True)
+            # Any highly overlapping regions should now be small regions
+            # inside much larger ones. We're going to assume that the
+            # remaining large regions are more important (good based on by-eye
+            # evaluation).
+            all_props, all_coords = \
+                _prune_blobs(all_props, all_coords, overlap=overlap_frac,
+                             method='size')
 
             self._regions = \
                 [Bubble2D(props, shell_coords=coords, channel=self.channel)

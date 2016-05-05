@@ -62,6 +62,8 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         # Set the number of theta to be ~ the perimeter.
 
         y, x, major, minor, pa = blob[:5]
+        y = int(np.round(y, decimals=0))
+        x = int(np.round(x, decimals=0))
 
         # Use the ellipse model to define a bounding box for the mask.
         bbox = Ellipse2D(True, 0.0, 0.0, major * max_extent,
@@ -76,17 +78,19 @@ def find_bubble_edges(array, blob, max_extent=1.0,
                           -int(x_range / 2): int(x_range / 2) + 1]
 
         if edge_mask is not None:
-            arr = edge_mask[max(0, y - int(y_range / 2)):y + int(y_range / 2) + 1,
-                            max(0, x - int(x_range / 2)):x + int(x_range / 2) + 1]
+            arr = edge_mask[max(0, y - int(y_range / 2)):
+                            y + int(y_range / 2) + 1,
+                            max(0, x - int(x_range / 2)):
+                            x + int(x_range / 2) + 1]
         else:
             arr = array[max(0, y - int(y_range / 2)):y + int(y_range / 2) + 1,
                         max(0, x - int(x_range / 2)):x + int(x_range / 2) + 1]
 
         # Adjust meshes if they exceed the array shape
         x_min = -min(0, x - int(x_range / 2))
-        x_max = xx.shape[1] - max(0, x + int(x_range / 2) + 1 - array.shape[1])
+        x_max = xx.shape[1] - max(0, x + int(x_range / 2) - array.shape[1] + 1)
         y_min = -min(0, y - int(y_range / 2))
-        y_max = yy.shape[0] - max(0, y + int(y_range / 2) + 1 - array.shape[0])
+        y_max = yy.shape[0] - max(0, y + int(y_range / 2) - array.shape[0] + 1)
 
         offset = (max(0, int(y - (y_range / 2))),
                   max(0, int(x - (x_range / 2))))

@@ -424,7 +424,10 @@ class BubbleFinder2D(object):
                 # No model, so no residual
                 resid = np.NaN
 
-            if len(coords) < 3:
+            if len(coords) < 4:
+                if verbose:
+                    print("Skipping %s" % (str(i)))
+                    print(coords)
                 continue
 
             # Append the shell fraction onto the properties

@@ -1,10 +1,9 @@
 import math
 import numpy as np
 from scipy import optimize
+from warnings import filterwarnings, catch_warnings
 
-from skimage.measure import regionprops
-
-from basics.utils import wrap_to_pi
+from basics.utils import wrap_to_pi, in_ellipse, in_circle, in_array
 
 
 def _check_data_dim(data, dim):
@@ -705,3 +704,134 @@ def ransac(data, model_class, min_samples, residual_threshold,
         best_model.estimate(*data)
 
     return best_model, best_inliers
+
+
+def fit_region(coords, initial_props=None,
+               try_fit_ellipse=True, use_ransac=False,
+               ransac_trials=50, beam_pix=4, max_rad=1.75,
+               max_eccent=3., image_shape=None, verbose=False):
+    '''
+    Fit a circle or ellipse to the given coordinates.
+    '''
+
+    coords = np.array(coords).copy()
+    ymean = coords[:, 0].mean()
+    xmean = coords[:, 1].mean()
+    # Fitting works better when the points are near the origin
+    coords[:, 0] -= int(ymean)
+    coords[:, 1] -= int(xmean)
+    new_props = np.empty((5,))
+
+    if len(coords) < 3:
+        raise ValueError("Must have at least 3 points to fit.")
+
+    if len(coords) > 5 and try_fit_ellipse:
+        with catch_warnings():
+            filterwarnings("ignore",
+                           r"Number of calls to function")
+            filterwarnings("ignore",
+                           r"gtol=0.000000 is too small")
+            if use_ransac:
+                model, inliers = \
+                    ransac(coords[:, ::-1], EllipseModel, 5,
+                           beam_pix, max_trials=ransac_trials)
+            else:
+                model = EllipseModel()
+                model.estimate(coords[:, ::-1])
+
+        dof = len(coords) - 5
+
+        pars = model.params.copy()
+        pars[0] += int(xmean)
+        pars[1] += int(ymean)
+
+        eccent = pars[2] / float(pars[3])
+        # Sometimes a < b?? If so, manually correct.
+        if eccent < 1:
+            eccent = 1. / eccent
+            pars[2], pars[3] = pars[3], pars[2]
+            pars[4] = wrap_to_pi(pars[4] + 0.5 * np.pi)
+
+        fail_conds = eccent > 3.
+
+        if beam_pix is not None:
+            fail_conds = fail_conds or \
+                pars[3] < beam_pix
+
+        if initial_props is not None:
+            fail_conds = fail_conds or \
+                pars[2] > max_rad * initial_props[2] or \
+                not in_ellipse(initial_props[:2][::-1], pars)
+
+        if image_shape is not None:
+            fail_conds = fail_conds or \
+                not in_array(pars[:2], image_shape)
+
+        if fail_conds:
+            ellip_fail = True
+        else:
+            new_props[0] = pars[1]
+            new_props[1] = pars[0]
+            new_props[2] = pars[2]
+            new_props[3] = pars[3]
+            new_props[4] = pars[4]
+            ellip_fail = False
+    else:
+        ellip_fail = True
+
+    # If ellipse fitting is not allowed, or it failed, fit a circle
+    if ellip_fail:
+        with catch_warnings():
+            filterwarnings("ignore",
+                           r"Number of calls to function")
+            filterwarnings("ignore",
+                           r"gtol=0.000000 is too small")
+            if use_ransac:
+                model, inliers = \
+                    ransac(coords[:, ::-1], CircleModel, 3,
+                           beam_pix, max_trials=ransac_trials)
+            else:
+                model = CircleModel()
+                model.estimate(coords[:, ::-1])
+
+        dof = len(coords) - 3
+
+        pars = model.params.copy()
+        pars[0] += int(xmean)
+        pars[1] += int(ymean)
+
+        fail_conds = False
+
+        if beam_pix is not None:
+            fail_conds = fail_conds or \
+                pars[2] < beam_pix
+
+        if initial_props is not None:
+            fail_conds = fail_conds or \
+                pars[2] > max_rad * initial_props[2] or \
+                not in_circle(initial_props[:2][::-1], pars)
+
+        if image_shape is not None:
+            fail_conds = fail_conds or \
+                not in_array(pars[:2], image_shape)
+
+        if fail_conds:
+            if verbose:
+                Warning("All fitting failed.")
+            return None, None
+
+        new_props[0] = pars[1]
+        new_props[1] = pars[0]
+        new_props[2] = pars[2]
+        new_props[3] = pars[2]
+        new_props[4] = 0.0
+
+    props = new_props
+
+    # Calculate the model residual
+    resid = model.residuals(coords[:, ::-1]).sum() / dof
+
+    # coords[:, 0] += int(ymean)
+    # coords[:, 1] += int(xmean)
+
+    return props, resid

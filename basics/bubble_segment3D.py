@@ -65,7 +65,8 @@ class BubbleFinder(object):
         self._sigma = val
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
-                    multiprocess=True, use_cube_mask=False, **kwargs):
+                    multiprocess=True, use_cube_mask=False,
+                    refit=True, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -111,7 +112,8 @@ class BubbleFinder(object):
 
             chans = np.array([reg.channel_center for reg in regions])
             if chans.max() + 1 - chans.min() >= min_channels:
-                self._bubbles.append(Bubble3D.from_2D_regions(regions))
+                self._bubbles.append(Bubble3D.from_2D_regions(regions,
+                                                              refit=refit))
             else:
                 self._unclustered_regions.append(regions)
 

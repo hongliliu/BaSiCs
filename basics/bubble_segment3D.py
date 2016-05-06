@@ -90,17 +90,16 @@ class BubbleFinder(object):
         # Join into one long list
         twod_regions = list(chain(*twod_regions))
 
+        self._bubbles = []
+        self._unclustered_regions = []
+
         if len(twod_regions) == 0:
             Warning("No bubbles found in the given cube.")
-            self._bubbles = []
-            return
+            return self
 
         bubble_props = np.vstack([bub.params for bub in twod_regions])
 
         cluster_idx = cluster_and_clean(bubble_props, **kwargs)
-
-        self._bubbles = []
-        self._unclustered_regions = []
 
         for idx in np.unique(cluster_idx[cluster_idx >= 0]):
             regions = [twod_regions[idx] for idx in
@@ -129,6 +128,46 @@ class BubbleFinder(object):
     @property
     def unclustered_regions(self):
         return self._unclustered_regions
+
+    def visualize_bubbles(self, show=True, edges=False, ax=None,
+                          moment0=None, region_col='b', edge_col='g',
+                          log_scale=False):
+        '''
+        Show the location of the bubbles on the moment 0 array.
+        '''
+        if len(self.bubbles) == 0:
+            Warning("No bubbles were found. Nothing to show.")
+            return
+
+        if moment0 is None:
+            # Create the moment array from the cube
+            moment0 = self.cube.moment0()
+
+        import matplotlib.pyplot as p
+
+        if ax is None:
+            ax = p.subplot(111)
+
+        if log_scale:
+            ax.imshow(np.log10(moment0), cmap='afmhot', origin='lower')
+        else:
+            ax.imshow(moment0, cmap='afmhot', origin='lower')
+
+        for bub in self.bubbles:
+            ax.add_patch(bub.as_patch(color=region_col, fill=False,
+                                      linewidth=2))
+            ax.plot(bub.x, bub.y, region_col + 'D')
+            if edges:
+                ax.plot(bub.shell_coords[:, 1], bub.shell_coords[:, 0],
+                        edge_col + "o")
+
+        p.xlim([0, self.array.shape[1]])
+        p.ylim([0, self.array.shape[0]])
+
+        if show:
+            p.show()
+        else:
+            return ax
 
     def visualize_channel_maps(self, all_chans=False, subplot=False,
                                edges=False):

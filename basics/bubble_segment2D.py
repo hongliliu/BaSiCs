@@ -407,7 +407,6 @@ class BubbleFinder2D(object):
 
                 # Now re-run the shell finding to update the coordinates with
                 # the new model.
-                print(props)
                 coords, shell_frac, angular_std = \
                     find_bubble_edges(self.array, props, max_extent=1.05,
                                       value_thresh=value_thresh,

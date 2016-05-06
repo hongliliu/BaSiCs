@@ -100,23 +100,31 @@ class BubbleFinder(object):
         cluster_idx = cluster_and_clean(bubble_props, **kwargs)
 
         self._bubbles = []
+        self._unclustered_regions = []
 
         for idx in np.unique(cluster_idx[cluster_idx >= 0]):
             regions = [twod_regions[idx] for idx in
                        np.where(cluster_idx == idx)[0]]
 
             if len(regions) < min_channels:
+                self._unclustered_regions.append(regions)
                 continue
-            chans = np.array([reg.channel_center for reg in regions])
 
+            chans = np.array([reg.channel_center for reg in regions])
             if chans.max() + 1 - chans.min() >= min_channels:
                 self._bubbles.append(Bubble3D.from_2D_regions(regions))
+            else:
+                self._unclustered_regions.append(regions)
 
-        return bubble_props, cluster_idx
+    return self
 
     @property
     def bubbles(self):
         return self._bubbles
+
+    @property
+    def unclustered_regions(self):
+        return self._unclustered_regions
 
     def visualize_channel_maps(self, all_chans=False, subplot=False,
                                edges=False):

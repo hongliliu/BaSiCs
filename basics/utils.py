@@ -273,6 +273,25 @@ def in_ellipse(point, params):
     return (xprime / b)**2 + (yprime / a)**2 <= 1.
 
 
+def in_array(point, shape):
+    '''
+    Test if a point is outside the bounds of an array
+    '''
+
+    y, x = point.copy()
+
+    # Round to nearest integer
+    y = np.int(np.round(y, decimals=0))
+    x = np.int(np.round(x, decimals=0))
+
+    if y < 0 or x < 0:
+        return False
+    elif y >= shape[0] or x >= shape[1]:
+        return False
+
+    return True
+
+
 def wrap_to_pi(angle):
     '''
     Wrap angles onto 0 to pi. Useful for symmetric objects (like ellipses!)

@@ -4,7 +4,7 @@ import astropy.units as u
 from spectral_cube import SpectralCube
 from astropy.utils.console import ProgressBar
 import sys
-from itertools import chain, izip, repeat
+from itertools import chain
 
 from bubble_segment2D import BubbleFinder2D
 from bubble_objects import Bubble3D
@@ -22,6 +22,8 @@ class BubbleFinder(object):
                 raise TypeError("When cube is not a SpectralCube, wcs must be"
                                 " given.")
             cube = SpectralCube(cube, wcs)
+            if mask is not None:
+                cube = cube.with_mask(mask)
 
         self.cube = cube
 

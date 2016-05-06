@@ -54,26 +54,43 @@ def shell_orientation(coords, center=None, diff_thresh=0.5, smooth_width=5,
 
             if is_closed:
                 mode = 'wrap'
+                # half = (len(y) - 1) / 2
+                # yvals = np.hstack([y[-half:]])
             else:
                 mode = 'mirror'
 
-            y = nd.gaussian_filter1d(y.copy(), smooth_width, mode=mode)
-            x = nd.gaussian_filter1d(x.copy(), smooth_width, mode=mode)
+            y = nd.gaussian_filter1d(y.copy()[:-1], smooth_width, mode=mode)
+            x = nd.gaussian_filter1d(x.copy()[:-1], smooth_width, mode=mode)
 
             if is_closed:
-                y[-1] = y[0]
-                x[-1] = x[0]
+                y = np.append(y, y[0])
+                x = np.append(x, x[0])
 
         yprime = richardson_diff(y)
         xprime = richardson_diff(x)
 
-        theta = np.unwrap(np.arctan2(yprime, xprime))
+        if is_closed:
+            yprime = np.hstack([yprime[-2:], yprime, yprime[:2]])
+            xprime = np.hstack([xprime[-2:], xprime, xprime[:2]])
 
+        theta = np.unwrap(np.arctan2(yprime, xprime))
         thetaprime = richardson_diff(theta)
+
+        if is_closed:
+            yprime = yprime[2:-2]
+            xprime = xprime[2:-2]
+            theta = theta[2:-2]
+            thetaprime = thetaprime[2:-2]
 
         curvature = thetaprime / np.sqrt(yprime**2 + xprime**2)
 
-        break_idx = np.where(np.abs(curvature) > diff_thresh)[0]
+        if diff_thresh is None:
+            curv_std = curvature.std()
+            per_diff_thresh = np.median(curvature) + 2 * curv_std
+            print(per_diff_thresh)
+        else:
+            per_diff_thresh = diff_thresh
+        break_idx = np.where(np.abs(curvature) > per_diff_thresh)[0]
 
         # Take the middle point if consecutive break points are found
         if len(break_idx) > 0:
@@ -134,9 +151,9 @@ def circle_center(pt1, pt2, pt3, cent=None):
     Find the center of the circle through 3 points.
     '''
 
-    norm12 = np.linalg.norm(pt1-pt2)
-    norm13 = np.linalg.norm(pt1-pt3)
-    norm23 = np.linalg.norm(pt3-pt2)
+    norm12 = np.linalg.norm(pt1 - pt2)
+    norm13 = np.linalg.norm(pt1 - pt3)
+    norm23 = np.linalg.norm(pt3 - pt2)
 
     b1 = norm23**2 * (norm13**2 + norm12**2 - norm23**2)
     b2 = norm13**2 * (norm23**2 + norm12**2 - norm13**2)
@@ -152,7 +169,8 @@ def circle_center(pt1, pt2, pt3, cent=None):
         theta_cent = np.arctan2(cent[1] - pt2[1], cent[0] - pt2[0])
 
         norm_thetas = \
-            np.unwrap(np.array([seg_theta - 0.5*np.pi, seg_theta + 0.5*np.pi]),
+            np.unwrap(np.array([seg_theta - 0.5 * np.pi,
+                                seg_theta + 0.5 * np.pi]),
                       discont=-np.pi)
 
         theta_diff = np.abs(np.arctan2(np.sin(norm_thetas - theta_cent),
@@ -162,7 +180,7 @@ def circle_center(pt1, pt2, pt3, cent=None):
 
         R = np.sqrt((pt2[0] - cent[0])**2 + (pt2[1] - cent[1])**2)
 
-        P = (pt2[0] + R*np.cos(theta_norm), pt2[1] + R*np.sin(theta_norm))
+        P = (pt2[0] + R * np.cos(theta_norm), pt2[1] + R * np.sin(theta_norm))
 
     else:
         P = np.vstack([pt1, pt2, pt3]).T.dot(np.vstack([b1, b2, b3]))
@@ -204,7 +222,8 @@ def richardson_diff(pts, is_closed=False):
 
 def contour_breaks(coords, ntheta=180, prob_thresh=0.5):
     '''
-    Find break points in contours using the rotation method of Shen et al.(2010)
+    Find break points in contours using the rotation method of
+    Shen et al.(2010).
     http://dx.doi.org/10.1016/S0167-8655(99)00130-0
     '''
 

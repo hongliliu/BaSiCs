@@ -116,7 +116,7 @@ class BubbleFinder(object):
             else:
                 self._unclustered_regions.append(regions)
 
-    return self
+        return self
 
     @property
     def bubbles(self):

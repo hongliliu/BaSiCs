@@ -2,6 +2,7 @@
 import numpy as np
 from astropy.modeling.models import Ellipse2D
 from astropy.nddata.utils import extract_array, add_array
+from astropy.stats import circmean
 from scipy import ndimage as nd
 from itertools import izip
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
@@ -9,11 +10,11 @@ from spectral_cube.base_class import BaseNDClass
 from spectral_cube import SpectralCube
 
 from log import overlap_metric
-from utils import consec_split, find_nearest, floor_int, ceil_int
+from utils import consec_split, find_nearest, floor_int, ceil_int, eight_conn,\
+    wrap_to_pi
 from profile import _line_profile_coordinates
 from fan_pvslice import pv_wedge
-
-eight_conn = np.ones((3, 3))
+from fit_models import fit_region
 
 
 class BubbleNDBase(BaseNDClass):
@@ -404,7 +405,7 @@ class Bubble3D(BubbleNDBase):
         self._wcs = wcs
 
     @staticmethod
-    def from_2D_regions(twod_region_list, wcs=None):
+    def from_2D_regions(twod_region_list, wcs=None, refit=True, **fit_kwargs):
         '''
         Create a 3D regions from a collection of 2D regions.
         '''
@@ -417,25 +418,44 @@ class Bubble3D(BubbleNDBase):
         twod_region_list = \
             [twod_region_list[i] for i in twoD_properties[:, -1].argsort()]
 
-        props = [twoD_properties[:, 0].mean(), twoD_properties[:, 1].mean(),
-                 twoD_properties[:, 2].max(), twoD_properties[:, 3].max(),
-                 twoD_properties[:, 4].mean(),
-                 int(round(np.median(twoD_properties[:, 5]))),
-                 int(twoD_properties[:, 5].min()),
-                 int(twoD_properties[:, 5].max())]
-
-        self = Bubble3D(props, wcs=wcs)
-
-        self._twoD_objects = twod_region_list
-
         all_coords = []
         for reg in twod_region_list:
             chan_coord = reg.channel_center * \
                 np.ones((reg.shell_coords.shape[0], 1))
             all_coords.append(np.hstack([chan_coord, reg.shell_coords]))
-        self._shell_coords = np.vstack(all_coords)
+
+        all_coords = np.vstack(all_coords)
+
+        if refit:
+            props, resid = fit_region(all_coords, **fit_kwargs)
+
+        else:
+            props = [twoD_properties[:, 0].mean(),
+                     twoD_properties[:, 1].mean(),
+                     twoD_properties[:, 2].max(), twoD_properties[:, 3].max(),
+                     wrap_to_pi(circmean(twoD_properties[:, 4]))]
+
+        props.extend(int(round(np.median(twoD_properties[:, 5]))),
+                     int(twoD_properties[:, 5].min()),
+                     int(twoD_properties[:, 5].max()))
+
+        self = Bubble3D(props, wcs=wcs)
+
+        self._twoD_objects = twod_region_list
+        self._shell_coords = all_coords
 
         return self
+
+    def refit_across_channels(self, coords=None, **kwargs):
+        '''
+        Use all of the shell coordinates across each of the channels to refit
+        the 2D spatial shape.
+        '''
+
+        if coords is None:
+            coords = self.shell_coords
+
+        return fit_region(coords, **kwargs)
 
     @property
     def twoD_objects(self):

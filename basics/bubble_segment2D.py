@@ -2,14 +2,14 @@
 import numpy as np
 from astropy.nddata.utils import extract_array, add_array
 import astropy.units as u
-from warnings import filterwarnings, catch_warnings, warn
+from warnings import warn
 import scipy.ndimage as nd
 import skimage.morphology as mo
 from skimage.filters import threshold_adaptive
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
-from basics.utils import sig_clip, in_circle, in_ellipse, wrap_to_pi, in_array
+from basics.utils import sig_clip
 from basics.bubble_objects import Bubble2D
 from basics.log import blob_log, _prune_blobs
 from basics.bubble_edge import find_bubble_edges

@@ -136,7 +136,7 @@ class BubbleFinder2D(object):
 
     @property
     def sigma(self):
-        return self._threshold
+        return self._sigma
 
     @sigma.setter
     def sigma(self, value):
@@ -157,7 +157,7 @@ class BubbleFinder2D(object):
         #     raise u.UnitsError("Threshold must have equivalent units"
         #                        " as the array " + str(self.unit))
 
-        self._threshold = value
+        self._sigma = value
 
     def create_mask(self, median_radius=3, bkg_nsig=2, adap_patch=81,
                     edge_smooth_radius=5, min_pixels=30, fill_radius=3,

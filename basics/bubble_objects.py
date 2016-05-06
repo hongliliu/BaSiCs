@@ -96,8 +96,8 @@ class BubbleNDBase(BaseNDClass):
             is_2D = False
 
         inner_ellipse = \
-            Ellipse2D(True, self.x, self.y, max(3, self.major/2.),
-                      max(3, self.minor/2.), self.pa)
+            Ellipse2D(True, self.x, self.y, max(3, self.major / 2.),
+                      max(3, self.minor / 2.), self.pa)
 
         yy, xx = np.mgrid[:data.shape[-2], :data.shape[-1]]
 
@@ -294,10 +294,10 @@ class Bubble3D(BubbleNDBase):
             props, resid = fit_region(all_coords[:, 1:], **fit_kwargs)
 
         else:
-            props = np.array([twoD_properties[:, 0].mean(),
-                              twoD_properties[:, 1].mean(),
-                              twoD_properties[:, 2].max(),
-                              twoD_properties[:, 3].max(),
+            props = np.array([np.median(twoD_properties[:, 0]),
+                              np.median(twoD_properties[:, 1]),
+                              np.median(twoD_properties[:, 2]),
+                              np.median(twoD_properties[:, 3]),
                               wrap_to_pi(circmean(twoD_properties[:, 4]))])
 
         props = np.append(props,
@@ -353,7 +353,7 @@ class Bubble3D(BubbleNDBase):
         return self._bubble_type
 
     def _chan_iter(self):
-        return xrange(int(self.channel_start), int(self.channel_end)+1)
+        return xrange(int(self.channel_start), int(self.channel_end) + 1)
 
     def _twoD_region_iter(self):
         for region in self.twoD_objects:

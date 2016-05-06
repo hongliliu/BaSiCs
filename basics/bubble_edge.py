@@ -65,6 +65,13 @@ def find_bubble_edges(array, blob, max_extent=1.0,
         y = int(np.round(y, decimals=0))
         x = int(np.round(x, decimals=0))
 
+        # If the center is on the edge of the array, subtract one to
+        # index correctly
+        if y == array.shape[0]:
+            y -= 1
+        if x == array.shape[1]:
+            x -= 1
+
         # Use the ellipse model to define a bounding box for the mask.
         bbox = Ellipse2D(True, 0.0, 0.0, major * max_extent,
                          minor * max_extent, pa).bounding_box

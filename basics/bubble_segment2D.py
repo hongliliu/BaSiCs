@@ -262,7 +262,7 @@ class BubbleFinder2D(object):
         return self._bubble_mask
 
     def multiscale_bubblefind(self, scales=None, nsig=2,
-                              overlap_frac=0.75, edge_find=True,
+                              overlap_frac=0.6, edge_find=True,
                               edge_loc_bkg_nsig=3,
                               ellfit_thresh={"min_shell_frac": 0.5,
                                              "min_angular_std": 0.7},
@@ -444,14 +444,15 @@ class BubbleFinder2D(object):
             all_props, all_coords = \
                 _prune_blobs(all_props, all_coords,
                              method="shell fraction",
-                             min_corr=0.75)
+                             min_corr=overlap_frac)
 
             # Any highly overlapping regions should now be small regions
             # inside much larger ones. We're going to assume that the
             # remaining large regions are more important (good based on by-eye
-            # evaluation).
+            # evaluation). Keeping this at 0.75, since we only want to remove
+            # very highly overlapping small regions.
             all_props, all_coords = \
-                _prune_blobs(all_props, all_coords, overlap=overlap_frac,
+                _prune_blobs(all_props, all_coords, overlap=0.75,
                              method='size')
 
             self._regions = \

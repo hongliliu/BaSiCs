@@ -118,13 +118,19 @@ def find_bubble_edges(array, blob, max_extent=1.0,
                       pa)(xx, yy).astype(bool)
         region_mask = nd.binary_dilation(region_mask, eight_conn, iterations=2)
 
-        local_center = zip(*np.where(dist_arr == 0.0))[0]
+        # The bubble center must fall within a valid region
+        mid_pt = np.where(dist_arr == 0.0)
+        if len(mid_pt[0]) == 0:
+            middle_fail = True
+        else:
+            local_center = zip(*np.where(dist_arr == 0.0))[0]
+            middle_fail = False
         # _make_bubble_mask(smooth_mask, local_center)
 
         # If the center is not contained within a bubble region, return
         # empties.
         bad_case = not smooth_mask.any() or smooth_mask.all() or \
-            (smooth_mask * region_mask).all()
+            (smooth_mask * region_mask).all() or middle_fail
         if bad_case:
             if return_mask:
                 return np.array([]), 0.0, 0.0, value_thresh, smooth_mask

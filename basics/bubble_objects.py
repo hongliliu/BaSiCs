@@ -427,17 +427,19 @@ class Bubble3D(BubbleNDBase):
         all_coords = np.vstack(all_coords)
 
         if refit:
-            props, resid = fit_region(all_coords, **fit_kwargs)
+            props, resid = fit_region(all_coords[:, 1:], **fit_kwargs)
 
         else:
-            props = [twoD_properties[:, 0].mean(),
-                     twoD_properties[:, 1].mean(),
-                     twoD_properties[:, 2].max(), twoD_properties[:, 3].max(),
-                     wrap_to_pi(circmean(twoD_properties[:, 4]))]
+            props = np.array([twoD_properties[:, 0].mean(),
+                              twoD_properties[:, 1].mean(),
+                              twoD_properties[:, 2].max(),
+                              twoD_properties[:, 3].max(),
+                              wrap_to_pi(circmean(twoD_properties[:, 4]))])
 
-        props.extend(int(round(np.median(twoD_properties[:, 5]))),
-                     int(twoD_properties[:, 5].min()),
-                     int(twoD_properties[:, 5].max()))
+        props = np.append(props,
+                          [int(round(np.median(twoD_properties[:, 5]))),
+                           int(twoD_properties[:, 5].min()),
+                           int(twoD_properties[:, 5].max())])
 
         self = Bubble3D(props, wcs=wcs)
 
@@ -445,17 +447,6 @@ class Bubble3D(BubbleNDBase):
         self._shell_coords = all_coords
 
         return self
-
-    def refit_across_channels(self, coords=None, **kwargs):
-        '''
-        Use all of the shell coordinates across each of the channels to refit
-        the 2D spatial shape.
-        '''
-
-        if coords is None:
-            coords = self.shell_coords
-
-        return fit_region(coords, **kwargs)
 
     @property
     def twoD_objects(self):

@@ -59,8 +59,8 @@ class BubbleFinder(object):
 
     @sigma.setter
     def sigma(self, val):
-        if val < 0.0:
-            raise ValueError("sigma must be positive.")
+        if val < 0.0 or ~np.isfinite(val):
+            raise ValueError("sigma must be positive and finite.")
 
         self._sigma = val
 

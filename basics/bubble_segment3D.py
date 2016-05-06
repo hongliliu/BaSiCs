@@ -161,8 +161,8 @@ class BubbleFinder(object):
                 ax.plot(bub.shell_coords[:, 1], bub.shell_coords[:, 0],
                         edge_col + "o")
 
-        p.xlim([0, self.array.shape[1]])
-        p.ylim([0, self.array.shape[0]])
+        p.xlim([0, self.cube.shape[2]])
+        p.ylim([0, self.cube.shape[1]])
 
         if show:
             p.show()

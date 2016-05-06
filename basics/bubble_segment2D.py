@@ -477,7 +477,7 @@ class BubbleFinder2D(object):
         return len(self.regions)
 
     def visualize_regions(self, show=True, edges=False, ax=None,
-                          region_col='b', edge_col='g'):
+                          region_col='b', edge_col='g', log_scale=False):
         '''
         Show the regions optionally overlaid with the edges.
         '''
@@ -491,7 +491,10 @@ class BubbleFinder2D(object):
         if ax is None:
             ax = p.subplot(111)
 
-        ax.imshow(self.array, cmap='afmhot', origin='lower')
+        if log_scale:
+            ax.imshow(np.log10(self.array), cmap='afmhot', origin='lower')
+        else:
+            ax.imshow(self.array, cmap='afmhot', origin='lower')
 
         for bub in self.regions:
             ax.add_patch(bub.as_patch(color=region_col, fill=False,

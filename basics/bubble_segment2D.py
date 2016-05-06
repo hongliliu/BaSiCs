@@ -13,7 +13,7 @@ from basics.utils import sig_clip, in_circle, in_ellipse, wrap_to_pi, in_array
 from basics.bubble_objects import Bubble2D
 from basics.log import blob_log, _prune_blobs
 from basics.bubble_edge import find_bubble_edges
-from basics.fit_models import CircleModel, EllipseModel, ransac
+from basics.fit_models import fit_region
 from basics.masking_utils import smooth_edges, remove_spurs
 
 
@@ -260,7 +260,7 @@ class BubbleFinder2D(object):
 
     def multiscale_bubblefind(self, scales=None, nsig=2,
                               overlap_frac=0.6, edge_find=True,
-                              edge_loc_bkg_nsig=3,
+                              edge_loc_bkg_nsig=3, max_eccent=3,
                               ellfit_thresh={"min_shell_frac": 0.5,
                                              "min_angular_std": 0.7},
                               max_rad=3.0, verbose=False,
@@ -300,110 +300,23 @@ class BubbleFinder2D(object):
                     continue
 
                 coords = np.array(coords)
-                ymean = coords[:, 0].mean()
-                xmean = coords[:, 1].mean()
-                # Fitting works better when the points are near the origin
-                coords[:, 0] -= int(ymean)
-                coords[:, 1] -= int(xmean)
-                new_props = np.empty((5,))
-
-                can_fit_ellipse = \
+                try_fit_ellipse = \
                     shell_frac >= ellfit_thresh["min_shell_frac"] and \
                     angular_std >= ellfit_thresh["min_angular_std"]
 
-                if len(coords) > 5 and can_fit_ellipse:
-                    with catch_warnings():
-                        filterwarnings("ignore",
-                                       r"Number of calls to function")
-                        filterwarnings("ignore",
-                                       r"gtol=0.000000 is too small")
-                        if use_ransac:
-                            model, inliers = \
-                                ransac(coords[:, ::-1], EllipseModel, 5,
-                                       self.beam_pix, max_trials=ransac_trials)
-                        else:
-                            model = EllipseModel()
-                            model.estimate(coords[:, ::-1])
+                props, resid = \
+                    fit_region(coords, initial_props=props,
+                               try_fit_ellipse=try_fit_ellipse,
+                               use_ransac=use_ransac,
+                               ransac_trials=ransac_trials,
+                               beam_pix=self.beam_pix, max_rad=max_rad,
+                               max_eccent=max_eccent,
+                               image_shape=self.array.shape,
+                               verbose=verbose)
 
-                    dof = len(coords) - 5
-
-                    pars = model.params.copy()
-                    pars[0] += int(xmean)
-                    pars[1] += int(ymean)
-
-                    eccent = pars[2] / float(pars[3])
-                    # Sometimes a < b?? If so, manually correct.
-                    if eccent < 1:
-                        eccent = 1. / eccent
-                        pars[2], pars[3] = pars[3], pars[2]
-                        pars[4] = wrap_to_pi(pars[4] + 0.5 * np.pi)
-
-                    fail_conds = pars[3] < self.beam_pix or \
-                        pars[2] > max_rad * props[2] or \
-                        eccent > 3. or \
-                        not in_ellipse(props[:2][::-1], pars) or \
-                        not in_array(pars[:2], self.array.shape)
-
-                    if fail_conds:
-                        ellip_fail = True
-                    else:
-                        new_props[0] = pars[1]
-                        new_props[1] = pars[0]
-                        new_props[2] = pars[2]
-                        new_props[3] = pars[3]
-                        new_props[4] = pars[4]
-                        ellip_fail = False
-                else:
-                    ellip_fail = True
-
-                # If ellipse fitting is not allowed, or it failed, fit a circle
-                if ellip_fail:
-                    with catch_warnings():
-                        filterwarnings("ignore",
-                                       r"Number of calls to function")
-                        filterwarnings("ignore",
-                                       r"gtol=0.000000 is too small")
-                        if use_ransac:
-                            model, inliers = \
-                                ransac(coords[:, ::-1], CircleModel, 3,
-                                       self.beam_pix, max_trials=ransac_trials)
-                        else:
-                            model = CircleModel()
-                            model.estimate(coords[:, ::-1])
-
-                    dof = len(coords) - 3
-
-                    pars = model.params.copy()
-                    pars[0] += int(xmean)
-                    pars[1] += int(ymean)
-
-                    fail_conds = pars[2] > max_rad * props[2] or \
-                        pars[2] < self.beam_pix or \
-                        not in_circle(props[:2][::-1], pars) or \
-                        not in_array(pars[:2], self.array.shape)
-
-                    if fail_conds:
-                        if verbose:
-                            print("All fitting failed for: " + str(i))
-                            print(len(coords))
-                            print(pars)
-                            print(props)
-                        continue
-
-                    new_props[0] = pars[1]
-                    new_props[1] = pars[0]
-                    new_props[2] = pars[2]
-                    new_props[3] = pars[2]
-                    new_props[4] = 0.0
-
-                props = new_props
-                props = np.append(props, response_value)
-
-                # Calculate the model residual
-                resid = model.residuals(coords[:, ::-1]).sum() / dof
-
-                coords[:, 0] += int(ymean)
-                coords[:, 1] += int(xmean)
+                # Check if the fitting failed. If it did, continue on
+                if props is None:
+                    continue
 
                 # Now re-run the shell finding to update the coordinates with
                 # the new model.
@@ -430,7 +343,8 @@ class BubbleFinder2D(object):
                     print(coords)
                 continue
 
-            # Append the shell fraction onto the properties
+            # Append useful info onto the properties
+            props = np.append(props, response_value)
             props = np.append(props, shell_frac)
             props = np.append(props, angular_std)
             props = np.append(props, resid)

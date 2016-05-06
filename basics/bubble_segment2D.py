@@ -342,7 +342,7 @@ class BubbleFinder2D(object):
                         pars[2] > max_rad * props[2] or \
                         eccent > 3. or \
                         not in_ellipse(props[:2][::-1], pars) or \
-                        not in_array(props[:2], self.array.shape)
+                        not in_array(pars[:2], self.array.shape)
 
                     if fail_conds:
                         ellip_fail = True
@@ -380,7 +380,7 @@ class BubbleFinder2D(object):
                     fail_conds = pars[2] > max_rad * props[2] or \
                         pars[2] < self.beam_pix or \
                         not in_circle(props[:2][::-1], pars) or \
-                        not in_array(props[:2], self.array.shape)
+                        not in_array(pars[:2], self.array.shape)
 
                     if fail_conds:
                         if verbose:

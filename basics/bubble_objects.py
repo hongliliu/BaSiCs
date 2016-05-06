@@ -1,7 +1,6 @@
 
 import numpy as np
 from astropy.modeling.models import Ellipse2D
-from astropy.nddata.utils import extract_array
 from astropy.stats import circmean
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 from spectral_cube.base_class import BaseNDClass

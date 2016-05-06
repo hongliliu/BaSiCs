@@ -96,41 +96,10 @@ def cluster_and_clean(twod_region_props, min_scatter=9):
         The cluster ID for each of the given regions.
     '''
 
-    # Initial cluster is based on position of the centre
-    # cluster_idx = cluster_2D_regions(twod_region_props,
-    #                                  metric='position',
-    #                                  cut_val=twod_region_props[:, 2].max())
-
+    # Create initial clusters based on the overlap correlation
     cluster_idx = cluster_2D_regions(twod_region_props,
                                      metric='overlap',
-                                     cut_val=0.7, multiprocess=True)
-
-    # Finally, we split based on position. At this point, there should be
-    # a close cluster of regions and possibly some outliers with small radii
-    # that give a complete overlap.
-    # for clust in np.unique(cluster_idx[cluster_idx > 0]):
-
-    #     posns = np.where(cluster_idx == clust)[0]
-
-    #     if posns.size == 1:
-    #         continue
-
-    #     props = twod_region_props[posns]
-
-    #     # Determine max scatter in cluster from the mode of the major axes.
-    #     maj_mode = max(mode(props[:, 2])/2., min_scatter)
-    #     # maj_mode = min_scatter
-
-    #     # Cluster on channel and split.
-    #     pos_idx = cluster_2D_regions(props,
-    #                                  metric='position', cut_val=maj_mode)
-
-    #     # If not split is found, continue on
-    #     if pos_idx.max() == 1:
-    #         continue
-
-    #     for idx in np.unique(pos_idx[pos_idx > 1]):
-    #         cluster_idx[posns[pos_idx == idx]] = cluster_idx.max() + 1
+                                     cut_val=0.5, multiprocess=True)
 
     # Now we split clusters based on spectral connectivity.
     for clust in np.unique(cluster_idx[cluster_idx > 0]):

@@ -9,7 +9,7 @@ from skimage.filters import threshold_adaptive
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
-from basics.utils import sig_clip, in_circle, in_ellipse, wrap_to_pi
+from basics.utils import sig_clip, in_circle, in_ellipse, wrap_to_pi, in_array
 from basics.bubble_objects import Bubble2D
 from basics.log import blob_log, _prune_blobs
 from basics.bubble_edge import find_bubble_edges
@@ -340,7 +340,9 @@ class BubbleFinder2D(object):
 
                     fail_conds = pars[3] < self.beam_pix or \
                         pars[2] > max_rad * props[2] or \
-                        eccent > 3. or not in_ellipse(props[:2][::-1], pars)
+                        eccent > 3. or \
+                        not in_ellipse(props[:2][::-1], pars) or \
+                        not in_array(props[:2], self.array.shape)
 
                     if fail_conds:
                         ellip_fail = True
@@ -377,7 +379,9 @@ class BubbleFinder2D(object):
 
                     fail_conds = pars[2] > max_rad * props[2] or \
                         pars[2] < self.beam_pix or \
-                        not in_circle(props[:2][::-1], pars)
+                        not in_circle(props[:2][::-1], pars) or \
+                        not in_array(props[:2], self.array.shape)
+
                     if fail_conds:
                         if verbose:
                             print("All fitting failed for: " + str(i))
@@ -403,6 +407,7 @@ class BubbleFinder2D(object):
 
                 # Now re-run the shell finding to update the coordinates with
                 # the new model.
+                print(props)
                 coords, shell_frac, angular_std = \
                     find_bubble_edges(self.array, props, max_extent=1.05,
                                       value_thresh=value_thresh,

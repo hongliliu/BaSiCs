@@ -8,7 +8,7 @@ from skimage.util import img_as_float
 from skimage.feature import peak_local_max
 from astropy.modeling.models import Ellipse2D
 from skimage.measure import regionprops
-from scipy.spatial.distance import pdist, squareform, cdist
+from scipy.spatial.distance import pdist, cdist
 from functools import partial
 
 # from .._shared.utils import assert_nD

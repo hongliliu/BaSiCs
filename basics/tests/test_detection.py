@@ -18,7 +18,7 @@ def test_random_gray_holes():
 
     test_bubble = BubbleFinder2D(test_gray_holes, beam=Beam(10), sigma=10,
                                  channel=0)
-    test_bubble.multiscale_bubblefind(edge_find=True, nsig=5)
+    test_bubble.multiscale_bubblefind(edge_find=True, nsig=5, use_ransac=True)
 
     test_bubble.visualize_regions(edges=True)
 
@@ -30,8 +30,9 @@ def test_single_gray_hole():
                               nholes=1)
     test_gray_hole = Projection(one_gray_hole, wcs=wcs.WCS())
 
-    test_bubble = BubbleFinder2D(test_gray_hole, beam=Beam(10), channel=0)
-    test_bubble.multiscale_bubblefind(sigma=40, edge_find=False)
+    test_bubble = BubbleFinder2D(test_gray_hole, beam=Beam(10), channel=0,
+                                 sigma=40)
+    test_bubble.multiscale_bubblefind(edge_find=False)
 
 
 def test_gauss_hole():
@@ -39,8 +40,9 @@ def test_gauss_hole():
                                                 return_info=True)
     test_gauss_hole = Projection(one_gauss_hole, wcs=wcs.WCS())
 
-    test_bubble = BubbleFinder2D(test_gauss_hole, beam=Beam(10), channel=0)
-    test_bubble.multiscale_bubblefind(sigma=0.05, edge_find=True)
+    test_bubble = BubbleFinder2D(test_gauss_hole, beam=Beam(10), channel=0,
+                                 sigma=0.05)
+    test_bubble.multiscale_bubblefind(edge_find=True)
 
     test_bubble.visualize_regions(edges=True)
 
@@ -53,19 +55,18 @@ def test_shell():
     clean_model = shell_model(amp=1.0, ring_small=None, ratio=1.05)(yy, xx)
 
     amp = clean_model.max()
-    sigma = 0.25*amp
+    sigma = 0.25 * amp
 
-    noisy_model = clean_model + sigma*np.random.random(yy.shape)
+    noisy_model = clean_model + sigma * np.random.random(yy.shape)
     # smooth_model = convolve_fft(noisy_model, beam.as_kernel(1))
 
     model = Projection(noisy_model, wcs=wcs.WCS())
 
-    test_bubble = BubbleFinder2D(model, beam=beam, channel=0)
-    test_bubble.multiscale_bubblefind(sigma=sigma, edge_find=True)
+    test_bubble = BubbleFinder2D(model, beam=beam, channel=0, sigma=sigma)
+    test_bubble.multiscale_bubblefind(edge_find=True)
 
-    import matplotlib.pyplot as p
     ax = test_bubble.visualize_regions(edges=True, show=False)
-    ax.contour(model > 3*sigma, colors='c')
+    ax.contour(model > 3 * sigma, colors='c')
 
     print(test_bubble.region_params)
 
@@ -78,19 +79,18 @@ def test_multiple_shell():
     clean_model = shell_model(amp=1.0, ring_small=None, ratio=1.05)(yy, xx)
 
     amp = clean_model.max()
-    sigma = 0.25*amp
+    sigma = 0.25 * amp
 
-    noisy_model = clean_model + sigma*np.random.random(yy.shape)
+    noisy_model = clean_model + sigma * np.random.random(yy.shape)
     # smooth_model = convolve_fft(noisy_model, beam.as_kernel(1))
 
     model = Projection(noisy_model, wcs=wcs.WCS())
 
-    test_bubble = BubbleFinder2D(model, beam=beam, channel=0)
-    test_bubble.multiscale_bubblefind(sigma=sigma, edge_find=True)
+    test_bubble = BubbleFinder2D(model, beam=beam, channel=0, sigma=sigma)
+    test_bubble.multiscale_bubblefind(edge_find=True)
 
-    import matplotlib.pyplot as p
     ax = test_bubble.visualize_regions(edges=True, show=False)
-    ax.contour(model > 3*sigma, colors='c')
+    ax.contour(model > 3 * sigma, colors='c')
 
     print(test_bubble.region_params)
 

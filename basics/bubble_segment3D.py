@@ -65,7 +65,7 @@ class BubbleFinder(object):
         self._sigma = val
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
-                    multiprocess=True, use_cube_mask=False,
+                    multiprocess=True, use_cube_mask=False, nsig=2.,
                     refit=True, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
@@ -82,7 +82,7 @@ class BubbleFinder(object):
                             [(self.cube[i],
                               self.cube.mask.include(view=(i, ))
                               if use_cube_mask else None,
-                              i, self.sigma, overlap_frac) for i in
+                              i, self.sigma, nsig, overlap_frac) for i in
                              xrange(self.cube.shape[0])],
                             multiprocess=multiprocess,
                             file=output,
@@ -217,7 +217,8 @@ class BubbleFinder(object):
 
 
 def _region_return(imps):
-    arr, mask, i, sigma, overlap_frac = imps
+    arr, mask, i, sigma, nsig, overlap_frac = imps
     return BubbleFinder2D(arr, channel=i,
                           mask=mask, sigma=sigma).\
-        multiscale_bubblefind(overlap_frac=overlap_frac).regions
+        multiscale_bubblefind(nsig=nsig,
+                              overlap_frac=overlap_frac).regions

@@ -123,6 +123,10 @@ class BubbleFinder(object):
         return self._bubbles
 
     @property
+    def num_bubbles(self):
+        return len(self.bubbles)
+
+    @property
     def unclustered_regions(self):
         return self._unclustered_regions
 

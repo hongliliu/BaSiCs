@@ -200,7 +200,7 @@ class Bubble2D(BubbleNDBase):
 
         return self.as_ellipse(zero_center=zero_center)(xx, yy).astype(bool)
 
-    def return_array_region(self, array, pad=None):
+    def slice_to_region(self, array, pad=None):
         '''
         Return the region defined by the bounding box in the given array.
         '''
@@ -445,7 +445,7 @@ class Bubble3D(BubbleNDBase):
     def as_shell_mask(self, cube):
         pass
 
-    def return_cube_region(self, cube, spatial_pad=0, spec_pad=0):
+    def slice_to_bubble(self, cube, spatial_pad=0, spec_pad=0):
         '''
         Return the minimum subcube about the bubble.
         '''

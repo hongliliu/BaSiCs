@@ -150,17 +150,6 @@ class Bubble2D(BubbleNDBase):
 
         return radial_profiles(array, self.params, **kwargs)
 
-    def find_shell_fraction(self, array, value_thresh=0.0,
-                            grad_thresh=1, **kwargs):
-        '''
-        Find the fraction of the bubble edge associated with a shell.
-        '''
-
-        from basics.bubble_edge import find_bubble_edges
-
-        self._shell_coords, self._shell_fraction, self._angular_std = \
-            find_bubble_edges(array, self.params, **kwargs)
-
     @property
     def shell_fraction(self):
         '''

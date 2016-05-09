@@ -184,7 +184,7 @@ class BubbleFinder(object):
                                       linewidth=2))
             ax.plot(bub.x, bub.y, region_col + 'D')
             if edges:
-                ax.plot(bub.shell_coords[:, 1], bub.shell_coords[:, 0],
+                ax.plot(bub.shell_coords[:, 2], bub.shell_coords[:, 1],
                         edge_col + "o")
 
         p.xlim([0, self.cube.shape[2]])

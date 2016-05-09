@@ -443,8 +443,8 @@ class Bubble3D(BubbleNDBase):
             bboxes[:2, i] = bbox[0]
             bboxes[2:, i] = bbox[1]
 
-        return (floor_int(np.min(bboxes[0])), ceil_int(np.max(bboxes[1])),
-                floor_int(np.min(bboxes[2])), ceil_int(np.max(bboxes[3])))
+        return [[floor_int(np.min(bboxes[0])), ceil_int(np.max(bboxes[1]))],
+                [floor_int(np.min(bboxes[2])), ceil_int(np.max(bboxes[3]))]]
 
     def extract_pv_slice(self, cube, width=None, use_subcube=True, **kwargs):
         '''
@@ -534,10 +534,10 @@ class Bubble3D(BubbleNDBase):
                            min(cube.shape[0],
                                self.channel_end + 1 + spec_pad), 1)
 
-        y_slice = slice(max(0, extents[0] - spatial_pad),
-                        min(cube.shape[1], extents[1] + spatial_pad), 1)
-        x_slice = slice(max(0, extents[2] - spatial_pad),
-                        min(cube.shape[1], extents[3] + spatial_pad), 1)
+        y_slice = slice(max(0, extents[0][0] - spatial_pad),
+                        min(cube.shape[1], extents[0][1] + spatial_pad), 1)
+        x_slice = slice(max(0, extents[1][0] - spatial_pad),
+                        min(cube.shape[1], extents[1][1] + spatial_pad), 1)
 
         subcube = cube[spec_slice, y_slice, x_slice]
 

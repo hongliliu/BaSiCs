@@ -297,7 +297,7 @@ class Bubble3D(BubbleNDBase):
     cube : SpectralCube
         Uses the cube to find the spatial and spectral extents of the bubble.
     """
-    def __init__(self, props, cube=None):
+    def __init__(self, props, cube=None, twoD_regions=None):
         super(Bubble3D, self).__init__()
 
         self._y = props[0]
@@ -309,10 +309,10 @@ class Bubble3D(BubbleNDBase):
         self._channel_start = props[6]
         self._channel_end = props[7]
 
+        self.twoD_regions = twoD_regions
+
         if cube is not None:
             self.set_wcs_extents(cube)
-
-        self._twoD_objects = None
 
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,
@@ -352,20 +352,31 @@ class Bubble3D(BubbleNDBase):
                            int(twoD_properties[:, 5].min()),
                            int(twoD_properties[:, 5].max())])
 
-        self = Bubble3D(props, cube=cube)
+        self = Bubble3D(props, cube=cube, twoD_regions=twod_region_list)
 
-        self._twoD_objects = twod_region_list
         self._shell_coords = all_coords
 
         return self
 
     @property
-    def twoD_objects(self):
-        return self._twoD_objects
+    def twoD_regions(self):
+        return self._twoD_regions
+
+    @twoD_regions.setter
+    def twoD_regions(self, input_list):
+        if input_list is not None:
+            for reg in input_list:
+                if isinstance(reg, Bubble2D):
+                    continue
+
+                raise TypeError("twoD_regions must be a list of Bubble2D"
+                                " objects")
+
+        self._twoD_regions = input_list
 
     @property
     def has_2D_regions(self):
-        return True if self.twoD_objects is not None else False
+        return True if self.twoD_regions is not None else False
 
     @property
     def velocity_start(self):
@@ -411,7 +422,7 @@ class Bubble3D(BubbleNDBase):
         return xrange(int(self.channel_start), int(self.channel_end) + 1)
 
     def _twoD_region_iter(self):
-        for region in self.twoD_objects:
+        for region in self.twoD_regions:
             yield region
 
     def twoD_region_params(self):
@@ -425,7 +436,7 @@ class Bubble3D(BubbleNDBase):
         if not self.has_2D_regions:
             raise NotImplementedError("")
 
-        bboxes = np.empty((4, len(self.twoD_objects)), dtype=np.int)
+        bboxes = np.empty((4, len(self.twoD_regions)), dtype=np.int)
 
         for i, region in enumerate(self._twoD_region_iter()):
             bbox = region.as_ellipse(zero_center=zero_center).bounding_box
@@ -498,7 +509,7 @@ class Bubble3D(BubbleNDBase):
         if not self.has_2D_regions:
             raise NotImplementedError("")
 
-        ellip_mask = np.zeros((len(self.twoD_objects),) + spatial_shape,
+        ellip_mask = np.zeros((len(self.twoD_regions),) + spatial_shape,
                               dtype=bool)
 
         for i, region in enumerate(self._twoD_region_iter()):

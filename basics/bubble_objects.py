@@ -12,8 +12,8 @@ from fan_pvslice import pv_wedge
 from fit_models import fit_region
 
 
-def no_specaxis_warning():
-    warn("No spectral axis was provided.")
+def no_wcs_warning():
+    warn("No data product with an attached WCS was provided.")
 
 
 class BubbleNDBase(object):
@@ -52,19 +52,27 @@ class BubbleNDBase(object):
 
     @property
     def ra(self):
-        return self._ra
+        if self._ra is not None:
+            return self._ra
+        no_wcs_warning()
 
     @property
     def ra_extents(self):
-        return self._ra_extents
+        if self._ra_extents is not None:
+            return self._ra_extents
+        no_wcs_warning()
 
     @property
     def dec(self):
-        return self._dec
+        if self._dec is not None:
+            return self._dec
+        no_wcs_warning()
 
     @property
     def dec_extents(self):
-        return self._dec_extents
+        if self._dec_extents is not None:
+            return self._dec_extents
+        no_wcs_warning()
 
     @property
     def channel_center(self):
@@ -152,6 +160,9 @@ class BubbleNDBase(object):
         else:
             raise TypeError("data must be a SpectralCube or"
                             " LowerDimensionalObject.")
+
+    def as_shell_mask(self, cube):
+        pass
 
 
 class Bubble2D(BubbleNDBase):
@@ -382,25 +393,25 @@ class Bubble3D(BubbleNDBase):
     def velocity_start(self):
         if self._velocity_start is not None:
             return self._velocity_start
-        no_specaxis_warning()
+        no_wcs_warning()
 
     @property
     def velocity_end(self):
         if self._velocity_end is not None:
             return self._velocity_end
-        no_specaxis_warning()
+        no_wcs_warning()
 
     @property
     def velocity_center(self):
         if self._velocity_center is not None:
             return self._velocity_center
-        no_specaxis_warning()
+        no_wcs_warning()
 
     @property
     def velocity_width(self):
         if self._vel_width is not None:
             return self.channel_width * self._vel_width
-        no_specaxis_warning()
+        no_wcs_warning()
 
     @property
     def channel_start(self):
@@ -518,9 +529,6 @@ class Bubble3D(BubbleNDBase):
                                zero_center=zero_center)
 
         return ellip_mask
-
-    def as_shell_mask(self, cube):
-        pass
 
     def slice_to_bubble(self, cube, spatial_pad=0, spec_pad=0):
         '''

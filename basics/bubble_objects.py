@@ -3,8 +3,8 @@ import numpy as np
 from astropy.modeling.models import Ellipse2D
 from astropy.stats import circmean
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
-from spectral_cube.base_class import BaseNDClass
 from spectral_cube import SpectralCube
+from warnings import warn
 
 from log import overlap_metric
 from utils import floor_int, ceil_int, wrap_to_pi
@@ -12,7 +12,11 @@ from fan_pvslice import pv_wedge
 from fit_models import fit_region
 
 
-class BubbleNDBase(BaseNDClass):
+def no_specaxis_warning():
+    warn("No spectral axis was provided.")
+
+
+class BubbleNDBase(object):
     """
     Common properties between all cubes
     """
@@ -116,7 +120,7 @@ class Bubble2D(BubbleNDBase):
     """
     Class for candidate bubble portions from 2D planes.
     """
-    def __init__(self, props, wcs=None, shell_coords=None, channel=None):
+    def __init__(self, props, shell_coords=None, channel=None):
         super(Bubble2D, self).__init__()
 
         self._y = props[0]
@@ -138,8 +142,6 @@ class Bubble2D(BubbleNDBase):
             self._channel_center = channel
         else:
             self._channel_center = 0
-
-        self._wcs = None
 
     def profile_lines(self, array, **kwargs):
         '''
@@ -241,7 +243,7 @@ class Bubble3D(BubbleNDBase):
     """
     3D Bubbles.
     """
-    def __init__(self, props, wcs=None):
+    def __init__(self, props, spectral_axis=None):
         super(Bubble3D, self).__init__()
 
         self._y = props[0]
@@ -253,12 +255,22 @@ class Bubble3D(BubbleNDBase):
         self._channel_start = props[6]
         self._channel_end = props[7]
 
+        if spectral_axis is None:
+            self._vel_width = None
+            self._velocity_start = None
+            self._velocity_end = None
+            self._velocity_center = None
+        else:
+            self._vel_width = np.abs(spectral_axis[1] - spectral_axis[0])
+            self._velocity_start = spectral_axis[self.channel_start]
+            self._velocity_end = spectral_axis[self.channel_end]
+            self._velocity_center = spectral_axis[self.channel_center]
+
         self._twoD_objects = None
 
-        self._wcs = wcs
-
     @staticmethod
-    def from_2D_regions(twod_region_list, wcs=None, refit=True, **fit_kwargs):
+    def from_2D_regions(twod_region_list, refit=True,
+                        spectral_axis=None, **fit_kwargs):
         '''
         Create a 3D regions from a collection of 2D regions.
         '''
@@ -294,7 +306,7 @@ class Bubble3D(BubbleNDBase):
                            int(twoD_properties[:, 5].min()),
                            int(twoD_properties[:, 5].max())])
 
-        self = Bubble3D(props, wcs=wcs)
+        self = Bubble3D(props, spectral_axis=spectral_axis)
 
         self._twoD_objects = twod_region_list
         self._shell_coords = all_coords
@@ -309,21 +321,29 @@ class Bubble3D(BubbleNDBase):
     def has_2D_regions(self):
         return True if self.twoD_objects is not None else False
 
-    # @property
-    # def velocity_start(self):
-    #     return self._velocity_start
+    @property
+    def velocity_start(self):
+        if self._velocity_start is not None:
+            return self._velocity_start
+        no_specaxis_warning()
 
-    # @property
-    # def velocity_end(self):
-    #     return self._velocity_end
+    @property
+    def velocity_end(self):
+        if self._velocity_end is not None:
+            return self._velocity_end
+        no_specaxis_warning()
 
-    # @property
-    # def velocity_center(self):
-    #     return self._velocity_center
+    @property
+    def velocity_center(self):
+        if self._velocity_center is not None:
+            return self._velocity_center
+        no_specaxis_warning()
 
-    # @property
-    # def velocity_width(self):
-    #     return self.channel_width * self.wcs.cdelt[0]
+    @property
+    def velocity_width(self):
+        if self._vel_width is not None:
+            return self.channel_width * self._vel_width
+        no_specaxis_warning()
 
     @property
     def channel_start(self):
@@ -566,7 +586,7 @@ class Bubble3D(BubbleNDBase):
         s += "Channel width: {0:6f} \n".format(self.channel_width)
         # s += "Spectral width: {0.6f} \n".format(self.velocity_width)
 
-        if self.shell_fraction is not None:
-            s += "Shell fraction: {0:6f} \n".format(self.shell_fraction)
+        # if self.shell_fraction is not None:
+        #     s += "Shell fraction: {0:6f} \n".format(self.shell_fraction)
 
         return s

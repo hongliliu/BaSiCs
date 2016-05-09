@@ -55,8 +55,16 @@ class BubbleNDBase(object):
         return self._ra
 
     @property
+    def ra_extents(self):
+        return self._ra_extents
+
+    @property
     def dec(self):
         return self._dec
+
+    @property
+    def dec_extents(self):
+        return self._dec_extents
 
     @property
     def channel_center(self):
@@ -115,12 +123,42 @@ class BubbleNDBase(object):
             return np.nanmean(data.with_mask(ellip_mask)), \
                 np.nanstd(data.with_mask(ellip_mask))
 
+    def set_wcs_extents(self, data):
+        '''
+        Set the spatial and/or spectral extents of the bubble.
+        '''
+        if isinstance(data, SpectralCube):
+
+            self._ra = data.spatial_coordinate_map[0][self.center_pixel]
+            self._dec = data.spatial_coordinate_map[1][self.center_pixel]
+
+            y_extents, x_extents = self.find_spatial_extents()
+            self._ra_extents = data.spatial_coordinate_map[0][np.c_[y_extents],
+                                                              np.c_[x_extents]]
+            self._dec_extents = \
+                data.spatial_coordinate_map[1][np.c_[y_extents],
+                                               np.c_[x_extents]]
+
+            self._velocity_start = data.spectral_axis[self.channel_start]
+            self._velocity_end = data.spectral_axis[self.channel_end]
+            self._velocity_center = data.spectral_axis[self.channel_center]
+            self._vel_width = np.abs(data.spectral_axis[1] -
+                                     data.spectral_axis[0])
+
+        elif isinstance(data, LowerDimensionalObject):
+            # At some point, the 2D LDO will also have a
+            # spatial_coordinate_map attribute
+            raise NotImplementedError("")
+        else:
+            raise TypeError("data must be a SpectralCube or"
+                            " LowerDimensionalObject.")
+
 
 class Bubble2D(BubbleNDBase):
     """
     Class for candidate bubble portions from 2D planes.
     """
-    def __init__(self, props, shell_coords=None, channel=None):
+    def __init__(self, props, shell_coords=None, channel=None, data=None):
         super(Bubble2D, self).__init__()
 
         self._y = props[0]
@@ -136,6 +174,10 @@ class Bubble2D(BubbleNDBase):
             self._angular_std = props[7]
 
         self._shell_coords = shell_coords
+
+        # Requires finishing the WCS extents portion in set_wcs_extents
+        # if data is not None:
+        #     self.set_wcs_extents(data)
 
         # The last position is the velocity channel in the cube
         if channel is not None:
@@ -202,6 +244,13 @@ class Bubble2D(BubbleNDBase):
 
         return self.as_ellipse(zero_center=zero_center)(xx, yy).astype(bool)
 
+    def find_spatial_extents(self):
+        '''
+        Get the pixel extents of the region, based on the minimal bounding box
+        of the ellipse.
+        '''
+        return self.as_ellipse(zero_center=False).bounding_box
+
     def slice_to_region(self, array, pad=None):
         '''
         Return the region defined by the bounding box in the given array.
@@ -210,7 +259,7 @@ class Bubble2D(BubbleNDBase):
         if pad is None:
             pad = 0
 
-        bbox = self.as_ellipse(zero_center=False).bounding_box
+        bbox = self.find_spatial_extents()
 
         return array[floor_int(bbox[0][0]) - pad:
                      ceil_int(bbox[0][1]) + pad + 1,
@@ -242,8 +291,13 @@ class Bubble2D(BubbleNDBase):
 class Bubble3D(BubbleNDBase):
     """
     3D Bubbles.
+
+    Parameters
+    ----------
+    cube : SpectralCube
+        Uses the cube to find the spatial and spectral extents of the bubble.
     """
-    def __init__(self, props, spectral_axis=None):
+    def __init__(self, props, cube=None):
         super(Bubble3D, self).__init__()
 
         self._y = props[0]
@@ -255,22 +309,14 @@ class Bubble3D(BubbleNDBase):
         self._channel_start = props[6]
         self._channel_end = props[7]
 
-        if spectral_axis is None:
-            self._vel_width = None
-            self._velocity_start = None
-            self._velocity_end = None
-            self._velocity_center = None
-        else:
-            self._vel_width = np.abs(spectral_axis[1] - spectral_axis[0])
-            self._velocity_start = spectral_axis[self.channel_start]
-            self._velocity_end = spectral_axis[self.channel_end]
-            self._velocity_center = spectral_axis[self.channel_center]
+        if cube is not None:
+            self.set_wcs_extents(cube)
 
         self._twoD_objects = None
 
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,
-                        spectral_axis=None, **fit_kwargs):
+                        cube=None, **fit_kwargs):
         '''
         Create a 3D regions from a collection of 2D regions.
         '''
@@ -306,7 +352,7 @@ class Bubble3D(BubbleNDBase):
                            int(twoD_properties[:, 5].min()),
                            int(twoD_properties[:, 5].max())])
 
-        self = Bubble3D(props, spectral_axis=spectral_axis)
+        self = Bubble3D(props, cube=cube)
 
         self._twoD_objects = twod_region_list
         self._shell_coords = all_coords

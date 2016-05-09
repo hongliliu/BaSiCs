@@ -283,13 +283,18 @@ class BubbleNDBase(object):
 
         return shell_annulus
 
-    def as_shell_mask(self, mask=None, shape=None, zero_center=False,
-                      area_factor=2, spectral_extent=False):
+    def as_shell_mask(self, mask=None, shape=None, include_center=True,
+                      zero_center=False, area_factor=2, spectral_extent=False):
         '''
         Realize the shell region as a boolean mask.
 
         Parameters
         ----------
+        include_center : bool, optional
+            When enabled, includes mask regions within the hole region. By
+            default, this is enabled to ensure small regions are not cut-off.
+            This is only applied when a mask is provided (otherwise the notion
+            of the shell region doesn't make much sense).
 
         '''
 
@@ -316,10 +321,16 @@ class BubbleNDBase(object):
             else:
                 raise TypeError("shape must be for 2D or 3D.")
 
-        twoD_mask = \
-            self.as_shell_annulus(zero_center=zero_center,
-                                  area_factor=area_factor)(xx, yy).\
-            astype(np.bool)
+        if include_center and mask is not None:
+            twoD_mask = \
+                self.as_ellipse(zero_center=zero_center,
+                                extend_factor=np.sqrt(area_factor))(xx, yy).\
+                astype(np.bool)
+        else:
+            twoD_mask = \
+                self.as_shell_annulus(zero_center=zero_center,
+                                      area_factor=area_factor)(xx, yy).\
+                astype(np.bool)
 
         # Just return the 2D footprint
         if not spectral_extent:

@@ -4,7 +4,6 @@ import astropy.units as u
 from spectral_cube import SpectralCube
 from astropy.utils.console import ProgressBar
 import sys
-from itertools import chain
 from warnings import warn
 
 from bubble_segment2D import BubbleFinder2D
@@ -114,9 +113,6 @@ class BubbleFinder(object):
                 regions = out
 
             twod_regions.extend(regions)
-
-        # Join into one long list
-        twod_regions = list(chain(*twod_regions))
 
         self._bubbles = []
         self._unclustered_regions = []

@@ -182,7 +182,7 @@ class BubbleNDBase(object):
                          self.pa)
 
     def as_mask(self, mask=None, shape=None, zero_center=False,
-                spectral_extent=False):
+                spectral_extent=False, use_twoD_regions=False):
         '''
         Return a boolean mask of the 2D region.
 
@@ -246,14 +246,25 @@ class BubbleNDBase(object):
                 yshape = shape[1]
                 xshape = shape[2]
 
-            region_mask = np.tile(twoD_mask, (nchans, 1, 1))
+            if use_twoD_regions:
+                region_mask = \
+                    np.zeros((nchans, yshape, xshape),
+                             dtype=np.bool)
 
-            # Now blank the channels where the mask isn't there
-            region_mask[:start] = \
-                np.zeros((start, yshape, xshape), dtype=bool)
-            region_mask[end:] = \
-                np.zeros((nchans - end, yshape, xshape),
-                         dtype=bool)
+                chans = np.arange(start, end).astype(int)
+                for i, region in zip(chans, self._twoD_region_iter()):
+                    region_mask[i] = \
+                        region.as_mask(shape=(yshape, xshape),
+                                       zero_center=zero_center)
+            else:
+                region_mask = np.tile(twoD_mask, (nchans, 1, 1))
+
+                # Now blank the channels where the mask isn't there
+                region_mask[:start] = \
+                    np.zeros((start, yshape, xshape), dtype=bool)
+                region_mask[end:] = \
+                    np.zeros((nchans - end + 1, yshape, xshape),
+                             dtype=bool)
 
         # Multiply by the mask to remove potential empty regions in the shell.
         # The hole masks are defined where there isn't signal, so multiple by
@@ -288,7 +299,8 @@ class BubbleNDBase(object):
         return shell_annulus
 
     def as_shell_mask(self, mask=None, shape=None, include_center=True,
-                      zero_center=False, area_factor=2, spectral_extent=False):
+                      zero_center=False, area_factor=2, spectral_extent=False,
+                      use_twoD_regions=False):
         '''
         Realize the shell region as a boolean mask.
 
@@ -365,16 +377,26 @@ class BubbleNDBase(object):
                 yshape = shape[1]
                 xshape = shape[2]
 
-            threeD_mask = np.tile(twoD_mask, (nchans, 1, 1))
+            if use_twoD_regions:
+                shell_mask = \
+                    np.zeros((nchans, yshape, xshape),
+                             dtype=np.bool)
 
-            # Now blank the channels where the mask isn't there
-            threeD_mask[:start] = \
-                np.zeros((start, yshape, xshape), dtype=bool)
-            threeD_mask[end + 1:] = \
-                np.zeros((nchans - end, yshape, xshape),
-                         dtype=bool)
+                chans = np.arange(start, end).astype(int)
+                for i, region in zip(chans, self._twoD_region_iter()):
+                    shell_mask[i] = \
+                        region.as_shell_mask(shape=(yshape, xshape),
+                                             zero_center=zero_center,
+                                             area_factor=area_factor)
+            else:
+                shell_mask = np.tile(twoD_mask, (nchans, 1, 1))
 
-            shell_mask = threeD_mask
+                # Now blank the channels where the mask isn't there
+                shell_mask[:start] = \
+                    np.zeros((start, yshape, xshape), dtype=bool)
+                shell_mask[end + 1:] = \
+                    np.zeros((nchans - end + 1, yshape, xshape),
+                             dtype=bool)
 
         # Multiply by the mask to remove potential empty regions in the shell.
         # The hole masks are defined where there isn't signal, so multiple by
@@ -622,7 +644,7 @@ class Bubble3D(BubbleNDBase):
                       significant emission.
 
         '''
-        pass
+        raise NotImplementedError("")
 
     @property
     def bubble_type(self):

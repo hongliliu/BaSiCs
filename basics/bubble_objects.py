@@ -161,6 +161,24 @@ class BubbleNDBase(object):
             raise TypeError("data must be a SpectralCube or"
                             " LowerDimensionalObject.")
 
+    def find_shell_region(self, data, area_factor=2):
+        '''
+        Finds the shell region associated with the bubble.
+
+        Parameters
+        ----------
+        data : SpectralCube or LowerDimensionalObject (2D)
+            Data used for bubble extraction.
+        area_factor : float
+            Number of times the area of the bubble where shell regions can be
+            considered.
+        '''
+
+        if area_factor < 1:
+            raise TypeError("The area factor must be >=1.")
+
+        pass
+
     def as_shell_mask(self, cube):
         pass
 
@@ -558,7 +576,7 @@ class Bubble3D(BubbleNDBase):
 
         return self.slice_to_bubble(cube, **kwargs).moment0()
 
-    def visualize_shell(self):
+    def visualize_shell(self, ax=None, fig=None):
         '''
         Make a 3D point plot of the shell coordinates.
         '''
@@ -566,8 +584,10 @@ class Bubble3D(BubbleNDBase):
         from mpl_toolkits.mplot3d import Axes3D
         import matplotlib.pyplot as p
 
-        fig = p.figure()
-        ax = fig.add_subplot(111, projection='3d')
+        if fig is None:
+            fig = p.figure()
+        if ax is None:
+            ax = fig.add_subplot(111, projection='3d')
         ax.scatter(self.shell_coords[:, 2], self.shell_coords[:, 1],
                    self.shell_coords[:, 0])
 

@@ -470,7 +470,7 @@ class Bubble3D(BubbleNDBase):
 
         if use_subcube:
 
-            subcube = self.return_cube_region(cube, **kwargs)
+            subcube = self.slice_to_bubble(cube, **kwargs)
 
             sub_center = (floor_int(subcube.shape[1] / 2.),
                           floor_int(subcube.shape[2] / 2.))

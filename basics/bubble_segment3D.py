@@ -104,13 +104,13 @@ class BubbleFinder(object):
         if self.keep_threshold_mask:
             self._mask = np.zeros(self.cube.shape, dtype=np.bool)
 
-        for i, out in enumerate(output):
+        for out in output:
             if self.keep_threshold_mask:
-                regions, mask_slice = out
+                chan, regions, mask_slice = out
 
-                self._mask[i] = mask_slice
+                self._mask[chan] = mask_slice
             else:
-                regions = out
+                chan, regions = out
 
             twod_regions.extend(regions)
 
@@ -247,6 +247,6 @@ def _region_return(imps):
         multiscale_bubblefind(nsig=nsig,
                               overlap_frac=overlap_frac)
     if return_mask:
-        return bubs.regions, bubs.mask
+        return i, bubs.regions, bubs.mask
 
-    return bubs.regions
+    return i, bubs.regions

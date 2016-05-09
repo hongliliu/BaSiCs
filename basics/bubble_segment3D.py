@@ -107,11 +107,11 @@ class BubbleFinder(object):
 
         for i, out in enumerate(output):
             if self.keep_threshold_mask:
-                regions, mask_slice = output
+                regions, mask_slice = out
 
                 self._mask[i] = mask_slice
             else:
-                regions = output
+                regions = out
 
             twod_regions.extend(regions)
 

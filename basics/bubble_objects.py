@@ -306,7 +306,10 @@ class BubbleNDBase(object):
         # Returns the bbox shape. Forces zero_center to be True
         if shape is None:
             zero_center = True
-            bbox = self.as_shell_annulus(zero_center=False).bounding_box
+            bbox = self.as_ellipse(zero_center=False,
+                                   extend_factor=np.sqrt(area_factor)).\
+                bounding_box
+
             y_range = ceil_int((bbox[0][1] - bbox[0][0]))
             x_range = ceil_int((bbox[1][1] - bbox[1][0]))
 
@@ -598,6 +601,21 @@ class Bubble3D(BubbleNDBase):
     def channel_width(self):
         return self.channel_end - self.channel_start + 1
 
+    def find_bubble_type(self, cube):
+        '''
+        Use the cube to determine what type of bubble this is.
+
+        There are 3 types:
+         1) blow-out - no significant emission before or after bubble region
+                       (spectrally)
+         2) half blow-out - one side of the bubble is bounded, the other
+                            extends beyond channels with significant emission.
+         3) bounded - both sides of the bubble are bounded by regions with
+                      significant emission.
+
+        '''
+        pass
+
     @property
     def bubble_type(self):
         return self._bubble_type
@@ -682,26 +700,26 @@ class Bubble3D(BubbleNDBase):
                        height=self.channel_width,
                        angle=0.0, **kwargs)
 
-    def as_mask(self, spatial_shape, zero_center=False):
-        '''
-        Return an elliptical mask.
-        '''
+    # def as_mask(self, spatial_shape, zero_center=False):
+    #     '''
+    #     Return an elliptical mask.
+    #     '''
 
-        if len(spatial_shape) != 2:
-            raise ValueError("spatial_shape must have a length of 2.")
+    #     if len(spatial_shape) != 2:
+    #         raise ValueError("spatial_shape must have a length of 2.")
 
-        if not self.has_2D_regions:
-            raise NotImplementedError("")
+    #     if not self.has_2D_regions:
+    #         raise NotImplementedError("")
 
-        ellip_mask = np.zeros((len(self.twoD_regions),) + spatial_shape,
-                              dtype=bool)
+    #     ellip_mask = np.zeros((len(self.twoD_regions),) + spatial_shape,
+    #                           dtype=bool)
 
-        for i, region in enumerate(self._twoD_region_iter()):
-            ellip_mask[i] = \
-                region.as_mask(shape=spatial_shape,
-                               zero_center=zero_center)
+    #     for i, region in enumerate(self._twoD_region_iter()):
+    #         ellip_mask[i] = \
+    #             region.as_mask(shape=spatial_shape,
+    #                            zero_center=zero_center)
 
-        return ellip_mask
+    #     return ellip_mask
 
     def slice_to_bubble(self, cube, spatial_pad=0, spec_pad=0):
         '''

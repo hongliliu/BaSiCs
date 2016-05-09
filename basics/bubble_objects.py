@@ -161,14 +161,98 @@ class BubbleNDBase(object):
             raise TypeError("data must be a SpectralCube or"
                             " LowerDimensionalObject.")
 
-    def find_shell_region(self, data, area_factor=2):
+    def as_ellipse(self, zero_center=True, extend_factor=1):
+        '''
+        Returns an Ellipse2D model.
+
+        Parameters
+        ----------
+        zero_center : bool, optional
+            If enabled, returns a model with a centre at (0, 0). Otherwise the
+            centre is at the pixel position in the array.
+        '''
+
+        major = extend_factor * self.major
+        minor = extend_factor * self.minor
+
+        if zero_center:
+            return Ellipse2D(True, 0.0, 0.0, major, minor,
+                             self.pa)
+        return Ellipse2D(True, self.x, self.y, major, minor,
+                         self.pa)
+
+    def as_mask(self, shape=None, zero_center=False, spectral_extent=False):
+        '''
+        Return a boolean mask of the 2D region.
+
+        Parameters
+        ----------
+        shape : tuple, optional
+            The shape of the mask to output. When returning a 3D mask, the
+            spectral size *MUST* match the spectral size of the original cube!
+            When no shape is given, a mask with the minimal shape of the
+            bubble is returned.
+
+        '''
+
+        # Returns the bbox shape. Forces zero_center to be True
+        if shape is None:
+            zero_center = True
+            bbox = self.as_ellipse(zero_center=False).bounding_box
+            y_range = ceil_int((bbox[0][1] - bbox[0][0]))
+            x_range = ceil_int((bbox[1][1] - bbox[1][0]))
+
+            yy, xx = np.mgrid[-int(y_range / 2): int(y_range / 2) + 1,
+                              -int(x_range / 2): int(x_range / 2) + 1]
+
+        else:
+            if len(shape) == 2:
+                yy, xx = np.mgrid[:shape[0], :shape[1]]
+            elif len(shape) == 3:
+                yy, xx = np.mgrid[:shape[1], :shape[2]]
+            else:
+                raise TypeError("shape must be for 2D or 3D.")
+
+        twoD_mask = \
+            self.as_ellipse(zero_center=zero_center)(xx, yy).astype(np.bool)
+
+        # Just return the 2D footprint
+        if not spectral_extent:
+            return twoD_mask
+        elif spectral_extent and isinstance(self, Bubble2D):
+            raise TypeError("Can only use spectral_extent for Bubble3D"
+                            " objects.")
+        else:
+
+            if shape is None:
+                nchans = self.channel_width
+                start = 0
+                end = self.channel_width - 1
+            else:
+                if len(shape) != 3:
+                    raise TypeError("A 3D shape must be given when returning"
+                                    " a 3D mask.")
+                nchans = shape[0]
+                start = self.channel_start
+                end = self.channel_end
+
+            threeD_mask = np.tile(twoD_mask, (nchans, 1, 1))
+
+            # Now blank the channels where the mask isn't there
+            threeD_mask[:start] = \
+                np.zeros((start, shape[1], shape[2]), dtype=bool)
+            threeD_mask[end:] = \
+                np.zeros((nchans - end, shape[1], shape[2]),
+                         dtype=bool)
+
+            return threeD_mask
+
+    def as_shell_annulus(self, area_factor=2, zero_center=False):
         '''
         Finds the shell region associated with the bubble.
 
         Parameters
         ----------
-        data : SpectralCube or LowerDimensionalObject (2D)
-            Data used for bubble extraction.
         area_factor : float
             Number of times the area of the bubble where shell regions can be
             considered.
@@ -177,10 +261,90 @@ class BubbleNDBase(object):
         if area_factor < 1:
             raise TypeError("The area factor must be >=1.")
 
-        pass
+        # We're going to assume that each dimension is extend by the same
+        # factor. So each axis is extended by sqrt(area_factor)
 
-    def as_shell_mask(self, cube):
-        pass
+        shell_annulus = \
+            self.as_ellipse(zero_center=zero_center,
+                            extend_factor=np.sqrt(area_factor)) - \
+            self.as_ellipse(zero_center=zero_center)
+
+        return shell_annulus
+
+    def as_shell_mask(self, mask=None, shape=None, zero_center=False,
+                      area_factor=2, spectral_extent=False):
+        '''
+        Realize the shell region as a boolean mask.
+
+        Parameters
+        ----------
+
+        '''
+
+        # This situation seems ill-defined unless the mask shape is assumed.
+        # Force to the mask shape in this case.
+        if shape is None and mask is not None:
+            shape = mask.shape
+
+        # Returns the bbox shape. Forces zero_center to be True
+        if shape is None:
+            zero_center = True
+            bbox = self.as_shell_annulus(zero_center=False).bounding_box
+            y_range = ceil_int((bbox[0][1] - bbox[0][0]))
+            x_range = ceil_int((bbox[1][1] - bbox[1][0]))
+
+            yy, xx = np.mgrid[-int(y_range / 2): int(y_range / 2) + 1,
+                              -int(x_range / 2): int(x_range / 2) + 1]
+
+        else:
+            if len(shape) == 2:
+                yy, xx = np.mgrid[:shape[0], :shape[1]]
+            elif len(shape) == 3:
+                yy, xx = np.mgrid[:shape[1], :shape[2]]
+            else:
+                raise TypeError("shape must be for 2D or 3D.")
+
+        twoD_mask = \
+            self.as_shell_annulus(zero_center=zero_center,
+                                  area_factor=area_factor)(xx, yy).\
+            astype(np.bool)
+
+        # Just return the 2D footprint
+        if not spectral_extent:
+            shell_mask = twoD_mask
+        elif spectral_extent and isinstance(self, Bubble2D):
+            raise TypeError("Can only use spectral_extent for Bubble3D"
+                            " objects.")
+        else:
+
+            if shape is None:
+                nchans = self.channel_width
+                start = 0
+                end = self.channel_width - 1
+            else:
+                if len(shape) != 3:
+                    raise TypeError("A 3D shape must be given when returning"
+                                    " a 3D mask.")
+                nchans = shape[0]
+                start = self.channel_start
+                end = self.channel_end
+
+            threeD_mask = np.tile(twoD_mask, (nchans, 1, 1))
+
+            # Now blank the channels where the mask isn't there
+            threeD_mask[:start] = \
+                np.zeros((start, shape[1], shape[2]), dtype=bool)
+            threeD_mask[end:] = \
+                np.zeros((nchans - end, shape[1], shape[2]),
+                         dtype=bool)
+
+            shell_mask = threeD_mask
+
+        # Multiply by the mask to remove potential empty regions in the shell.
+        if mask is not None:
+            shell_mask *= mask
+
+        return shell_mask
 
 
 class Bubble2D(BubbleNDBase):
@@ -236,42 +400,6 @@ class Bubble2D(BubbleNDBase):
         The angular standard deviation of the shell positions.
         '''
         return self._angular_std
-
-    def as_ellipse(self, zero_center=True):
-        '''
-        Returns an Ellipse2D model.
-
-        Parameters
-        ----------
-        zero_center : bool, optional
-            If enabled, returns a model with a centre at (0, 0). Otherwise the
-            centre is at the pixel position in the array.
-        '''
-        if zero_center:
-            return Ellipse2D(True, 0.0, 0.0, self.major, self.minor,
-                             self.pa)
-        return Ellipse2D(True, self.x, self.y, self.major, self.minor,
-                         self.pa)
-
-    def as_mask(self, shape=None, zero_center=False):
-        '''
-        Return a boolean mask of the 2D region.
-        '''
-
-        # Returns the bbox shape. Forces zero_center to be True
-        if shape is None:
-            zero_center = True
-            bbox = self.as_ellipse(zero_center=False).bounding_box
-            y_range = ceil_int((bbox[0][1] - bbox[0][0]))
-            x_range = ceil_int((bbox[1][1] - bbox[1][0]))
-
-            yy, xx = np.mgrid[-int(y_range / 2): int(y_range / 2) + 1,
-                              -int(x_range / 2): int(x_range / 2) + 1]
-
-        else:
-            yy, xx = np.mgrid[:shape[0], :shape[1]]
-
-        return self.as_ellipse(zero_center=zero_center)(xx, yy).astype(bool)
 
     def find_spatial_extents(self):
         '''

@@ -548,7 +548,7 @@ class Bubble3D(BubbleNDBase):
         Return the moment 0 of the sub-cube created by `return_cube_region`.
         '''
 
-        return self.return_cube_region(cube, **kwargs).moment0()
+        return self.slice_to_bubble(cube, **kwargs).moment0()
 
     def visualize_shell(self):
         '''

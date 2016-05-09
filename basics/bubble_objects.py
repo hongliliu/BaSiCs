@@ -327,6 +327,8 @@ class BubbleNDBase(object):
                                 extend_factor=np.sqrt(area_factor))(xx, yy).\
                 astype(np.bool)
         else:
+            if include_center:
+                warn("include_mask is only used when a mask is given.")
             twoD_mask = \
                 self.as_shell_annulus(zero_center=zero_center,
                                       area_factor=area_factor)(xx, yy).\

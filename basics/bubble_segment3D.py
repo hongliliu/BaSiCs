@@ -5,6 +5,7 @@ from spectral_cube import SpectralCube
 from astropy.utils.console import ProgressBar
 import sys
 from itertools import chain
+from warnings import warn
 
 from bubble_segment2D import BubbleFinder2D
 from bubble_objects import Bubble3D
@@ -14,7 +15,8 @@ from utils import sig_clip
 
 class BubbleFinder(object):
     """docstring for BubbleFinder"""
-    def __init__(self, cube, wcs=None, mask=None, sigma=None, empty_channel=0):
+    def __init__(self, cube, wcs=None, mask=None, sigma=None, empty_channel=0,
+                 keep_threshold_mask=False):
         super(BubbleFinder, self).__init__()
 
         if not isinstance(cube, SpectralCube):
@@ -34,6 +36,9 @@ class BubbleFinder(object):
         else:
             self.sigma = sigma
 
+        self.keep_threshold_mask = keep_threshold_mask
+        self._mask = None
+
     @property
     def cube(self):
         return self._cube
@@ -44,6 +49,13 @@ class BubbleFinder(object):
             raise TypeError("Given cube must be 3D.")
 
         self._cube = input_cube
+
+    @property
+    def mask(self):
+        if not self.keep_threshold_mask:
+            warn("Enable keep_threshold_mask to access the entire mask.")
+
+        return self._mask
 
     def estimate_sigma(self, nsig=10):
         '''
@@ -77,16 +89,31 @@ class BubbleFinder(object):
         else:
             output = None
 
-        twod_regions = \
+        output = \
             ProgressBar.map(_region_return,
                             [(self.cube[i],
                               self.cube.mask.include(view=(i, ))
                               if use_cube_mask else None,
-                              i, self.sigma, nsig, overlap_frac) for i in
+                              i, self.sigma, nsig, overlap_frac,
+                              self.keep_threshold_mask) for i in
                              xrange(self.cube.shape[0])],
                             multiprocess=multiprocess,
                             file=output,
                             step=self.cube.shape[0])
+
+        twod_regions = []
+        if self.keep_threshold_mask:
+            self._mask = np.zeros(self.cube.shape, dtype=np.bool)
+
+        for i, out in enumerate(output):
+            if self.keep_threshold_mask:
+                regions, mask_slice = output
+
+                self._mask[i] = mask_slice
+            else:
+                regions = output
+
+            twod_regions.extend(regions)
 
         # Join into one long list
         twod_regions = list(chain(*twod_regions))
@@ -95,7 +122,7 @@ class BubbleFinder(object):
         self._unclustered_regions = []
 
         if len(twod_regions) == 0:
-            Warning("No bubbles found in the given cube.")
+            warn("No bubbles found in the given cube.")
             return self
 
         bubble_props = np.vstack([bub.params for bub in twod_regions])
@@ -139,7 +166,7 @@ class BubbleFinder(object):
         Show the location of the bubbles on the moment 0 array.
         '''
         if len(self.bubbles) == 0:
-            Warning("No bubbles were found. Nothing to show.")
+            warn("No bubbles were found. Nothing to show.")
             return
 
         if moment0 is None:
@@ -218,8 +245,12 @@ class BubbleFinder(object):
 
 
 def _region_return(imps):
-    arr, mask, i, sigma, nsig, overlap_frac = imps
-    return BubbleFinder2D(arr, channel=i,
+    arr, mask, i, sigma, nsig, overlap_frac, return_mask = imps
+    bubs = BubbleFinder2D(arr, channel=i,
                           mask=mask, sigma=sigma).\
         multiscale_bubblefind(nsig=nsig,
-                              overlap_frac=overlap_frac).regions
+                              overlap_frac=overlap_frac)
+    if return_mask:
+        return bubs.regions, bubs.mask
+
+    return bubs.regions

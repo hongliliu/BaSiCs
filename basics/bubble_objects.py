@@ -353,6 +353,8 @@ class BubbleNDBase(object):
                 nchans = self.channel_width
                 start = 0
                 end = self.channel_width - 1
+                yshape = yy.shape[0]
+                xshape = yy.shape[1]
             else:
                 if len(shape) != 3:
                     raise TypeError("A 3D shape must be given when returning"
@@ -360,14 +362,16 @@ class BubbleNDBase(object):
                 nchans = shape[0]
                 start = self.channel_start
                 end = self.channel_end
+                yshape = shape[1]
+                xshape = shape[2]
 
             threeD_mask = np.tile(twoD_mask, (nchans, 1, 1))
 
             # Now blank the channels where the mask isn't there
             threeD_mask[:start] = \
-                np.zeros((start, shape[1], shape[2]), dtype=bool)
+                np.zeros((start, yshape, xshape), dtype=bool)
             threeD_mask[end:] = \
-                np.zeros((nchans - end, shape[1], shape[2]),
+                np.zeros((nchans - end, yshape, xshape),
                          dtype=bool)
 
             shell_mask = threeD_mask

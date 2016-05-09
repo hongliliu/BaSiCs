@@ -181,7 +181,8 @@ class BubbleNDBase(object):
         return Ellipse2D(True, self.x, self.y, major, minor,
                          self.pa)
 
-    def as_mask(self, shape=None, zero_center=False, spectral_extent=False):
+    def as_mask(self, mask=None, shape=None, zero_center=False,
+                spectral_extent=False):
         '''
         Return a boolean mask of the 2D region.
 
@@ -194,6 +195,11 @@ class BubbleNDBase(object):
             bubble is returned.
 
         '''
+
+        # This situation seems ill-defined unless the mask shape is assumed.
+        # Force to the mask shape in this case.
+        if shape is None and mask is not None:
+            shape = mask.shape
 
         # Returns the bbox shape. Forces zero_center to be True
         if shape is None:
@@ -218,7 +224,7 @@ class BubbleNDBase(object):
 
         # Just return the 2D footprint
         if not spectral_extent:
-            return twoD_mask
+            region_mask = twoD_mask
         elif spectral_extent and isinstance(self, Bubble2D):
             raise TypeError("Can only use spectral_extent for Bubble3D"
                             " objects.")
@@ -236,16 +242,22 @@ class BubbleNDBase(object):
                 start = self.channel_start
                 end = self.channel_end
 
-            threeD_mask = np.tile(twoD_mask, (nchans, 1, 1))
+            region_mask = np.tile(twoD_mask, (nchans, 1, 1))
 
             # Now blank the channels where the mask isn't there
-            threeD_mask[:start] = \
+            region_mask[:start] = \
                 np.zeros((start, shape[1], shape[2]), dtype=bool)
-            threeD_mask[end:] = \
+            region_mask[end:] = \
                 np.zeros((nchans - end, shape[1], shape[2]),
                          dtype=bool)
 
-            return threeD_mask
+        # Multiply by the mask to remove potential empty regions in the shell.
+        # The hole masks are defined where there isn't signal, so multiple by
+        # not mask
+        if mask is not None:
+            region_mask *= mask
+
+        return region_mask
 
     def as_shell_annulus(self, area_factor=2, zero_center=False):
         '''
@@ -341,8 +353,10 @@ class BubbleNDBase(object):
             shell_mask = threeD_mask
 
         # Multiply by the mask to remove potential empty regions in the shell.
+        # The hole masks are defined where there isn't signal, so multiple by
+        # not mask
         if mask is not None:
-            shell_mask *= mask
+            shell_mask *= ~mask
 
         return shell_mask
 

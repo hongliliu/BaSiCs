@@ -213,11 +213,13 @@ class BubbleNDBase(object):
 
         else:
             if len(shape) == 2:
-                yy, xx = np.mgrid[:shape[0], :shape[1]]
+                yshape, xshape = shape
             elif len(shape) == 3:
-                yy, xx = np.mgrid[:shape[1], :shape[2]]
+                yshape, xshape = shape[1:]
             else:
                 raise TypeError("shape must be for 2D or 3D.")
+
+            yy, xx = np.mgrid[:yshape, :xshape]
 
         twoD_mask = \
             self.as_ellipse(zero_center=zero_center)(xx, yy).astype(np.bool)
@@ -334,11 +336,13 @@ class BubbleNDBase(object):
 
         else:
             if len(shape) == 2:
-                yy, xx = np.mgrid[:shape[0], :shape[1]]
+                yshape, xshape = shape
             elif len(shape) == 3:
-                yy, xx = np.mgrid[:shape[1], :shape[2]]
+                yshape, xshape = shape[1:]
             else:
                 raise TypeError("shape must be for 2D or 3D.")
+
+            yy, xx = np.mgrid[:yshape, :xshape]
 
         if include_center and mask is not None:
             twoD_mask = \

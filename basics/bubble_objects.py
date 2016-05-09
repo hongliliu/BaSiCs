@@ -201,6 +201,10 @@ class BubbleNDBase(object):
         if shape is None and mask is not None:
             shape = mask.shape
 
+        if use_twoD_regions and shape is None and mask is None:
+            raise NotImplementedError("Issues with defining a single grid for"
+                                      " each local region.")
+
         # Returns the bbox shape. Forces zero_center to be True
         if shape is None:
             zero_center = True
@@ -320,6 +324,10 @@ class BubbleNDBase(object):
         # Force to the mask shape in this case.
         if shape is None and mask is not None:
             shape = mask.shape
+
+        if use_twoD_regions and shape is None and mask is None:
+            raise NotImplementedError("Issues with defining a single grid for"
+                                      " each local region.")
 
         # Returns the bbox shape. Forces zero_center to be True
         if shape is None:

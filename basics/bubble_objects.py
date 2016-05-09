@@ -233,7 +233,7 @@ class BubbleNDBase(object):
             if shape is None:
                 nchans = self.channel_width
                 start = 0
-                end = self.channel_width - 1
+                end = self.channel_width + 1
                 yshape = yy.shape[0]
                 xshape = yy.shape[1]
             else:
@@ -242,7 +242,7 @@ class BubbleNDBase(object):
                                     " a 3D mask.")
                 nchans = shape[0]
                 start = self.channel_start
-                end = self.channel_end
+                end = self.channel_end + 1
                 yshape = shape[1]
                 xshape = shape[2]
 
@@ -352,7 +352,7 @@ class BubbleNDBase(object):
             if shape is None:
                 nchans = self.channel_width
                 start = 0
-                end = self.channel_width - 1
+                end = self.channel_width + 1
                 yshape = yy.shape[0]
                 xshape = yy.shape[1]
             else:
@@ -361,7 +361,7 @@ class BubbleNDBase(object):
                                     " a 3D mask.")
                 nchans = shape[0]
                 start = self.channel_start
-                end = self.channel_end
+                end = self.channel_end + 1
                 yshape = shape[1]
                 xshape = shape[2]
 
@@ -370,7 +370,7 @@ class BubbleNDBase(object):
             # Now blank the channels where the mask isn't there
             threeD_mask[:start] = \
                 np.zeros((start, yshape, xshape), dtype=bool)
-            threeD_mask[end:] = \
+            threeD_mask[end + 1:] = \
                 np.zeros((nchans - end, yshape, xshape),
                          dtype=bool)
 

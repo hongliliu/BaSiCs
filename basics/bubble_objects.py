@@ -93,6 +93,13 @@ class BubbleNDBase(object):
     def shell_coords(self):
         return self._shell_coords
 
+    def overlap_with(self, other_bubble):
+        '''
+        Return the overlap with another bubble.
+        '''
+
+        return overlap_metric(self.params, other_bubble.params)
+
     def as_patch(self, x_cent=None, y_cent=None, **kwargs):
         from matplotlib.patches import Ellipse
         y, x, rmaj, rmin, pa = self.params[:5]
@@ -497,13 +504,6 @@ class Bubble2D(BubbleNDBase):
                      ceil_int(bbox[0][1]) + pad + 1,
                      floor_int(bbox[1][0]) - pad:
                      ceil_int(bbox[1][1]) + pad + 1]
-
-    def overlap_with(self, other_bubble2D):
-        '''
-        Return the overlap with another bubble.
-        '''
-
-        return overlap_metric(self.params, other_bubble2D.params)
 
     def __repr__(self):
         s = "2D Bubble at: ({0:6f}, {1:6f})\n".format(self.y, self.x)

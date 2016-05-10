@@ -208,7 +208,8 @@ class BubbleFinder(object):
                         linewidth = 3
                         linestyle = "--"
                     ax.add_patch(bub.as_patch(color=region_col, fill=False,
-                                              linewidth=2, linestyle))
+                                              linewidth=linewidth,
+                                              linestyle=linestyle))
                     ax.plot(bub.x, bub.y, region_col + 'D')
                     if edges:
                         ax.plot(bub.shell_coords[:, 2], bub.shell_coords[:, 1],

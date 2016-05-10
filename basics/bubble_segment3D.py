@@ -224,7 +224,7 @@ class BubbleFinder(object):
             return ax
 
     def visualize_channel_maps(self, all_chans=False, subplot=False,
-                               edges=False):
+                               edges=False, plot_unclustered=False):
         '''
         Plot each channel optionally overlaid with the regions and/or the
         edges.
@@ -261,6 +261,19 @@ class BubbleFinder(object):
                     if edges:
                         ax.plot(twod.shell_coords[:, 1],
                                 twod.shell_coords[:, 0], "go")
+            if not plot_unclustered:
+                continue
+            # Also show the unclustered regions in each channel
+            for clust in self.unclustered_regions:
+                for reg in clust:
+                    if reg.channel_center != chan:
+                        continue
+                    ax.add_patch(reg.as_patch(color='r', fill=False,
+                                              linewidth=2))
+                    ax.plot(reg.x, reg.y, 'rD')
+                    if edges:
+                        ax.plot(reg.shell_coords[:, 1],
+                                reg.shell_coords[:, 0], "ro")
 
             p.xlim([0, self.cube.shape[2]])
             p.ylim([0, self.cube.shape[1]])

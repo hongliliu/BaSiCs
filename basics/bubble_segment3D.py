@@ -192,10 +192,10 @@ class BubbleFinder(object):
         else:
             for bub in self.bubbles:
                 if plot_twoD_shapes:
-                    for twod in bub.twoD_regions:
-                        ax.add_patch(twod.as_patch(color=region_col,
-                                                   fill=False,
-                                                   linewidth=2))
+                    for reg in bub.twoD_regions:
+                        ax.add_patch(reg.as_patch(color=region_col,
+                                                  fill=False,
+                                                  linewidth=2))
                         ax.plot(reg.x, reg.y, region_col + "D")
                         if edges:
                             ax.plot(reg.shell_coords[:, 1],

@@ -168,7 +168,7 @@ class BubbleFinder(object):
 
         if moment0 is None:
             # Create the moment array from the cube
-            moment0 = self.cube.moment0()
+            moment0 = self.cube.moment0().value
 
         import matplotlib.pyplot as p
 

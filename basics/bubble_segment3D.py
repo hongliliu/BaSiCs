@@ -224,7 +224,8 @@ class BubbleFinder(object):
             return ax
 
     def visualize_channel_maps(self, all_chans=False, subplot=False,
-                               edges=False, plot_unclustered=False):
+                               edges=False, plot_unclustered=False,
+                               interactive_plot=True):
         '''
         Plot each channel optionally overlaid with the regions and/or the
         edges.
@@ -278,7 +279,12 @@ class BubbleFinder(object):
             p.xlim([0, self.cube.shape[2]])
             p.ylim([0, self.cube.shape[1]])
 
-            p.show()
+            if interactive_plot:
+                p.draw()
+                raw_input("?")
+                p.clf()
+            else:
+                p.show()
 
 
 def _region_return(imps):

@@ -737,6 +737,12 @@ class Bubble3D(BubbleNDBase):
         if chan_cent is None:
             chan_cent = self.channel_center
 
+        ## Return a rectangle (side-view of a cylinder) when the bubble
+        # is a blowout.
+
+        # if self.bubble_type == 1:
+        #     return Rectangle(...)
+        # else:
         return Ellipse((x_cent, chan_cent),
                        width=2 * self.major,
                        height=self.channel_width,
@@ -808,8 +814,8 @@ class Bubble3D(BubbleNDBase):
 
         # Flush this out with proper labels, etc...
         ax.set_xlabel("x")
-        ax.set_xlabel("y")
-        ax.set_xlabel("v")
+        ax.set_ylabel("y")
+        ax.set_zlabel("v")
 
         p.show()
 

@@ -180,13 +180,14 @@ class BubbleFinder(object):
             ax.imshow(moment0, cmap='afmhot', origin='lower')
 
         if plot_unclustered:
-            for reg in self.unclustered_regions:
-                ax.add_patch(reg.as_patch(color=region_col, fill=False,
-                                          linewidth=2))
-                ax.plot(reg.x, reg.y, region_col + 'D')
-                if edges:
-                    ax.plot(reg.shell_coords[:, 1], reg.shell_coords[:, 0],
-                            edge_col + "o")
+            for clust in self.unclustered_regions:
+                for reg in clust:
+                    ax.add_patch(reg.as_patch(color=region_col, fill=False,
+                                              linewidth=2))
+                    ax.plot(reg.x, reg.y, region_col + 'D')
+                    if edges:
+                        ax.plot(reg.shell_coords[:, 1], reg.shell_coords[:, 0],
+                                edge_col + "o")
         else:
             for bub in self.bubbles:
                 ax.add_patch(bub.as_patch(color=region_col, fill=False,

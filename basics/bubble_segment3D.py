@@ -252,7 +252,7 @@ class BubbleFinder(object):
             for bub in self.bubbles:
                 if chan < bub.channel_start and chan > bub.channel_end:
                     continue
-                for twod in bub.twoD_objects:
+                for twod in bub.twoD_regions:
                     if twod.channel_center != chan:
                         continue
                     ax.add_patch(twod.as_patch(color='b', fill=False,

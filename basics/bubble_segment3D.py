@@ -241,6 +241,8 @@ class BubbleFinder(object):
             chans = np.unique(np.array(chans, dtype=np.int))
 
         import matplotlib.pyplot as p
+        if interactive_plot:
+            p.ion()
 
         for chan in chans:
             if subplot:

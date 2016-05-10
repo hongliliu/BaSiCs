@@ -105,7 +105,7 @@ class BubbleNDBase(object):
         return Ellipse((x, y), width=2 * rmaj, height=2 * rmin,
                        angle=np.rad2deg(pa), **kwargs)
 
-    def intensity_props(self, data):
+    def intensity_props(self, data, area_factor=1.):
         '''
         Return the mean and std for the elliptical region in the given data.
         '''
@@ -115,9 +115,12 @@ class BubbleNDBase(object):
         elif isinstance(data, SpectralCube):
             is_2D = False
 
+        # Assume the shape is evenly increased/decreased by area_facotr
+        major = max(3, np.sqrt(area_factor) * self.major)
+        minor = max(3, np.sqrt(area_factor) * self.minor)
+
         inner_ellipse = \
-            Ellipse2D(True, self.x, self.y, max(3, self.major / 2.),
-                      max(3, self.minor / 2.), self.pa)
+            Ellipse2D(True, self.x, self.y, major, minor, self.pa)
 
         yy, xx = np.mgrid[:data.shape[-2], :data.shape[-1]]
 
@@ -656,6 +659,10 @@ class Bubble3D(BubbleNDBase):
                       significant emission.
 
         '''
+
+        # We want to check whether the next channel in each direction contain
+        # a similar intensity level as found within the hole.
+
         raise NotImplementedError("")
 
     @property

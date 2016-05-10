@@ -573,11 +573,21 @@ class Bubble3D(BubbleNDBase):
             props, resid = fit_region(all_coords[:, 1:], **fit_kwargs)
 
         else:
+            # Leave the circles out of the PA calculation
+            pas = twoD_properties[:, 4][np.nonzero(twoD_properties[:, 4])]
+            if pas.size == 0:
+                # All circles. No reason to average
+                av_pa = 0.0
+            else:
+                # circular mean is defined on a 2 pi range. The PAs have a
+                # range of pi. So multiply by 2 to average, then divide by
+                # half, before finally
+                av_pa = wrap_to_pi(0.5 * circmean(2 * pas))
             props = np.array([np.median(twoD_properties[:, 0]),
                               np.median(twoD_properties[:, 1]),
                               np.median(twoD_properties[:, 2]),
                               np.median(twoD_properties[:, 3]),
-                              wrap_to_pi(circmean(twoD_properties[:, 4]))])
+                              av_pa])
 
         props = np.append(props,
                           [int(round(np.median(twoD_properties[:, 5]))),

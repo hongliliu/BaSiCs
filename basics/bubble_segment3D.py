@@ -157,7 +157,7 @@ class BubbleFinder(object):
 
     def visualize_bubbles(self, show=True, edges=False, ax=None,
                           moment0=None, region_col='b', edge_col='g',
-                          log_scale=False):
+                          log_scale=False, plot_unclustered=False):
         '''
         Show the location of the bubbles on the moment 0 array.
         '''
@@ -179,13 +179,22 @@ class BubbleFinder(object):
         else:
             ax.imshow(moment0, cmap='afmhot', origin='lower')
 
-        for bub in self.bubbles:
-            ax.add_patch(bub.as_patch(color=region_col, fill=False,
-                                      linewidth=2))
-            ax.plot(bub.x, bub.y, region_col + 'D')
-            if edges:
-                ax.plot(bub.shell_coords[:, 2], bub.shell_coords[:, 1],
-                        edge_col + "o")
+        if plot_unclustered:
+            for reg in self.unclustered_regions:
+                ax.add_patch(reg.as_patch(color=region_col, fill=False,
+                                          linewidth=2))
+                ax.plot(reg.x, reg.y, region_col + 'D')
+                if edges:
+                    ax.plot(reg.shell_coords[:, 1], reg.shell_coords[:, 0],
+                            edge_col + "o")
+        else:
+            for bub in self.bubbles:
+                ax.add_patch(bub.as_patch(color=region_col, fill=False,
+                                          linewidth=2))
+                ax.plot(bub.x, bub.y, region_col + 'D')
+                if edges:
+                    ax.plot(bub.shell_coords[:, 2], bub.shell_coords[:, 1],
+                            edge_col + "o")
 
         p.xlim([0, self.cube.shape[2]])
         p.ylim([0, self.cube.shape[1]])

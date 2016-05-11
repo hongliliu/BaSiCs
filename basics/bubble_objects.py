@@ -577,7 +577,7 @@ class Bubble2D(BubbleNDBase):
 
         if hasattr(self, "_shell_fraction") is not None:
             shell = "Closed" if self.is_closed else "Partial"
-            s += "{0s} shell with fraction of: {0:6f}" \
+            s += "{0} shell with fraction of: {1:6f}" \
                 " \n".format(shell, self.shell_fraction)
 
         return s
@@ -1105,7 +1105,7 @@ class Bubble3D(BubbleNDBase):
 
         if hasattr(self, "_shell_fraction") is not None:
             shell = "Closed" if self.is_closed else "Partial"
-            s += "{0s} shell with fraction of: {0:6f}" \
+            s += "{0} shell with fraction of: {1:6f}" \
                 " \n".format(shell, self.shell_fraction)
 
         return s

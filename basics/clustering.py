@@ -122,3 +122,36 @@ def cluster_and_clean(twod_region_props, min_scatter=9):
             cluster_idx[posns[spec_idx == idx]] = cluster_idx.max() + 1
 
     return cluster_idx
+
+
+def cluster_brute_force(twod_region_props, cut_val=0.5):
+    '''
+    Do a brute force clustering of the regions
+    '''
+
+    cluster_idx = np.zeros_like(twod_region_props[:, 0])
+
+    # Determine the channels which have regions defined in them
+    chans = np.unique(twod_region_props[:, 5])
+
+    # Now loop through each channel's regions looking for significant overlap
+    # with a region before it.
+    for chan in chans[1:]:
+        chan_regions_idx = np.where(twod_region_props[:, 5] == chan)[0]
+        prev_regions_idx = np.where(twod_region_props[:, 5] == chan - 1)[0]
+
+        for j in prev_regions_idx:
+            prev_reg = twod_region_props[j]
+            for i in chan_regions_idx:
+                reg = twod_region_props[i]
+                if overlap_metric(prev_reg, reg, return_corr=True) >= cut_val:
+                    # Create a new cluster, or add to the existing one.
+                    if cluster_idx[j] == 0:
+                        # Create a new cluster
+                        new_idx = cluster_idx.max() + 1
+                        cluster_idx[j] = new_idx
+                        cluster_idx[i] = new_idx
+                    else:
+                        cluster_idx[i] = cluster_idx[j]
+
+    return cluster_idx

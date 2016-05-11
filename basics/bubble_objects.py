@@ -51,6 +51,10 @@ class BubbleNDBase(object):
         return self._minor
 
     @property
+    def diameter(self):
+        return 2 * np.sqrt(self.major * self.minor)
+
+    @property
     def ra(self):
         if self._ra is not None:
             return self._ra

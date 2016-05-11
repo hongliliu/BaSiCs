@@ -8,7 +8,7 @@ from warnings import warn
 
 from bubble_segment2D import BubbleFinder2D
 from bubble_objects import Bubble3D
-from clustering import cluster_and_clean
+from clustering import cluster_and_clean, cluster_brute_force
 from utils import sig_clip
 
 
@@ -123,9 +123,15 @@ class BubbleFinder(object):
 
         bubble_props = np.vstack([bub.params for bub in twod_regions])
 
-        cluster_idx = cluster_and_clean(bubble_props, **kwargs)
+        # cluster_idx = cluster_and_clean(bubble_props, **kwargs)
+        cluster_idx = cluster_brute_force(bubble_props, **kwargs)
 
-        for idx in np.unique(cluster_idx[cluster_idx >= 0]):
+        # Add the unclustered ones first
+        unclusts = [twod_regions[idx] for idx in np.where(cluster_idx == 0)[0]]
+        for reg in unclusts:
+            self._unclustered_regions.append([reg])
+
+        for idx in np.unique(cluster_idx[cluster_idx > 0]):
             regions = [twod_regions[idx] for idx in
                        np.where(cluster_idx == idx)[0]]
 

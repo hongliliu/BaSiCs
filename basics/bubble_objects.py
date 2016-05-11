@@ -619,10 +619,10 @@ class Bubble3D(BubbleNDBase):
         # Set the bubble type
         if cube is not None and mask is not None:
             self.find_bubble_type(cube, mask, **kwargs)
+            self.set_shell_properties(cube, mask)
 
         if cube is not None:
             self.set_wcs_extents(cube)
-            self.set_shell_properties(cube)
 
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,

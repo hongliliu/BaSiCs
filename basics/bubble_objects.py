@@ -575,8 +575,10 @@ class Bubble2D(BubbleNDBase):
             s += "Minor radius: {0:6f} \n".format(self.minor)
             s += "Position Angle: {0:6f} \n".format(self.pa)
 
-        if self.shell_fraction is not None:
-            s += "Shell fraction: {0:6f} \n".format(self.shell_fraction)
+        if hasattr(self, "_shell_fraction") is not None:
+            shell = "Closed" if self.is_closed else "Partial"
+            s += "{0s} shell with fraction of: {0:6f}" \
+                " \n".format(shell, self.shell_fraction)
 
         return s
 
@@ -1101,7 +1103,9 @@ class Bubble3D(BubbleNDBase):
         s += "Channel width: {0:6f} \n".format(self.channel_width)
         # s += "Spectral width: {0.6f} \n".format(self.velocity_width)
 
-        # if self.shell_fraction is not None:
-        #     s += "Shell fraction: {0:6f} \n".format(self.shell_fraction)
+        if hasattr(self, "_shell_fraction") is not None:
+            shell = "Closed" if self.is_closed else "Partial"
+            s += "{0s} shell with fraction of: {0:6f}" \
+                " \n".format(shell, self.shell_fraction)
 
         return s

@@ -137,7 +137,8 @@ class BubbleFinder(object):
             if chans.max() + 1 - chans.min() >= min_channels:
                 self._bubbles.append(Bubble3D.from_2D_regions(regions,
                                                               refit=refit,
-                                                              cube=self.cube))
+                                                              cube=self.cube,
+                                                              mask=self.mask))
             else:
                 self._unclustered_regions.append(regions)
 

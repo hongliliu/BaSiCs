@@ -626,6 +626,7 @@ class Bubble3D(BubbleNDBase):
         if cube is not None and mask is not None:
             self.find_bubble_type(cube, mask, **kwargs)
             self.set_shell_properties(cube, mask)
+            self.find_expansion_velocity()
 
         if cube is not None:
             self.set_wcs_extents(cube)
@@ -843,7 +844,7 @@ class Bubble3D(BubbleNDBase):
         else:
             self.bubble_type = 4
 
-    def find_expansion_velocity(self, cube):
+    def find_expansion_velocity(self):
         '''
         Calculate the expansion velocity, using the definitions from
         Bagetakos et al. (2011). This depends on the bubble type, so that

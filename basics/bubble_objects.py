@@ -897,15 +897,18 @@ class Bubble3D(BubbleNDBase):
 
         p.show()
 
-    def visualize(self, cube, return_plot=False, use_aplpy=True):
+    def visualize(self, cube, return_plot=False, use_aplpy=True,
+                  spatial_pad=10, spec_pad=5):
         '''
         Visualize the bubble within the cube.
         '''
 
-        moment0 = self.return_moment0(cube, spatial_pad=10, spec_pad=5)
+        moment0 = self.return_moment0(cube, spatial_pad=spatial_pad,
+                                      spec_pad=spec_pad)
 
         pvslice = \
-            self.extract_pv_slice(cube, spatial_pad=10, spec_pad=5)
+            self.extract_pv_slice(cube, spatial_pad=spatial_pad,
+                                  spec_pad=spec_pad)
 
         import matplotlib.pyplot as p
         fig = p.figure()

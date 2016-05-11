@@ -232,10 +232,10 @@ class BubbleNDBase(object):
 
         # In 3D, set the velocity properties
         if isinstance(self, Bubble3D):
-            self._shell_velocity_median = \
+            self._shell_velocity_mean = \
                 np.nanmedian(u.Quantity(shell_cube.moment1()))
             self._shell_velocity_disp = \
-                np.nanmedian(u.Quantity(shell_cube.moment2()))
+                np.nanmedian(u.Quantity(np.sqrt(shell_cube.moment2())))
 
     @property
     def avg_shell_flux_density(self):

@@ -228,8 +228,8 @@ class BubbleNDBase(object):
 
         # In 3D, set the velocity properties
         if isinstance(self, Bubble3D):
-            self._shell_velocity_median = shell_cube.moment1().median()
-            self._shell_velocity_disp = shell_cube.moment2().median()
+            self._shell_velocity_median = np.median(shell_cube.moment1())
+            self._shell_velocity_disp = np.median(shell_cube.moment2())
 
     @property
     def avg_shell_flux_density(self):

@@ -2,6 +2,7 @@
 import numpy as np
 from astropy.modeling.models import Ellipse2D
 from astropy.stats import circmean
+from astropy import units as u
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 from spectral_cube import SpectralCube
 from warnings import warn
@@ -739,6 +740,18 @@ class Bubble3D(BubbleNDBase):
     @property
     def expansion_velocity(self):
         return self._expansion_velocity
+
+    def tkin(self, prefactor=0.978, age_unit=u.Myr):
+        '''
+        Upper limit for the kinetic age of the hole. The prefactor reflects a
+        correction for a higher expansion velocity at earlier stages of
+        expansion. 0.978 is given in Bagetakos et al. (2011).
+        '''
+
+        raise NotImplementedError("Need to support physical units first.")
+
+        tkin = prefactor * 0.5 * self.diameter / self.expansion_velocity
+        return tkin.to(age_unit)
 
     @property
     def bubble_type(self):

@@ -719,10 +719,12 @@ class Bubble3D(BubbleNDBase):
 
         if before_blowout and end_blowout:
             self.bubble_type = 1
-        elif before_blowout or end_blowout:
+        elif before_blowout and not end_blowout:
             self.bubble_type = 2
-        else:
+        elif not before_blowout and end_blowout:
             self.bubble_type = 3
+        else:
+            self.bubble_type = 4
 
     @property
     def bubble_type(self):
@@ -733,8 +735,8 @@ class Bubble3D(BubbleNDBase):
         '''
         Must be 1 (blowout), 2 (partial blowout), or 3 (enclosed).
         '''
-        if input_type not in [1, 2, 3]:
-            raise TypeError("Bubble type must be 1, 2, or 3.")
+        if input_type not in [1, 2, 3, 4]:
+            raise TypeError("Bubble type must be 1, 2, 3 or 4.")
 
         self._bubble_type = input_type
 

@@ -141,17 +141,31 @@ def cluster_brute_force(twod_region_props, cut_val=0.5):
         prev_regions_idx = np.where(twod_region_props[:, 5] == chan - 1)[0]
 
         for j in prev_regions_idx:
+
+            join_list = []
             prev_reg = twod_region_props[j]
             for i in chan_regions_idx:
                 reg = twod_region_props[i]
-                if overlap_metric(prev_reg, reg, return_corr=True) >= cut_val:
-                    # Create a new cluster, or add to the existing one.
-                    if cluster_idx[j] == 0:
-                        # Create a new cluster
-                        new_idx = cluster_idx.max() + 1
-                        cluster_idx[j] = new_idx
-                        cluster_idx[i] = new_idx
-                    else:
-                        cluster_idx[i] = cluster_idx[j]
+                overlap = overlap_metric(prev_reg, reg, return_corr=True)
+                if overlap >= cut_val:
+                    join_list.append([i, overlap])
+
+            if len(join_list) == 0:
+                continue
+            elif len(join_list) == 1:
+                join_idx = join_list[0][0]
+            else:
+                # If there are multiple overlaps, choose the largest one
+                join_list = np.array(join_list)
+                join_idx = np.argmax(join_list[:, 1])
+
+            # Create a new cluster, or add to the existing one.
+            if cluster_idx[j] == 0:
+                # Create a new cluster
+                new_idx = cluster_idx.max() + 1
+                cluster_idx[j] = new_idx
+                cluster_idx[join_idx] = new_idx
+            else:
+                cluster_idx[join_idx] = cluster_idx[j]
 
     return cluster_idx

@@ -656,7 +656,7 @@ class Bubble3D(BubbleNDBase):
     def channel_width(self):
         return self.channel_end - self.channel_start + 1
 
-    def find_bubble_type(self, cube):
+    def find_bubble_type(self, cube, mask=None, min_frac_filled=0.5):
         '''
         Use the cube to determine what type of bubble this is.
 
@@ -673,11 +673,64 @@ class Bubble3D(BubbleNDBase):
         # We want to check whether the next channel in each direction contain
         # a similar intensity level as found within the hole.
 
-        raise NotImplementedError("")
+        # mean, std = self.intensity_props(cube)
+
+        # Look before
+        if self.channel_start == 0:
+            warn("Bubble starts on the first channel. We're going to assume"
+                 " that this constitutes a blow-out.")
+            before_blowout = True
+        else:
+            before_channel = self.channel_start - 1
+
+            # Check the mask to see if the majority is not a bubble region.
+            twoD_mask = self.as_mask(mask=~mask[before_channel])
+
+            frac_filled = twoD_mask.sum() / np.floor(self.area)
+
+            if frac_filled >= min_frac_filled:
+                before_blowout = False
+            else:
+                before_blowout = True
+
+        # Now look after
+        if self.channel_end == cube.shape[0]:
+            warn("Bubble ends on the last channel. We're going to assume"
+                 " that this constitutes a blow-out.")
+            end_blowout = True
+        else:
+            end_channel = self.channel_end + 1
+
+            # Check the mask to see if the majority is not a bubble region.
+            twoD_mask = self.as_mask(mask=~mask[end_channel])
+
+            frac_filled = twoD_mask.sum() / np.floor(self.area)
+
+            if frac_filled >= min_frac_filled:
+                end_blowout = False
+            else:
+                end_blowout = True
+
+        if before_blowout and end_blowout:
+            self.bubble_type = 1
+        elif before_blowout or end_blowout:
+            self.bubble_type = 2
+        else:
+            self.bubble_type = 3
 
     @property
     def bubble_type(self):
         return self._bubble_type
+
+    @bubble_type.setter
+    def bubble_type(self, input_type):
+        '''
+        Must be 1 (blowout), 2 (partial blowout), or 3 (enclosed).
+        '''
+        if input_type not in [1, 2, 3]:
+            raise TypeError("Bubble type must be 1, 2, or 3.")
+
+        self._bubble_type = input_type
 
     def _chan_iter(self):
         return xrange(int(self.channel_start), int(self.channel_end) + 1)

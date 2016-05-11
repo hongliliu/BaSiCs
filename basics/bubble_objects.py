@@ -227,8 +227,8 @@ class BubbleNDBase(object):
         # Actually it's even worse than that: nanmean won't work with
         # Projections... Lazy work around it to convert to a Quantity
         mom0 = u.Quantity(shell_cube.moment0())
-        self._avg_shell_flux_density = mom0.mean()
-        self._total_shell_flux_density = mom0.sum()
+        self._avg_shell_flux_density = np.mean(mom0)
+        self._total_shell_flux_density = np.sum(mom0)
 
         # In 3D, set the velocity properties
         if isinstance(self, Bubble3D):

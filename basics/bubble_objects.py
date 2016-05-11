@@ -222,16 +222,20 @@ class BubbleNDBase(object):
         shell_cube = data.with_mask(shell_mask).minimal_subcube()
         # Once 2D is supported, need extra if/else for minimal_sub-something
 
-        mom0 = shell_cube.moment0()
         # Can't just use mom0.mean() right now until this issue is dealt with:
         # https://github.com/radio-astro-tools/spectral-cube/issues/279
-        self._avg_shell_flux_density = np.nanmean(mom0)
-        self._total_shell_flux_density = np.nansum(mom0)
+        # Actually it's even worse than that: nanmean won't work with
+        # Projections... Lazy work around it to convert to a Quantity
+        mom0 = u.Quantity(shell_cube.moment0())
+        self._avg_shell_flux_density = mom0.mean()
+        self._total_shell_flux_density = mom0.sum()
 
         # In 3D, set the velocity properties
         if isinstance(self, Bubble3D):
-            self._shell_velocity_median = np.nanmedian(shell_cube.moment1())
-            self._shell_velocity_disp = np.nanmedian(shell_cube.moment2())
+            self._shell_velocity_median = \
+                np.nanmedian(u.Quantity(shell_cube.moment1()))
+            self._shell_velocity_disp = \
+                np.nanmedian(u.Quantity(shell_cube.moment2()))
 
     @property
     def avg_shell_flux_density(self):

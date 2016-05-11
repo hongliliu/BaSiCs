@@ -713,6 +713,10 @@ class Bubble3D(BubbleNDBase):
         return self._shell_velocity_disp
 
     @property
+    def expansion_velocity(self):
+        return self._expansion_velocity
+
+    @property
     def bubble_type(self):
         return self._bubble_type
 
@@ -789,6 +793,39 @@ class Bubble3D(BubbleNDBase):
             self.bubble_type = 3
         else:
             self.bubble_type = 4
+
+    def find_expansion_velocity(self, cube):
+        '''
+        Calculate the expansion velocity, using the definitions from
+        Bagetakos et al. (2011). This depends on the bubble type, so that
+        must be set. The mean velocity and dispersion within the shell must
+        also be set.
+        '''
+
+        # These both require more than the cube, so raise a warning instead of
+        # trying to run these functions
+        if not hasattr(self, "_bubble_type"):
+            raise Warning("Run find_bubble_type first.")
+        elif not hasattr(self, "__shell_velocity_disp"):
+            raise Warning("Run set_shell_properties first.")
+
+        # For complete blowouts, assume that the final expansion velocity is
+        # equal to the velocity dispersion in the gas. Use the dispersion
+        # within the shell.
+        if self.bubble_type == 1:
+            self._expansion_velocity = self.shell_velocity_disp
+        # Half blowouts use the difference between the mean gas velocity in
+        # the shell and the channel velocity of the bounded side.
+        elif self.bubble_type == 2:
+            self._expansion_velocity = \
+                np.abs(self.shell_velocity_mean - self.velocity_end)
+        elif self.bubble_type == 3:
+            self._expansion_velocity = \
+                np.abs(self.shell_velocity_mean - self.velocity_start)
+        # And bounded bubbles use half of the difference between their extents
+        else:
+            self._expansion_velocity =  \
+                0.5 * np.abs(self.velocity_start - self.velocity_end)
 
     def _chan_iter(self):
         return xrange(int(self.channel_start), int(self.channel_end) + 1)

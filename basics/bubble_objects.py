@@ -233,11 +233,11 @@ class BubbleNDBase(object):
 
     @property
     def avg_shell_flux_density(self):
-        return self._avg_flux_density
+        return self._avg_shell_flux_density
 
     @property
     def total_shell_flux_density(self):
-        return self._total_flux_density
+        return self._total_shell_flux_density
 
     def as_ellipse(self, zero_center=True, extend_factor=1):
         '''

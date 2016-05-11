@@ -529,7 +529,8 @@ class Bubble3D(BubbleNDBase):
     cube : SpectralCube
         Uses the cube to find the spatial and spectral extents of the bubble.
     """
-    def __init__(self, props, cube=None, twoD_regions=None):
+    def __init__(self, props, cube=None, twoD_regions=None, mask=None,
+                 **kwargs):
         super(Bubble3D, self).__init__()
 
         self._y = props[0]
@@ -546,9 +547,13 @@ class Bubble3D(BubbleNDBase):
         if cube is not None:
             self.set_wcs_extents(cube)
 
+        # Set the bubble type
+        if cube is not None and mask is not None:
+            self.find_bubble_type(cube, mask, **kwargs)
+
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,
-                        cube=None, **fit_kwargs):
+                        cube=None, mask=None, **fit_kwargs):
         '''
         Create a 3D regions from a collection of 2D regions.
         '''
@@ -594,7 +599,8 @@ class Bubble3D(BubbleNDBase):
                            int(twoD_properties[:, 5].min()),
                            int(twoD_properties[:, 5].max())])
 
-        self = Bubble3D(props, cube=cube, twoD_regions=twod_region_list)
+        self = Bubble3D(props, cube=cube, mask=mask,
+                        twoD_regions=twod_region_list)
 
         self._shell_coords = all_coords
 
@@ -656,7 +662,7 @@ class Bubble3D(BubbleNDBase):
     def channel_width(self):
         return self.channel_end - self.channel_start + 1
 
-    def find_bubble_type(self, cube, mask=None, min_frac_filled=0.5):
+    def find_bubble_type(self, cube, mask, min_frac_filled=0.5):
         '''
         Use the cube to determine what type of bubble this is.
 

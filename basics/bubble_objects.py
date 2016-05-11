@@ -93,6 +93,27 @@ class BubbleNDBase(object):
     def shell_coords(self):
         return self._shell_coords
 
+    @property
+    def shell_fraction(self):
+        '''
+        Fraction of the region surrounded by a shell.
+        '''
+        return self._shell_fraction
+
+    @property
+    def is_closed(self):
+        '''
+        Determine whether the bubble is closed or partial. Closed is defined
+        by having a shell fraction >0.9, which follows the definition of
+        Deul & den Hartog (1990).
+        '''
+        # Bubble3D only has this set if 2D regions were given
+        if not hasattr(self, "_shell_fraction"):
+            raise Warning("Bubble3D must be created from Bubble2D objects for"
+                          " shell_fraction to be defined.")
+
+        return True if self.shell_fraction >= 0.9 else False
+
     def overlap_with(self, other_bubble):
         '''
         Return the overlap with another bubble.
@@ -512,13 +533,6 @@ class Bubble2D(BubbleNDBase):
         return radial_profiles(array, self.params, **kwargs)
 
     @property
-    def shell_fraction(self):
-        '''
-        Fraction of the region surrounded by a shell.
-        '''
-        return self._shell_fraction
-
-    @property
     def angular_std(self):
         '''
         The angular standard deviation of the shell positions.
@@ -585,6 +599,12 @@ class Bubble3D(BubbleNDBase):
         self._channel_end = props[7]
 
         self.twoD_regions = twoD_regions
+
+        if twoD_regions is not None:
+            # Define the shell fraction as the maximum from the 2D regions.
+            # There is some cool stuff to be done with
+            fracs = np.array([reg.shell_fraction for reg in self.twoD_regions])
+            self._shell_fraction = np.max(fracs)
 
         if cube is not None:
             self.set_wcs_extents(cube)

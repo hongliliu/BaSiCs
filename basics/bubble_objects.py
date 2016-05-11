@@ -591,7 +591,7 @@ class Bubble3D(BubbleNDBase):
         Uses the cube to find the spatial and spectral extents of the bubble.
     """
     def __init__(self, props, cube=None, twoD_regions=None, mask=None,
-                 **kwargs):
+                 distance=None, **kwargs):
         super(Bubble3D, self).__init__()
 
         self._y = props[0]
@@ -605,18 +605,22 @@ class Bubble3D(BubbleNDBase):
 
         self.twoD_regions = twoD_regions
 
+        if distance is not None:
+            self._distance = distance.to(u.pc)
+
         if twoD_regions is not None:
             # Define the shell fraction as the maximum from the 2D regions.
             # There is some cool stuff to be done with
             fracs = np.array([reg.shell_fraction for reg in self.twoD_regions])
             self._shell_fraction = np.max(fracs)
 
-        if cube is not None:
-            self.set_wcs_extents(cube)
-
         # Set the bubble type
         if cube is not None and mask is not None:
             self.find_bubble_type(cube, mask, **kwargs)
+
+        if cube is not None:
+            self.set_wcs_extents(cube)
+            self.set_shell_properties(cube)
 
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,

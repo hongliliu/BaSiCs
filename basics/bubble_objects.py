@@ -171,6 +171,48 @@ class BubbleNDBase(object):
             raise TypeError("data must be a SpectralCube or"
                             " LowerDimensionalObject.")
 
+    def set_shell_properties(self, data, mask, **shell_kwargs):
+        '''
+        Get the properties of the shell
+        '''
+
+        # Requires masking for 2D objects in SpectralCube to be ready
+        if isinstance(self, Bubble2D):
+            raise NotImplementedError("")
+
+        spectral_extent = False
+        if isinstance(self, Bubble3D):
+            spectral_extent = True
+
+        if "spectral_extent" in shell_kwargs:
+            warn("spectral_extent is automatically set. Ignoring input.")
+            del shell_kwargs["spectral_extent"]
+
+        shell_mask = self.as_shell_mask(mask=mask,
+                                        spectral_extent=spectral_extent,
+                                        **shell_kwargs)
+
+        # Apply the mask, then cut to its extents
+        shell_cube = data.with_mask(shell_mask).minimal_subcube()
+        # Once 2D is supported, need extra if/else for minimal_sub-something
+
+        mom0 = shell_cube.moment0()
+        self._avg_shell_flux_density = mom0.mean()
+        self._total_shell_flux_density = mom0.sum()
+
+        # In 3D, set the velocity properties
+        if isinstance(self, Bubble3D):
+            self._shell_velocity_median = shell_cube.moment1().median()
+            self._shell_velocity_disp = shell_cube.moment2().median()
+
+    @property
+    def avg_shell_flux_density(self):
+        return self._avg_flux_density
+
+    @property
+    def total_shell_flux_density(self):
+        return self._total_flux_density
+
     def as_ellipse(self, zero_center=True, extend_factor=1):
         '''
         Returns an Ellipse2D model.
@@ -662,6 +704,28 @@ class Bubble3D(BubbleNDBase):
     def channel_width(self):
         return self.channel_end - self.channel_start + 1
 
+    @property
+    def shell_velocity_mean(self):
+        return self._shell_velocity_mean
+
+    @property
+    def shell_velocity_disp(self):
+        return self._shell_velocity_disp
+
+    @property
+    def bubble_type(self):
+        return self._bubble_type
+
+    @bubble_type.setter
+    def bubble_type(self, input_type):
+        '''
+        Must be 1 (blowout), 2 (partial blowout), or 3 (enclosed).
+        '''
+        if input_type not in [1, 2, 3, 4]:
+            raise TypeError("Bubble type must be 1, 2, 3 or 4.")
+
+        self._bubble_type = input_type
+
     def find_bubble_type(self, cube, mask, min_frac_filled=0.5):
         '''
         Use the cube to determine what type of bubble this is.
@@ -725,20 +789,6 @@ class Bubble3D(BubbleNDBase):
             self.bubble_type = 3
         else:
             self.bubble_type = 4
-
-    @property
-    def bubble_type(self):
-        return self._bubble_type
-
-    @bubble_type.setter
-    def bubble_type(self, input_type):
-        '''
-        Must be 1 (blowout), 2 (partial blowout), or 3 (enclosed).
-        '''
-        if input_type not in [1, 2, 3, 4]:
-            raise TypeError("Bubble type must be 1, 2, 3 or 4.")
-
-        self._bubble_type = input_type
 
     def _chan_iter(self):
         return xrange(int(self.channel_start), int(self.channel_end) + 1)

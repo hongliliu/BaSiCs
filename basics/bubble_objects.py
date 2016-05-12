@@ -856,7 +856,7 @@ class Bubble3D(BubbleNDBase):
         # trying to run these functions
         if not hasattr(self, "_bubble_type"):
             raise Warning("Run find_bubble_type first.")
-        elif not hasattr(self, "__shell_velocity_disp"):
+        elif not hasattr(self, "_shell_velocity_disp"):
             raise Warning("Run set_shell_properties first.")
 
         # For complete blowouts, assume that the final expansion velocity is

@@ -234,8 +234,9 @@ class BubbleNDBase(object):
         if isinstance(self, Bubble3D):
             self._shell_velocity_mean = \
                 np.nanmedian(u.Quantity(shell_cube.moment1()))
+            # Define the dispersion as half the FWHM linewidth
             self._shell_velocity_disp = \
-                np.nanmedian(u.Quantity(np.sqrt(shell_cube.moment2())))
+                np.nanmedian(u.Quantity(0.5 * shell_cube.linewidth_fwhm()))
 
     @property
     def avg_shell_flux_density(self):

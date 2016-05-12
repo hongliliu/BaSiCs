@@ -353,8 +353,8 @@ class BubbleNDBase(object):
                 # Now blank the channels where the mask isn't there
                 region_mask[:start] = \
                     np.zeros((start, yshape, xshape), dtype=bool)
-                region_mask[end:] = \
-                    np.zeros((nchans - end + 1, yshape, xshape),
+                region_mask[end + 1:] = \
+                    np.zeros((nchans - (end + 1), yshape, xshape),
                              dtype=bool)
 
         # Multiply by the mask to remove potential empty regions in the shell.

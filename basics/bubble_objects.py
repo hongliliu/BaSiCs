@@ -622,14 +622,14 @@ class Bubble3D(BubbleNDBase):
             fracs = np.array([reg.shell_fraction for reg in self.twoD_regions])
             self._shell_fraction = np.max(fracs)
 
+        if cube is not None:
+            self.set_wcs_extents(cube)
+
         # Set the bubble type
         if cube is not None and mask is not None:
             self.find_bubble_type(cube, mask, **kwargs)
             self.set_shell_properties(cube, mask)
             self.find_expansion_velocity()
-
-        if cube is not None:
-            self.set_wcs_extents(cube)
 
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,

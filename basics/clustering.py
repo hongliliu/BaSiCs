@@ -157,7 +157,7 @@ def cluster_brute_force(twod_region_props, cut_val=0.5):
             else:
                 # If there are multiple overlaps, choose the largest one
                 join_list = np.array(join_list)
-                join_idx = np.argmax(join_list[:, 1])
+                join_idx = join_list[np.argmax(join_list[:, 1]), 0]
 
             # Create a new cluster, or add to the existing one.
             if cluster_idx[j] == 0:

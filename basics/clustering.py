@@ -138,12 +138,19 @@ def cluster_brute_force(twod_region_props, cut_val=0.5):
     # with a region before it.
     for chan in chans[1:]:
         chan_regions_idx = np.where(twod_region_props[:, 5] == chan)[0]
+        area_sorted = np.argsort(twod_region_props[chan_regions_idx, 2] *
+                                 twod_region_props[chan_regions_idx, 3])
+        chan_regions_idx = chan_regions_idx[area_sorted]
         prev_regions_idx = np.where(twod_region_props[:, 5] == chan - 1)[0]
+        prev_area_sorted = np.argsort(twod_region_props[prev_regions_idx, 2] *
+                                      twod_region_props[prev_regions_idx, 3])
+        prev_regions_idx = prev_regions_idx[prev_area_sorted]
 
         for j in prev_regions_idx:
 
             join_list = []
             prev_reg = twod_region_props[j]
+            # Sort by some property? Area?
             for i in chan_regions_idx:
                 reg = twod_region_props[i]
                 overlap = overlap_metric(prev_reg, reg, return_corr=True)

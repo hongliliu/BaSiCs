@@ -304,3 +304,10 @@ def wrap_to_pi(angle):
         angle += np.pi
 
     return angle
+
+
+def find_row(arr, row_match):
+    for i, row in enumerate(arr):
+        if np.all(row == row_match):
+            return i
+    return None

@@ -263,8 +263,9 @@ class BubbleFinder2D(object):
                               edge_loc_bkg_nsig=3, max_eccent=3,
                               ellfit_thresh={"min_shell_frac": 0.5,
                                              "min_angular_std": 0.7},
-                              max_rad=3.0, verbose=False,
-                              use_ransac=False, ransac_trials=50):
+                              max_rad=1.5, verbose=False,
+                              use_ransac=False, ransac_trials=50,
+                              fit_iterations=2):
         '''
         Run find_bubbles on the specified scales.
         '''
@@ -299,33 +300,43 @@ class BubbleFinder2D(object):
                         print(coords)
                     continue
 
-                coords = np.array(coords)
-                try_fit_ellipse = \
-                    shell_frac >= ellfit_thresh["min_shell_frac"] and \
-                    angular_std >= ellfit_thresh["min_angular_std"]
+                fail_fit = False
 
-                props, resid = \
-                    fit_region(coords, initial_props=props,
-                               try_fit_ellipse=try_fit_ellipse,
-                               use_ransac=use_ransac,
-                               ransac_trials=ransac_trials,
-                               beam_pix=self.beam_pix, max_rad=max_rad,
-                               max_eccent=max_eccent,
-                               image_shape=self.array.shape,
-                               verbose=verbose)
+                for _ in range(fit_iterations):
+                    coords = np.array(coords)
+                    try_fit_ellipse = \
+                        shell_frac >= ellfit_thresh["min_shell_frac"] and \
+                        angular_std >= ellfit_thresh["min_angular_std"]
 
-                # Check if the fitting failed. If it did, continue on
-                if props is None:
+                    props, resid = \
+                        fit_region(coords, initial_props=props,
+                                   try_fit_ellipse=try_fit_ellipse,
+                                   use_ransac=use_ransac,
+                                   ransac_trials=ransac_trials,
+                                   beam_pix=self.beam_pix, max_rad=max_rad,
+                                   max_eccent=max_eccent,
+                                   image_shape=self.array.shape,
+                                   verbose=verbose)
+
+                    # Check if the fitting failed. If it did, continue on
+                    if props is None:
+                        fail_fit = True
+                        break
+
+                    # Now re-run the shell finding to update the coordinates with
+                    # the new model.
+                    coords, shell_frac, angular_std = \
+                        find_bubble_edges(self.array, props, max_extent=1.05,
+                                          value_thresh=value_thresh,
+                                          nsig_thresh=edge_loc_bkg_nsig,
+                                          try_local_bkg=False,
+                                          edge_mask=self.mask)[:-1]
+
+                    if len(coords) < 3:
+                        break
+                if fail_fit:
                     continue
 
-                # Now re-run the shell finding to update the coordinates with
-                # the new model.
-                coords, shell_frac, angular_std = \
-                    find_bubble_edges(self.array, props, max_extent=1.05,
-                                      value_thresh=value_thresh,
-                                      nsig_thresh=edge_loc_bkg_nsig,
-                                      try_local_bkg=False,
-                                      edge_mask=self.mask)[:-1]
             else:
                 value_thresh = (nsig + 1) * self.sigma
 

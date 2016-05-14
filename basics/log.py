@@ -13,8 +13,7 @@ from functools import partial
 
 # from .._shared.utils import assert_nD
 
-from basics.utils import dist_uppertri
-from basics.utils import wrap_to_pi
+from basics.utils import dist_uppertri, wrap_to_pi, find_row
 
 '''
 Copyright (C) 2011, the scikit-image team
@@ -118,7 +117,7 @@ def _circle_overlap(blob1, blob2, return_corr=False):
 
 
 def _prune_blobs(blobs_array, coords, overlap=0.75, method='size',
-                 min_corr=0.7):
+                 min_corr=0.7, blob_merge=True):
     """Eliminated blobs with area overlap.
 
     Parameters
@@ -169,19 +168,36 @@ def _prune_blobs(blobs_array, coords, overlap=0.75, method='size',
         if not small_posns.any():
             continue
 
+        # Before comparing large to small, see if any pairs can create the
+        # larger. If so, these are fragments of the larger and should be
+        # ignored/removed.
+        if blob_merge:
+            smaller_blob_remove = \
+                merge_pair_to_larger(large_blob, blobs_array[small_posns],
+                                     small_posns=small_posns,
+                                     min_union_corr=0.8)
+            smaller_blob_remove = list(smaller_blob_remove)
+        else:
+            smaller_blob_remove = []
+
         remove_large_flag = False
-        smaller_blob_remove = []
+        # smaller_blob_remove = []
 
         for small_pos in small_posns:
+            # Skip those already marked for removal
+            if small_pos in smaller_blob_remove:
+                continue
 
             small_blob = blobs_array[small_pos]
 
             if method == "shell fraction":
 
                 shell_cond = large_blob[6] >= small_blob[6]
+                resid_cond = large_blob[-1] <= small_blob[-1]
 
                 # If the bigger one is more complete, discard the smaller
-                if shell_cond:
+                # if shell_cond & resid_cond:
+                if shell_cond & resid_cond:
                     smaller_blob_remove.append(small_pos)
                 else:
                     remove_large_flag = True
@@ -233,6 +249,67 @@ def _prune_blobs(blobs_array, coords, overlap=0.75, method='size',
     coords = [coord for i, coord in enumerate(coords) if i not in remove_blobs]
 
     return blobs_array, coords
+
+
+def merge_pair_to_larger(large_blob, small_blobs, min_union_corr=0.8,
+                         small_posns=None):
+    '''
+    Look for pairs of small blobs that, when combined, are a close match to
+    the larger region.
+    '''
+
+    # Calculate correlation with larger
+    corrs_with_larger = \
+        np.array([overlap_metric(large_blob, blob,
+                                 return_corr=True) for blob in small_blobs])
+
+    area_large = np.pi * large_blob[2] * large_blob[3]
+
+    # Define a pair as any two smaller regions whose area correlation with
+    # the larger blob is larger than between themselves.
+    from itertools import combinations
+    removals = []
+    for one, two in combinations(small_blobs, 2):
+        corr = overlap_metric(one, two, return_corr=True)
+
+        row1 = find_row(small_blobs, one)
+        row2 = find_row(small_blobs, two)
+        one_corr = corrs_with_larger[row1]
+        two_corr = corrs_with_larger[row2]
+
+        if one_corr >= corr and two_corr >= corr:
+            # Now combine the regions and calculate the correlation with the
+            # larger. Since we know the correlation and the areas, we don't
+            # need to explicitly solve for the resulting union correlation
+            # (which is great b/c the union won't have a nice analytical form)
+            # Derivation is in my thesis (XXX LINK XXX)
+
+            area1 = np.pi * one[2] * one[3]
+            area2 = np.pi * two[2] * two[3]
+
+            term1 = (one_corr * np.sqrt(area1) + two_corr * np.sqrt(area2)) / \
+                np.sqrt(area1 + area2 - corr * np.sqrt(area1 * area2))
+
+            term2 = (corr * np.sqrt(area1 * area2)) / \
+                np.sqrt(area_large *
+                        (area1 + area2 - corr * np.sqrt(area1 * area2)))
+
+            union_corr = term1 - term2
+
+            # If these two, when combined, are close to matching the larger
+            # region, mark them for removal
+            if union_corr >= min_union_corr:
+                print(union_corr)
+                removals.append(row1)
+                removals.append(row2)
+
+    # print(removals)
+
+    if small_posns is not None:
+        # print(small_posns[removals])
+        return small_posns[removals]
+    else:
+        return removals
 
 
 def _merge_blobs(blobs_array, min_distance_merge=1.0):
@@ -448,7 +525,7 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
         return local_maxima
 
     # Merge regions into ellipses
-    # local_maxima = _merge_blobs(local_maxima, merge_overlap_dist)
+    local_maxima = _merge_blobs(local_maxima, merge_overlap_dist)
 
     # Then prune and return them\
     return local_maxima

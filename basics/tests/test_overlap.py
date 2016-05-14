@@ -157,3 +157,18 @@ def test_merge_to_larger():
 
     result_clip = merge_pair_to_larger(larger_blob, smaller_blobs)
     assert result_clip == list(np.arange(2))
+
+
+def test_not_merge_to_larger():
+
+    larger_blob = np.array([0.0, 0.0, 20., 10., 0.0, 1.0, 1.0])
+
+    smaller_blobs = np.array([[-5.0, 0.0, 10., 10., 0.0, 1.0, 0.75],
+                              [5.0, 0.0, 10., 10., 0.0, 1.0, 0.75]])
+
+    result = merge_pair_to_larger(larger_blob, smaller_blobs,
+                                  small_posns=np.arange(2))
+    assert result.size == 0
+
+    result_clip = merge_pair_to_larger(larger_blob, smaller_blobs)
+    assert len(result_clip) == 0

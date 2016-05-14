@@ -1,6 +1,6 @@
 
 from basics.log import _ellipse_overlap, _circle_overlap, _min_merge_overlap, \
-    shell_similarity
+    shell_similarity, merge_pair_to_larger
 
 import numpy.testing as npt
 import numpy as np
@@ -142,3 +142,18 @@ def test_shell_similarity():
         data2 = ellip_edges(t, params[1])
 
         npt.assert_almost_equal(shell_similarity(data1, data2), params[2])
+
+
+def test_merge_to_larger():
+
+    larger_blob = np.array([0.0, 0.0, 20., 10., 0.0, 1.0, 1.0])
+
+    smaller_blobs = np.array([[0.0, -5.0, 10., 10., 0.0, 1.0, 0.75],
+                              [0.0, 5.0, 10., 10., 0.0, 1.0, 0.75]])
+
+    result = merge_pair_to_larger(larger_blob, smaller_blobs,
+                                  small_posns=np.arange(2))
+    assert result.size == 2
+
+    result_clip = merge_pair_to_larger(larger_blob, smaller_blobs)
+    assert result_clip == list(np.arange(2))

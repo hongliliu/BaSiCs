@@ -156,13 +156,43 @@ class BubbleFinder2D(object):
 
         self._sigma = value
 
-    def create_mask(self, median_radius=3, bkg_nsig=2, adap_patch=81,
-                    edge_smooth_radius=5, min_pixels=30, fill_radius=3,
-                    region_min_nsig=4):
+    def create_mask(self, bkg_nsig=2, region_min_nsig=4, adap_patch=None,
+                    median_radius=None, edge_smooth_radius=None,
+                    min_pixels=None, fill_radius=None):
         '''
         Create the adaptive thresholded mask, which defines potential bubble
         edges.
         '''
+
+        # If parameters aren't given, set them automatically based on the
+        # beam size.
+        if median_radius is None:
+            # Round up from 0.75 of the beam, min of 3
+            median_radius = max(3, int(np.ceil(0.75 * self.beam_pix)))
+
+        if edge_smooth_radius is None:
+            # 2 pixels larger than median_radius
+            edge_smooth_radius = median_radius + 2
+
+        if fill_radius is None:
+            # Same as the median radius
+            fill_radius = median_radius
+
+        if adap_patch is None:
+            # ~10x the beam width (not radius) seems to be a good choice
+            # My testing shows that the final mask isn't very sensitive
+            # to patch changes, so long as they aren't too small or too
+            # large. Mostly this is due to the rather sharp edges in the
+            # shells.
+            adap_patch = 10 * 2 * self.beam_pix  # 2 since this is beam radius
+
+        if min_pixels is None:
+            # ~ Beam size. The reconstruction will make any true beam-sized
+            # objects simply the beam, so it seems safe to require ~1.5x
+            # for real features
+            min_pixels = int(np.floor(1.5 * np.pi * self.beam_pix ** 2))
+
+        # Raise some warnings if the user provides large smoothing elements
 
         if median_radius > self.beam_pix:
             warn("It is not recommended to use a median filter larger"
@@ -323,8 +353,8 @@ class BubbleFinder2D(object):
                         fail_fit = True
                         break
 
-                    # Now re-run the shell finding to update the coordinates with
-                    # the new model.
+                    # Now re-run the shell finding to update the coordinates
+                    # with the new model.
                     coords, shell_frac, angular_std = \
                         find_bubble_edges(self.array, props, max_extent=1.05,
                                           value_thresh=value_thresh,

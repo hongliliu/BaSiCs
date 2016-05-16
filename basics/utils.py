@@ -2,6 +2,8 @@
 import numpy as np
 from functools import partial
 
+from spectral_cube import SpectralCube
+
 try:
     from radio_beam import Beam
     _radio_beam_flag = True
@@ -80,7 +82,10 @@ def sig_clip(array, nsig=6, tol=0.01, max_iters=500,
     # Check if a quantity has been passed
     if hasattr(array, "unit"):
         unit = array.unit
-        array = array.value.copy()
+        if isinstance(array, SpectralCube):
+            array = array.filled_data[:].copy()
+        else:
+            array = array.value.copy()
     else:
         unit = 1.
 
@@ -290,6 +295,18 @@ def in_array(point, shape):
         return False
 
     return True
+
+
+def in_box(point, yextents, xextents):
+    '''
+    Expect extents are in the format: [min, max]
+    '''
+    ycheck = True if (point[0] >= yextents[0]) & \
+        (point[0] <= yextents[1]) else False
+    xcheck = True if (point[1] >= xextents[0]) & \
+        (point[1] <= xextents[1]) else False
+
+    return ycheck & xcheck
 
 
 def wrap_to_pi(angle):

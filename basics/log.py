@@ -195,11 +195,10 @@ def _prune_blobs(blobs_array, coords=None, overlap=0.75, method='size',
             if method == "shell fraction":
 
                 shell_cond = large_blob[6] >= small_blob[6]
-                resid_cond = large_blob[-1] <= small_blob[-1]
+                # resid_cond = large_blob[-1] <= small_blob[-1]
 
                 # If the bigger one is more complete, discard the smaller
-                # if shell_cond & resid_cond:
-                if shell_cond: # & resid_cond:
+                if shell_cond:
                     smaller_blob_remove.append(small_pos)
                 else:
                     remove_large_flag = True

@@ -184,7 +184,6 @@ def _prune_blobs(blobs_array, coords=None, overlap=0.75, method='size',
             smaller_blob_remove = []
 
         remove_large_flag = False
-        # smaller_blob_remove = []
 
         for small_pos in small_posns:
             # Skip those already marked for removal
@@ -382,7 +381,7 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
              min_sigma=1, max_sigma=50, num_sigma=10,
              threshold=.2, overlap=.5, sigma_ratio=2.,
              weighting=None, merge_overlap_dist=1.0,
-             refine_shape=False, use_max_response=True):
+             refine_shape=False, use_max_response=False):
     """Finds blobs in the given grayscale image.
 
     Blobs are found using the Laplacian of Gaussian (LoG) method [1]_.

@@ -385,7 +385,7 @@ class BubbleFinder2D(object):
             all_props, all_coords = \
                 _prune_blobs(all_props, all_coords,
                              method="shell fraction",
-                             min_corr=0.5)
+                             min_corr=overlap_frac)
 
             # Any highly overlapping regions should now be small regions
             # inside much larger ones. We're going to assume that the

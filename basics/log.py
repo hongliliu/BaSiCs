@@ -9,11 +9,13 @@ from skimage.feature import peak_local_max
 from astropy.modeling.models import Ellipse2D
 from skimage.measure import regionprops
 from scipy.spatial.distance import pdist, cdist
+import scipy.ndimage as nd
 from functools import partial
 
 # from .._shared.utils import assert_nD
 
-from basics.utils import dist_uppertri, wrap_to_pi, find_row
+from basics.utils import (dist_uppertri, wrap_to_pi, find_row, eight_conn,
+                          in_box)
 
 '''
 Copyright (C) 2011, the scikit-image team
@@ -383,7 +385,7 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
              min_sigma=1, max_sigma=50, num_sigma=10,
              threshold=.2, overlap=.5, sigma_ratio=2.,
              weighting=None, merge_overlap_dist=1.0,
-             refine_shape=False):
+             refine_shape=False, use_max_response=True):
     """Finds blobs in the given grayscale image.
 
     Blobs are found using the Laplacian of Gaussian (LoG) method [1]_.
@@ -501,34 +503,52 @@ def blob_log(image, sigma_list=None, scale_choice='linear',
                  zip(sigma_list, weighting)]
     image_cube = np.dstack(gl_images)
 
-    for i, scale in enumerate(sigma_list):
-        scale_peaks = peak_local_max(image_cube[:, :, i],
-                                     threshold_abs=threshold,
-                                     min_distance=np.sqrt(2) * scale,
-                                     threshold_rel=0.0,
-                                     exclude_border=False)
+    if use_max_response:
+        scale_peaks = \
+            peak_local_max(image_cube.max(2),
+                           threshold_abs=threshold,
+                           threshold_rel=0.0,
+                           min_distance=0.5 * np.sqrt(2) * sigma_list[0],
+                           exclude_border=False)
 
-        new_scale_peaks = np.empty((len(scale_peaks), 5))
-        if refine_shape:
-            for j, peak in enumerate(scale_peaks):
-                new_peak = np.array([peak[0], peak[1], scale, scale, 0.0])
-                new_scale_peaks[j] = \
-                    shape_from_blob_moments(new_peak, image_cube[:, :, i])
-        else:
-            new_scale_peaks[:, :2] = scale_peaks
-            # sqrt(2) size correction
-            new_scale_peaks[:, 2:4] = np.sqrt(2) * scale
-            new_scale_peaks[:, 4] = 0.0
-            vals = \
-                np.array([image_cube[pos[0], pos[1], i]
-                          for pos in scale_peaks]).reshape((len(scale_peaks),
-                                                            1))
-            new_scale_peaks = np.hstack([new_scale_peaks, vals])
+        argmaxes = image_cube.argmax(2)[scale_peaks[:, 0], scale_peaks[:, 1]]
+        radii = np.array([sigma_list[arg] for arg in argmaxes]) * np.sqrt(2)
+        radii = radii[:, np.newaxis]
 
-        if i == 0:
-            local_maxima = new_scale_peaks
-        else:
-            local_maxima = np.vstack([local_maxima, new_scale_peaks])
+        responses = image_cube.max(2)[scale_peaks[:, 0], scale_peaks[:, 1]]
+        responses = responses[:, np.newaxis]
+
+        pas = np.zeros_like(radii)
+        local_maxima = np.hstack([scale_peaks, radii, radii, pas, responses])
+    else:
+        for i, scale in enumerate(sigma_list):
+            scale_peaks = peak_local_max(image_cube[:, :, i],
+                                         threshold_abs=threshold,
+                                         min_distance=np.sqrt(2) * scale,
+                                         threshold_rel=0.0,
+                                         exclude_border=False)
+
+            new_scale_peaks = np.empty((len(scale_peaks), 5))
+            if refine_shape:
+                for j, peak in enumerate(scale_peaks):
+                    new_peak = np.array([peak[0], peak[1], scale, scale, 0.0])
+                    new_scale_peaks[j] = \
+                        shape_from_blob_moments(new_peak, image_cube[:, :, i])
+            else:
+                new_scale_peaks[:, :2] = scale_peaks
+                # sqrt(2) size correction
+                new_scale_peaks[:, 2:4] = np.sqrt(2) * scale
+                new_scale_peaks[:, 4] = 0.0
+                vals = \
+                    np.array([image_cube[pos[0], pos[1], i]
+                              for pos in scale_peaks]).reshape((len(scale_peaks),
+                                                                1))
+                new_scale_peaks = np.hstack([new_scale_peaks, vals])
+
+            if i == 0:
+                local_maxima = new_scale_peaks
+            else:
+                local_maxima = np.vstack([local_maxima, new_scale_peaks])
 
     if local_maxima.size == 0:
         return local_maxima

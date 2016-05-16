@@ -256,7 +256,7 @@ def _prune_blobs(blobs_array, coords=None, overlap=0.75, method='size',
 
 
 def merge_pair_to_larger(large_blob, small_blobs, min_union_corr=0.8,
-                         small_posns=None, min_overlap_frac=0.8):
+                         small_posns=None, min_overlap_frac=0.9):
     '''
     Look for pairs of small blobs that, when combined, are a close match to
     the larger region.

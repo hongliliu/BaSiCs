@@ -164,6 +164,9 @@ class BubbleFinder2D(object):
         edges.
         '''
 
+        if bkg_nsig >= region_min_nsig:
+            raise ValueError("bkg_nsig must be less than region_min_nsig.")
+
         # If parameters aren't given, set them automatically based on the
         # beam size.
         if median_radius is None:

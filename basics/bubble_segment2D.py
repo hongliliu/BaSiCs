@@ -189,6 +189,10 @@ class BubbleFinder2D(object):
             # shells.
             adap_patch = 10 * 2 * self.beam_pix  # 2 since this is beam radius
 
+            # Patches must be odd.
+            if adap_patch % 2 == 0:
+                adap_patch -= 1
+
         if min_pixels is None:
             # ~ Beam size. The reconstruction will make any true beam-sized
             # objects simply the beam, so it seems safe to require ~1.5x

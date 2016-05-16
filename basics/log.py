@@ -200,7 +200,7 @@ def _prune_blobs(blobs_array, coords=None, overlap=0.75, method='size',
 
                 # If the bigger one is more complete, discard the smaller
                 # if shell_cond & resid_cond:
-                if shell_cond & resid_cond:
+                if shell_cond: # & resid_cond:
                     smaller_blob_remove.append(small_pos)
                 else:
                     remove_large_flag = True
@@ -258,17 +258,22 @@ def _prune_blobs(blobs_array, coords=None, overlap=0.75, method='size',
 
 
 def merge_pair_to_larger(large_blob, small_blobs, min_union_corr=0.8,
-                         small_posns=None):
+                         small_posns=None, min_overlap_frac=0.8):
     '''
     Look for pairs of small blobs that, when combined, are a close match to
     the larger region.
     '''
 
+    fracs_with_larger = \
+        np.array([overlap_metric(large_blob, blob,
+                                 return_corr=False) for blob in small_blobs])
+
+    small_blobs = small_blobs[fracs_with_larger >= min_overlap_frac]
+
     # Calculate correlation with larger
     corrs_with_larger = \
         np.array([overlap_metric(large_blob, blob,
                                  return_corr=True) for blob in small_blobs])
-
     area_large = np.pi * large_blob[2] * large_blob[3]
 
     # Define a pair as any two smaller regions whose area correlation with
@@ -304,17 +309,9 @@ def merge_pair_to_larger(large_blob, small_blobs, min_union_corr=0.8,
 
             # If these two, when combined, are close to matching the larger
             # region, mark them for removal
-            print(union_corr)
-            print(one, two)
-            print(large_blob)
-            print(large_blob[6], one[6] + two[6])
-
-            if (union_corr >= min_union_corr): # & (large_blob[6] >= min(1., one[6] + two[6])):
-                print("Merged")
+            if (union_corr >= min_union_corr):
                 removals.append(row1)
                 removals.append(row2)
-
-    print(removals)
 
     if small_posns is not None:
         # print(small_posns[removals])

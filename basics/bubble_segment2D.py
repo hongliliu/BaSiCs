@@ -367,18 +367,36 @@ class BubbleFinder2D(object):
 
         if not len(all_props) == 0:
 
+            # First remove nearly duplicated regions. This stops much
+            # smaller regions (corr <= 0.75) from dominating larger ones,
+            # when they may only be a portion of the correct shape
             all_props, all_coords = \
                 _prune_blobs(all_props, all_coords,
                              method="shell fraction",
-                             min_corr=overlap_frac)
+                             min_corr=0.9, blob_merge=False)
+
+            # Now look on smaller scales, and enable matching between smaller
+            # regions embedded in a larger one. About 0.5 is appropriate since
+            # a completely embedded smaller region will have 1/sqrt(3) for the
+            # maximally eccentric shape allowed (e~3). This does make it
+            # possible that a much larger region could be lost when it
+            # shouldn't be. So long as the minimum cut used in the clustering
+            # is ~0.5, these can still be clustered appropriately.
+            all_props, all_coords = \
+                _prune_blobs(all_props, all_coords,
+                             method="shell fraction",
+                             min_corr=0.5)
 
             # Any highly overlapping regions should now be small regions
             # inside much larger ones. We're going to assume that the
             # remaining large regions are more important (good based on by-eye
-            # evaluation). Keeping this at 0.75, since we only want to remove
-            # very highly overlapping small regions.
+            # evaluation). Keeping this at 0.65, since we only want to remove
+            # very highly overlapping small regions. Note that this does set
+            # an upper limit on how overlapped region may be. This is fairly
+            # necessary though due to the shape ambiguities present in
+            # assuming an elliptical shape.
             all_props, all_coords = \
-                _prune_blobs(all_props, all_coords, overlap=0.75,
+                _prune_blobs(all_props, all_coords, overlap=0.65,
                              method='size')
 
             self._regions = \

@@ -232,7 +232,8 @@ class BubbleFinder(object):
 
     def visualize_channel_maps(self, all_chans=False, subplot=False,
                                edges=False, plot_unclustered=False,
-                               interactive_plot=True):
+                               interactive_plot=True,
+                               show_mask_contours=False):
         '''
         Plot each channel optionally overlaid with the regions and/or the
         edges.
@@ -258,6 +259,13 @@ class BubbleFinder(object):
                 ax = p.subplot(111)
 
             ax.imshow(self.cube[chan].value, cmap='afmhot', origin='lower')
+
+            if show_mask_contours:
+                if self.keep_threshold_mask:
+                    ax.contour(self.mask[chan], colors='k')
+                else:
+                    warn("'keep_threshold_mask' must be enabled to plot mask "
+                         "contours.")
 
             for bub in self.bubbles:
                 if chan < bub.channel_start and chan > bub.channel_end:

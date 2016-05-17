@@ -57,7 +57,10 @@ def fraction_in_mask(blob, mask):
     added check for bad 2D fits.
     '''
 
-    ellipse = Ellipse2D(True, blob[1], blob[0], blob[2], blob[3], blob[4])
+    if len(blob) > 3:
+        ellipse = Ellipse2D(True, blob[1], blob[0], blob[2], blob[3], blob[4])
+    else:
+        ellipse = Ellipse2D(True, blob[1], blob[0], blob[2], blob[2], 0.0)
 
     # Cut the mask to the bounding box
     yextents, xextents = ellipse.bounding_box

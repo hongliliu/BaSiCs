@@ -2,7 +2,7 @@
 import numpy as np
 import astropy.units as u
 from spectral_cube import SpectralCube
-from astropy.utils.console import ProgressBar
+# from astropy.utils.console import ProgressBar
 import sys
 from warnings import warn
 
@@ -10,6 +10,7 @@ from bubble_segment2D import BubbleFinder2D
 from bubble_objects import Bubble3D
 from clustering import cluster_and_clean, cluster_brute_force
 from utils import sig_clip
+from progressbar import ProgressBar
 
 
 class BubbleFinder(object):
@@ -77,7 +78,7 @@ class BubbleFinder(object):
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
                     multiprocess=True, use_cube_mask=False, nsig=2.,
-                    refit=True, **kwargs):
+                    refit=True, is_huge=False, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -88,17 +89,22 @@ class BubbleFinder(object):
         else:
             output = None
 
+        if is_huge or self.cube._is_huge:
+            warn("The huge flag is enabled (or the cube's is). No progress bar"
+                 " will be shown to avoid excessive memory usage.")
+
         output = \
             ProgressBar.map(_region_return,
-                            [(self.cube[i],
+                            ((self.cube[i],
                               self.cube.mask.include(view=(i, ))
                               if use_cube_mask else None,
                               i, self.sigma, nsig, overlap_frac,
                               self.keep_threshold_mask) for i in
-                             xrange(self.cube.shape[0])],
+                             xrange(self.cube.shape[0])),
                             multiprocess=multiprocess,
                             file=output,
-                            step=self.cube.shape[0])
+                            step=self.cube.shape[0],
+                            item_len=self.cube.shape[0])
 
         twod_regions = []
         if self.keep_threshold_mask:

@@ -72,7 +72,7 @@ def fraction_in_mask(blob, mask):
     yy, xx = np.mgrid[yextents[0]:yextents[1] + 1,
                       xextents[0]:xextents[1] + 1]
 
-    ellip_mask = ellipse(xx, yy).astype(np.bool).T
+    ellip_mask = ellipse(yy, xx).astype(np.bool)
 
     local_mask = mask[yextents[0]:yextents[1] + 1,
                       xextents[0]:xextents[1] + 1]

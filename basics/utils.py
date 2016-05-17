@@ -355,3 +355,18 @@ def find_row(arr, row_match):
         if np.all(row == row_match):
             return i
     return None
+
+
+def robust_skewed_std(vals):
+    '''
+    Estimate the standard deviation and mean using the 2.5th and 15th
+    percentiles of the given data. This estimate is useful for a distribution
+    skewed to high values.
+    '''
+    bottom = np.nanpercentile(vals, 2.5)
+    fifteen = np.nanpercentile(vals, 15.)
+
+    sig = fifteen - bottom
+    mean = bottom + 2 * sig
+
+    return mean, sig

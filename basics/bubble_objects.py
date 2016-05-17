@@ -138,7 +138,7 @@ class BubbleNDBase(object):
         return Ellipse((x, y), width=2 * rmaj, height=2 * rmin,
                        angle=np.rad2deg(pa), **kwargs)
 
-    def intensity_props(self, data, area_factor=1.):
+    def intensity_props(self, data, area_factor=1., region='hole', mask=None):
         '''
         Return the mean and std for the elliptical region in the given data.
         '''
@@ -148,12 +148,17 @@ class BubbleNDBase(object):
         elif isinstance(data, SpectralCube):
             is_2D = False
 
-        # Assume the shape is evenly increased/decreased by area_facotr
-        major = max(3, np.sqrt(area_factor) * self.major)
-        minor = max(3, np.sqrt(area_factor) * self.minor)
+        if region == "hole":
+            mask = self.as_mask(mask=mask)
+        elif region == "shell":
+            pass
+        else:
+            # Assume the shape is evenly increased/decreased by area_factor
+            major = max(3, np.sqrt(area_factor) * self.major)
+            minor = max(3, np.sqrt(area_factor) * self.minor)
 
-        inner_ellipse = \
-            Ellipse2D(True, self.x, self.y, major, minor, self.pa)
+            inner_ellipse = \
+                Ellipse2D(True, self.x, self.y, major, minor, self.pa)
 
         yy, xx = np.mgrid[:data.shape[-2], :data.shape[-1]]
 
@@ -314,6 +319,7 @@ class BubbleNDBase(object):
             self.as_ellipse(zero_center=zero_center)(xx, yy).astype(np.bool)
 
         # Just return the 2D footprint
+        spectral_extent = spectral_extent if len(mask.shape) == 2 else True
         if not spectral_extent:
             region_mask = twoD_mask
         elif spectral_extent and isinstance(self, Bubble2D):

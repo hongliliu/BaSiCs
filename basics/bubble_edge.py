@@ -6,7 +6,7 @@ import astropy.units as u
 from skimage.measure import find_contours
 import scipy.ndimage as nd
 
-from utils import ceil_int, eight_conn
+from utils import ceil_int, eight_conn, robust_skewed_std
 from masking_utils import smooth_edges
 # from contour_orientation import shell_orientation
 
@@ -286,9 +286,7 @@ def intensity_props(data, blob, min_rad=4):
 
     vals = data[ellip_mask]
 
-    bottom = np.nanpercentile(vals, 2.5)
-    fifteen = np.nanpercentile(vals, 15.)
-    sig = fifteen - bottom
+    mean, sig = robust_skewed_std(vals)
 
     return bottom + 2 * sig, sig
 

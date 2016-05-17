@@ -2,6 +2,8 @@
 import skimage.morphology as mo
 import scipy.ndimage as nd
 import warnings
+from astropy.modeling.models import Ellipse2D
+import numpy as np
 
 try:
     import cv2
@@ -10,7 +12,7 @@ except ImportError:
     warnings.warn("Cannot import cv2. Computing with scipy.ndimage")
     CV2_FLAG = False
 
-from utils import eight_conn
+from utils import eight_conn, ceil_int
 
 
 def smooth_edges(mask, filter_size, min_pixels):
@@ -47,3 +49,25 @@ def remove_spurs(mask, min_distance=9):
                                 mo.disk(min_distance).astype("uint8")).astype(bool)
     else:
         return mo.dilation(reconst > 0, selem=mo.disk(min_distance))
+
+
+def fraction_in_mask(blob, mask):
+    '''
+    Find the fraction of a blob within the mask. This is intended to be an
+    added check for bad 2D fits.
+    '''
+
+    ellipse = Ellipse2D(True, blob[1], blob[0], blob[2], blob[3], blob[4])
+
+    # Cut the mask to the bounding box
+    yextents, xextents = ellipse.bounding_box
+
+    yy, xx = np.mgrid[yextents[0]:yextents[1] + 1,
+                      xextents[0]:xextents[1] + 1]
+
+    ellip_mask = ellipse(xx, yy).astype(np.bool)
+
+    local_mask = mask[yextents[0]:yextents[1] + 1,
+                      xextents[0]:xextents[1] + 1]
+
+    return (ellip_mask * local_mask).sum() / float(ellip_mask.sum())

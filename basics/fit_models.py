@@ -4,6 +4,7 @@ from scipy import optimize
 from warnings import filterwarnings, catch_warnings
 
 from basics.utils import wrap_to_pi, in_ellipse, in_circle, in_array
+from basics.masking_utils import fraction_in_mask
 
 
 def _check_data_dim(data, dim):
@@ -708,6 +709,7 @@ def ransac(data, model_class, min_samples, residual_threshold,
 
 def fit_region(coords, initial_props=None,
                try_fit_ellipse=True, use_ransac=False,
+               min_in_mask=0.8, mask=None,
                ransac_trials=50, beam_pix=4, max_rad=1.75,
                max_eccent=3., image_shape=None, verbose=False):
     '''
@@ -767,6 +769,10 @@ def fit_region(coords, initial_props=None,
             fail_conds = fail_conds or \
                 not in_array(pars[:2], image_shape)
 
+        if mask is not None:
+            fail_conds = fail_conds or \
+                fraction_in_mask(pars, mask) < min_in_mask
+
         if fail_conds:
             ellip_fail = True
         else:
@@ -814,6 +820,10 @@ def fit_region(coords, initial_props=None,
         if image_shape is not None:
             fail_conds = fail_conds or \
                 not in_array(pars[:2], image_shape)
+
+        if mask is not None:
+            fail_conds = fail_conds or \
+                fraction_in_mask(pars, mask) < min_in_mask
 
         if fail_conds:
             if verbose:

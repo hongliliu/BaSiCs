@@ -302,7 +302,7 @@ class BubbleFinder2D(object):
                                              "min_angular_std": 0.7},
                               max_rad=1.5, verbose=False,
                               use_ransac=False, ransac_trials=50,
-                              fit_iterations=2):
+                              fit_iterations=2, min_in_mask=0.8):
         '''
         Run find_bubbles on the specified scales.
         '''
@@ -352,6 +352,7 @@ class BubbleFinder2D(object):
                                    ransac_trials=ransac_trials,
                                    beam_pix=self.beam_pix, max_rad=max_rad,
                                    max_eccent=max_eccent,
+                                   min_in_mask=min_in_mask, mask=self.mask,
                                    image_shape=self.array.shape,
                                    verbose=verbose)
 
@@ -369,7 +370,7 @@ class BubbleFinder2D(object):
                                           try_local_bkg=False,
                                           edge_mask=self.mask)[:-1]
 
-                    if len(coords) < 3:
+                    if len(coords) < 4:
                         break
                 if fail_fit:
                     continue
@@ -433,7 +434,7 @@ class BubbleFinder2D(object):
             # necessary though due to the shape ambiguities present in
             # assuming an elliptical shape.
             all_props, all_coords = \
-                _prune_blobs(all_props, all_coords, overlap=0.65,
+                _prune_blobs(all_props, all_coords, overlap=0.75,
                              method='size')
 
             self._regions = \

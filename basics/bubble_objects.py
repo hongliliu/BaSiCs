@@ -522,6 +522,7 @@ class Bubble2D(BubbleNDBase):
             self._peak_response = props[5]
             self._shell_fraction = props[6]
             self._angular_std = props[7]
+            self._model_residual = props[8]
 
         self._shell_coords = shell_coords
 

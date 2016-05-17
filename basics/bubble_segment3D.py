@@ -78,7 +78,7 @@ class BubbleFinder(object):
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
                     multiprocess=True, use_cube_mask=False, nsig=2.,
-                    refit=True, is_huge=False, **kwargs):
+                    refit=True, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -88,10 +88,6 @@ class BubbleFinder(object):
             output = sys.stdout
         else:
             output = None
-
-        if is_huge or self.cube._is_huge:
-            warn("The huge flag is enabled (or the cube's is). No progress bar"
-                 " will be shown to avoid excessive memory usage.")
 
         output = \
             ProgressBar.map(_region_return,

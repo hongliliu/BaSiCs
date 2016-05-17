@@ -3,7 +3,8 @@ import numpy as np
 from scipy import optimize
 from warnings import filterwarnings, catch_warnings
 
-from basics.utils import wrap_to_pi, in_ellipse, in_circle, in_array
+from basics.utils import (wrap_to_pi, in_ellipse, in_circle, in_array,
+                          ellipse_in_array, circle_in_array)
 from basics.masking_utils import fraction_in_mask
 
 
@@ -754,22 +755,27 @@ def fit_region(coords, initial_props=None,
             pars[2], pars[3] = pars[3], pars[2]
             pars[4] = wrap_to_pi(pars[4] + 0.5 * np.pi)
 
-        fail_conds = eccent > 3.
+        fail_conds = eccent > max_eccent
 
-        if beam_pix is not None:
+        if beam_pix is not None and not fail_conds:
             fail_conds = fail_conds or \
                 pars[3] < beam_pix
 
-        if initial_props is not None:
+        if initial_props is not None and not fail_conds:
             fail_conds = fail_conds or \
                 pars[2] > max_rad * initial_props[2] or \
                 not in_ellipse(initial_props[:2][::-1], pars)
 
-        if image_shape is not None:
+        if image_shape is not None and not fail_conds:
             fail_conds = fail_conds or \
                 not in_array(pars[:2], image_shape)
 
-        if mask is not None:
+            # We require the entire region be inside the array. This
+            # shouldn't be a big issue for galaxies, but should be revisited
+            # when testing on galactic emission or incomplete maps.
+            fail_conds = fail_conds or not ellipse_in_array(pars, image_shape)
+
+        if mask is not None and not fail_conds:
             fail_conds = fail_conds or \
                 fraction_in_mask(pars, mask) < min_in_mask
 
@@ -808,20 +814,25 @@ def fit_region(coords, initial_props=None,
 
         fail_conds = False
 
-        if beam_pix is not None:
+        if beam_pix is not None and not fail_conds:
             fail_conds = fail_conds or \
                 pars[2] < beam_pix
 
-        if initial_props is not None:
+        if initial_props is not None and not fail_conds:
             fail_conds = fail_conds or \
                 pars[2] > max_rad * initial_props[2] or \
                 not in_circle(initial_props[:2][::-1], pars)
 
-        if image_shape is not None:
+        if image_shape is not None and not fail_conds:
             fail_conds = fail_conds or \
                 not in_array(pars[:2], image_shape)
 
-        if mask is not None:
+            # We require the entire region be inside the array. This
+            # shouldn't be a big issue for galaxies, but should be revisited
+            # when testing on galactic emission or incomplete maps.
+            fail_conds = fail_conds or not circle_in_array(pars, image_shape)
+
+        if mask is not None and not fail_conds:
             fail_conds = fail_conds or \
                 fraction_in_mask(pars, mask) < min_in_mask
 

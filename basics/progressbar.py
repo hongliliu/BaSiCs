@@ -302,7 +302,6 @@ class ProgressBar(six.Iterator):
         with cls(item_len, file=file) as bar:
             default_step = max(int(float(item_len) / bar._bar_length), 1)
             chunksize = min(default_step, step)
-            print(default_step, chunksize)
             if not multiprocess:
                 for i, item in enumerate(items):
                     results.append(function(item))

@@ -359,6 +359,7 @@ class BubbleFinder2D(object):
                                    max_eccent=max_eccent,
                                    min_in_mask=min_in_mask, mask=self.mask,
                                    image_shape=self.array.shape,
+                                   max_resid=self.beam_pix,
                                    verbose=verbose)
 
                     # Check if the fitting failed. If it did, continue on

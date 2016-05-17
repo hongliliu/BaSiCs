@@ -710,7 +710,7 @@ def ransac(data, model_class, min_samples, residual_threshold,
 
 def fit_region(coords, initial_props=None,
                try_fit_ellipse=True, use_ransac=False,
-               min_in_mask=0.8, mask=None,
+               min_in_mask=0.8, mask=None, max_resid=None,
                ransac_trials=50, beam_pix=4, max_rad=1.75,
                max_eccent=3., image_shape=None, verbose=False):
     '''
@@ -743,6 +743,8 @@ def fit_region(coords, initial_props=None,
                 model.estimate(coords[:, ::-1])
 
         dof = len(coords) - 5
+        # Calculate the model residual
+        resid = model.residuals(coords[:, ::-1]).sum() / dof
 
         pars = model.params.copy()
         pars[0] += int(xmean)
@@ -760,6 +762,10 @@ def fit_region(coords, initial_props=None,
         if beam_pix is not None and not fail_conds:
             fail_conds = fail_conds or \
                 pars[3] < beam_pix
+
+        if max_resid is not None and not fail_conds:
+            fail_conds = fail_conds or \
+                resid > max_resid
 
         if initial_props is not None and not fail_conds:
             fail_conds = fail_conds or \
@@ -807,6 +813,8 @@ def fit_region(coords, initial_props=None,
                 model.estimate(coords[:, ::-1])
 
         dof = len(coords) - 3
+        # Calculate the model residual
+        resid = model.residuals(coords[:, ::-1]).sum() / dof
 
         pars = model.params.copy()
         pars[0] += int(xmean)
@@ -817,6 +825,10 @@ def fit_region(coords, initial_props=None,
         if beam_pix is not None and not fail_conds:
             fail_conds = fail_conds or \
                 pars[2] < beam_pix
+
+        if max_resid is not None and not fail_conds:
+            fail_conds = fail_conds or \
+                resid > max_resid
 
         if initial_props is not None and not fail_conds:
             fail_conds = fail_conds or \
@@ -848,11 +860,5 @@ def fit_region(coords, initial_props=None,
         new_props[4] = 0.0
 
     props = new_props
-
-    # Calculate the model residual
-    resid = model.residuals(coords[:, ::-1]).sum() / dof
-
-    # coords[:, 0] += int(ymean)
-    # coords[:, 1] += int(xmean)
 
     return props, resid

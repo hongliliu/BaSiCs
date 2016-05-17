@@ -300,7 +300,7 @@ class BubbleFinder(object):
 
             if interactive_plot:
                 p.draw()
-                raw_input("?")
+                raw_input("Channel {}".format(chan))
                 p.clf()
             else:
                 p.show()

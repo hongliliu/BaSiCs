@@ -8,7 +8,7 @@ from spectral_cube import SpectralCube
 from warnings import warn
 
 from log import overlap_metric
-from utils import floor_int, ceil_int, wrap_to_pi
+from utils import floor_int, ceil_int, wrap_to_pi, robust_skewed_std
 from fan_pvslice import pv_wedge
 from fit_models import fit_region
 
@@ -138,9 +138,18 @@ class BubbleNDBase(object):
         return Ellipse((x, y), width=2 * rmaj, height=2 * rmin,
                        angle=np.rad2deg(pa), **kwargs)
 
-    def intensity_props(self, data, area_factor=1., region='hole', mask=None):
+    def intensity_props(self, data, area_factor=1., region='hole', mask=None,
+                        robust_estimate=True):
         '''
         Return the mean and std for the elliptical region in the given data.
+
+        Parameters
+        ----------
+        robust_estimate : bool, optional
+            Estimate standard deviation using the 2.5th and 15th percentiles.
+            This is ideal for a near-normal distribution skewed to high
+            values.
+
         '''
 
         if isinstance(data, LowerDimensionalObject):
@@ -148,29 +157,30 @@ class BubbleNDBase(object):
         elif isinstance(data, SpectralCube):
             is_2D = False
 
+        if mask is not None:
+            if not is_2D and len(mask.shape) != 3:
+                raise TypeError("Must provide a 3D mask when providing 3D "
+                                "data.")
+
         if region == "hole":
-            mask = self.as_mask(mask=mask)
+            local_mask = self.as_mask(mask=mask)
         elif region == "shell":
-            pass
+            local_mask = self.as_shell_mask(mask=mask)
         else:
-            # Assume the shape is evenly increased/decreased by area_factor
-            major = max(3, np.sqrt(area_factor) * self.major)
-            minor = max(3, np.sqrt(area_factor) * self.minor)
-
-            inner_ellipse = \
-                Ellipse2D(True, self.x, self.y, major, minor, self.pa)
-
-        yy, xx = np.mgrid[:data.shape[-2], :data.shape[-1]]
-
-        ellip_mask = inner_ellipse(xx, yy).astype(bool)
+            raise TypeError("region must be 'hole' or 'shell'")
 
         if is_2D:
-            return np.nanmean(data.value[ellip_mask]), \
-                np.nanstd(data.value[ellip_mask])
+            if robust_estimate:
+                return robust_skewed_std(data.value[local_mask])
+
+            return np.nanmean(data.value[local_mask]), \
+                np.nanstd(data.value[local_mask])
         else:
-            ellip_mask = np.tile(ellip_mask, (data.shape[0], 1, 1))
-            return np.nanmean(data.with_mask(ellip_mask)), \
-                np.nanstd(data.with_mask(ellip_mask))
+            if robust_estimate:
+                return robust_skewed_std(data.with_mask(local_mask).ravel())
+
+            return np.nanmean(data.with_mask(local_mask)), \
+                np.nanstd(data.with_mask(local_mask))
 
     def set_wcs_extents(self, data):
         '''

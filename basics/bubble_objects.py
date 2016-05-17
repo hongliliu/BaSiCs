@@ -177,7 +177,8 @@ class BubbleNDBase(object):
                 np.nanstd(data.value[local_mask])
         else:
             if robust_estimate:
-                return robust_skewed_std(data.with_mask(local_mask).ravel())
+                return robust_skewed_std(data.with_mask(local_mask).subcube()
+                                         .filled_data[:].value.ravel())
 
             return np.nanmean(data.with_mask(local_mask)), \
                 np.nanstd(data.with_mask(local_mask))

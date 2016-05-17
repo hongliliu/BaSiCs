@@ -12,7 +12,7 @@ except ImportError:
     warnings.warn("Cannot import cv2. Computing with scipy.ndimage")
     CV2_FLAG = False
 
-from utils import eight_conn, ceil_int
+from utils import eight_conn, ceil_int, floor_int
 
 
 def smooth_edges(mask, filter_size, min_pixels):
@@ -64,6 +64,10 @@ def fraction_in_mask(blob, mask):
 
     # Cut the mask to the bounding box
     yextents, xextents = ellipse.bounding_box
+
+    # Need to round to nearest ints
+    yextents = (floor_int(yextents[0]), ceil_int(yextents[1]))
+    xextents = (floor_int(xextents[0]), ceil_int(xextents[1]))
 
     yy, xx = np.mgrid[yextents[0]:yextents[1] + 1,
                       xextents[0]:xextents[1] + 1]

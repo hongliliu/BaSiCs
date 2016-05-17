@@ -288,7 +288,7 @@ def intensity_props(data, blob, min_rad=4):
 
     mean, sig = robust_skewed_std(vals)
 
-    return bottom + 2 * sig, sig
+    return mean, sig
 
 
 def _make_bubble_mask(edge_mask, center):

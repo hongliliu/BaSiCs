@@ -1,6 +1,7 @@
 
 import numpy as np
 from functools import partial
+from astropy.modeling.models import Ellipse2D
 
 from spectral_cube import SpectralCube
 
@@ -276,6 +277,32 @@ def in_ellipse(point, params):
     xprime = (x - x0) * np.cos(pa) + (x - x0) * np.sin(pa)
 
     return (xprime / b)**2 + (yprime / a)**2 <= 1.
+
+
+def ellipse_in_array(params, shape):
+    '''
+    Test if the entire ellipse is within the given shape.
+    '''
+    yext, xext = Ellipse2D(True, params[1], params[0], params[2],
+                           params[3], params[4]).bounding_box
+
+    bottom_corner = np.array([floor_int(yext[0]), floor_int(xext[0])])
+    top_corner = np.array([ceil_int(yext[1]), ceil_int(xext[1])])
+
+    return in_array(bottom_corner, shape) and in_array(top_corner, shape)
+
+
+def circle_in_array(params, shape):
+    '''
+    Test if the entire ellipse is within the given shape.
+    '''
+
+    bottom_corner = np.array([floor_int(params[0] - params[2]),
+                              floor_int(params[1] - params[2])])
+    top_corner = np.array([ceil_int(params[0] + params[2]),
+                           ceil_int(params[1] + params[2])])
+
+    return in_array(bottom_corner, shape) and in_array(top_corner, shape)
 
 
 def in_array(point, shape):

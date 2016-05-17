@@ -2,7 +2,7 @@
 import numpy as np
 from astropy.nddata.utils import extract_array, add_array
 import astropy.units as u
-from warnings import warn
+from warnings import warn, catch_warnings, filterwarnings
 import scipy.ndimage as nd
 import skimage.morphology as mo
 from skimage.filters import threshold_adaptive
@@ -208,26 +208,31 @@ class BubbleFinder2D(object):
             warn("It is not recommended to use a median filter larger"
                  " than the beam!")
 
-        medianed = nd.median_filter(self.array,
-                                    footprint=mo.disk(median_radius))
-        glob_mask = self.array > bkg_nsig * self.sigma
-        if not glob_mask.any():
-            warn("No values in the array are above the background threshold."
-                 " The mask is empty.")
-            self._empty_mask_flag = True
-            self.mask = glob_mask
-            return
+        with catch_warnings():
+            filterwarnings("ignore",
+                           r"Only one label")
 
-        orig_adap = threshold_adaptive(medianed, adap_patch)
-        # Smooth the edges on small scales and remove small regions
-        adap_mask = ~smooth_edges(glob_mask * orig_adap, edge_smooth_radius,
-                                  min_pixels)
-        # We've flipped the mask, so now remove small "objects"
-        adap_mask = mo.remove_small_holes(adap_mask, connectivity=2,
-                                          min_size=min_pixels)
-        # Finally, fill in regions whose distance from an edge is small (ie.
-        # unimportant 1-2 pixel cracks)
-        adap_mask = remove_spurs(adap_mask, min_distance=fill_radius)
+            medianed = nd.median_filter(self.array,
+                                        footprint=mo.disk(median_radius))
+            glob_mask = self.array > bkg_nsig * self.sigma
+            if not glob_mask.any():
+                warn("No values in the array are above the background "
+                     "threshold. The mask is empty.")
+                self._empty_mask_flag = True
+                self.mask = glob_mask
+                return
+
+            orig_adap = threshold_adaptive(medianed, adap_patch)
+            # Smooth the edges on small scales and remove small regions
+            adap_mask = ~smooth_edges(glob_mask * orig_adap,
+                                      edge_smooth_radius,
+                                      min_pixels)
+            # We've flipped the mask, so now remove small "objects"
+            adap_mask = mo.remove_small_holes(adap_mask, connectivity=2,
+                                              min_size=min_pixels)
+            # Finally, fill in regions whose distance from an edge is
+            # small (ie. unimportant 1-2 pixel cracks)
+            adap_mask = remove_spurs(adap_mask, min_distance=fill_radius)
 
         # Remove any region which does not have a peak >5 sigma
         labels, num = nd.label(~adap_mask, np.ones((3, 3)))

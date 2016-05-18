@@ -1210,7 +1210,8 @@ class Bubble3D(BubbleNDBase):
             s += "Position Angle: {0:6f} \n".format(self.pa)
 
         s += "Channel width: {0:6f} \n".format(self.channel_width)
-        s += "Spectral width: {0.6f} \n".format(self.velocity_width)
+        s += "Spectral width: {0.6f} {1} \n".format(self.velocity_width.value,
+                                                    self.velocity_width.unit.to_string())
 
         if hasattr(self, "_shell_fraction") is not None:
             shell = "Closed" if self.is_closed else "Partial"

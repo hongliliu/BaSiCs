@@ -4,6 +4,7 @@ from functools import partial
 from astropy.modeling.models import Ellipse2D
 
 from spectral_cube import SpectralCube
+from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
 try:
     from radio_beam import Beam
@@ -370,3 +371,20 @@ def robust_skewed_std(vals):
     mean = bottom + 2 * sig
 
     return mean, sig
+
+
+def check_give_beam(data):
+    '''
+    Check for a beam object in the data.
+    '''
+
+    if isinstance(data, SpectralCube):
+        try:
+            return data.beam
+        except AttributeError:
+            return None
+    elif isinstance(data, LowerDimensionalObject):
+        try:
+            return data.meta['beam']
+        except KeyError:
+            return None

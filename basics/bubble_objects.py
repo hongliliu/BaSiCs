@@ -963,9 +963,9 @@ class Bubble3D(BubbleNDBase):
         vol_dens = np.power(self.shell_volume_density(scale_height, inc).value,
                             1.12)
         size = np.power(0.5 * self.diameter_physical.value, 3.12)
-        exp_vel = np.power(self.expansion_velocity.value, 1.4)
+        exp_vel = np.power(self.expansion_velocity.to(u.km / u.s).value, 1.4)
 
-        return 5.3e43 * vol_dens * size * exp_vel * u.J
+        return 5.3e43 * vol_dens * size * exp_vel * u.erg
 
     @property
     def bubble_type(self):

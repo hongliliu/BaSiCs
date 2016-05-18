@@ -945,9 +945,13 @@ class Bubble3D(BubbleNDBase):
         Bagetakos+11 eq. 12
         '''
 
-        # The prefactor here includes the pc^3 -> cm^3 conversion.
-        return 2.9e5 * self.shell_volume_density(scale_height, inc) * \
-            self.volume(scale_height).value * u.Msun
+        # I can't reproduce the Bagetakos mass values using eq. 12 using their
+        # values of the diameter (for volume) and nHI. Since nHI * V gives the
+        # number of hydrogen atoms, just convert straight to the mass
+        mass_factor = (1.67e-27 * u.kg).to(u.Msun)
+
+        return mass_factor * self.shell_volume_density(scale_height, inc) * \
+            self.volume(scale_height).to(u.cm**3)
 
     def formation_energy(self, scale_height=100. * u.pc, inc=55):
         '''
@@ -956,7 +960,8 @@ class Bubble3D(BubbleNDBase):
 
         '''
 
-        vol_dens = np.power(self.shell_volume_density(scale_height, inc).value)
+        vol_dens = np.power(self.shell_volume_density(scale_height, inc).value,
+                            1.12)
         size = np.power(0.5 * self.diameter_physical.value, 3.12)
         exp_vel = np.power(self.expansion_velocity.value, 1.4)
 

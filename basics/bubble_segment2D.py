@@ -307,7 +307,8 @@ class BubbleFinder2D(object):
                                              "min_angular_std": 0.7},
                               max_rad=1.5, verbose=False,
                               use_ransac=False, ransac_trials=50,
-                              fit_iterations=2, min_in_mask=0.8):
+                              fit_iterations=2, min_in_mask=0.8,
+                              distance=None):
         '''
         Run find_bubbles on the specified scales.
         '''
@@ -444,8 +445,9 @@ class BubbleFinder2D(object):
                              method='size')
 
             self._regions = \
-                [Bubble2D(props, shell_coords=coords, channel=self.channel)
-                 for props, coords in zip(all_props, all_coords)]
+                [Bubble2D(prop, shell_coords=coord, channel=self.channel,
+                          distance=distance)
+                 for prop, coord in zip(all_props, all_coords)]
         else:
             self._regions = []
 

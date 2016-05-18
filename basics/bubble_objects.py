@@ -90,6 +90,7 @@ class BubbleNDBase(object):
             return 2 * np.sqrt(self.major_physical * self.minor_physical)
         except TypeError:
             no_distance_warning()
+
     @property
     def diameter_angular(self):
         try:

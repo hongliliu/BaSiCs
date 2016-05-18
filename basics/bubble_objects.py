@@ -627,9 +627,9 @@ class Bubble3D(BubbleNDBase):
         self._major = props[2]
         self._minor = props[3]
         self._pa = props[4]
-        self._channel_center = props[5]
-        self._channel_start = props[6]
-        self._channel_end = props[7]
+        self._channel_center = int(props[5])
+        self._channel_start = int(props[6])
+        self._channel_end = int(props[7])
 
         self.twoD_regions = twoD_regions
 

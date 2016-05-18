@@ -921,7 +921,8 @@ class Bubble3D(BubbleNDBase):
 
     def volume(self, scale_height=None):
         '''
-        Definitions from Bagetakos+11 eqs. 10/11
+        Definitions from Bagetakos+11 eqs. 10/11. Note that there is an extra
+        factor of 2 in Eq. 11 for the cylinder volume.
 
         For complete blowouts, you need the scale height.
         '''
@@ -932,7 +933,7 @@ class Bubble3D(BubbleNDBase):
                                  " compute the volume.")
             l_thick = np.sqrt(8 * np.log(2)) * scale_height.to(u.pc)
 
-            return 2 * np.pi * (0.5 * self.diameter_physical) ** 2 * l_thick
+            return np.pi * (0.5 * self.diameter_physical) ** 2 * l_thick
         else:
             return (4 * np.pi / 3.) * (0.5 * self.diameter_physical) ** 3
 
@@ -943,8 +944,10 @@ class Bubble3D(BubbleNDBase):
 
         Bagetakos+11 eq. 12
         '''
+
+        # The prefactor here includes the pc^3 -> cm^3 conversion.
         return 2.9e5 * self.shell_volume_density(scale_height, inc) * \
-            self.volume(scale_height).to(u.cm**3) * u.Msun
+            self.volume(scale_height).value * u.Msun
 
     def formation_energy(self, scale_height=100. * u.pc, inc=55):
         '''

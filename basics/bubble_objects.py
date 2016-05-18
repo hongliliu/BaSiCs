@@ -358,7 +358,8 @@ class BubbleNDBase(object):
                          self.pa)
 
     def as_mask(self, mask=None, shape=None, zero_center=False,
-                spectral_extent=False, use_twoD_regions=False):
+                spectral_extent=False, use_twoD_regions=False,
+                minimal_shape=True):
         '''
         Return a boolean mask of the 2D region.
 
@@ -862,9 +863,8 @@ class Bubble3D(BubbleNDBase):
         expansion. 0.978 is given in Bagetakos et al. (2011).
         '''
 
-        raise NotImplementedError("Need to support physical units first.")
-
-        tkin = prefactor * 0.5 * self.diameter / self.expansion_velocity
+        tkin = prefactor * 0.5 * self.diameter_physical.to(u.km) / \
+            self.expansion_velocity.to(u.km / u.s)
         return tkin.to(age_unit)
 
     @property

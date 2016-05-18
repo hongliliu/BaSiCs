@@ -93,6 +93,23 @@ class BubbleNDBase(object):
         return 2 * np.sqrt(self.major_angular * self.minor_angular)
 
     @property
+    def distance(self):
+        return self._distance
+
+    @distance.setter
+    def distance(self, value):
+
+        if not hasattr(value, "unit"):
+            raise TypeError("distance must be given as an astropy Quantitiy"
+                            " with an appropriate unit.")
+
+        if not value.unit.is_equivalent(u.pc):
+            raise ValueError("distance must be given with an appropriate unit"
+                             " of distance.")
+
+        self._distance = value.to(u.kpc)
+
+    @property
     def ra(self):
         if self._ra is not None:
             return self._ra
@@ -223,6 +240,7 @@ class BubbleNDBase(object):
     def set_wcs_props(self, data):
         '''
         Set the spatial and/or spectral extents of the bubble.
+
         '''
         if isinstance(data, SpectralCube):
 
@@ -244,10 +262,17 @@ class BubbleNDBase(object):
 
             # Get the spatial pixel scales. Should be either of the first 2
             # Also must be positive values, so no need for abs
-            spat_pix_scale = proj_plane_pixel_scales(data.wcs)[0]
+            spat_pix_scale = proj_plane_pixel_scales(data.wcs)[0] * u.deg
 
-            self._major_angular = self.major * spat_pix_scale * u.deg
-            self._minor_angular = self.minor * spat_pix_scale * u.deg
+            self._major_angular = self.major * spat_pix_scale
+            self._minor_angular = self.minor * spat_pix_scale
+
+            # Now set the physical distances, if there distance has been given
+            if hasattr(self, "_distance"):
+                phys_pix_scale = spat_pix_scale.value * (np.pi / 180.) * \
+                    self.distance.to(u.pc)
+                self._major_physical = self.major * phys_pix_scale
+                self._minor_physical = self.minor * phys_pix_scale
 
         elif isinstance(data, LowerDimensionalObject):
             # At some point, the 2D LDO will also have a
@@ -570,7 +595,8 @@ class Bubble2D(BubbleNDBase):
     """
     Class for candidate bubble portions from 2D planes.
     """
-    def __init__(self, props, shell_coords=None, channel=None, data=None):
+    def __init__(self, props, shell_coords=None, channel=None, data=None,
+                 distance=None):
         super(Bubble2D, self).__init__()
 
         self._y = props[0]
@@ -587,6 +613,9 @@ class Bubble2D(BubbleNDBase):
             self._model_residual = props[8]
 
         self._shell_coords = shell_coords
+
+        if distance is not None:
+            self.distance = distance
 
         # Requires finishing the WCS extents portion in set_wcs_props
         # if data is not None:
@@ -678,7 +707,7 @@ class Bubble3D(BubbleNDBase):
         self.twoD_regions = twoD_regions
 
         if distance is not None:
-            self._distance = distance.to(u.pc)
+            self.distance = distance
 
         if twoD_regions is not None:
             # Define the shell fraction as the maximum from the 2D regions.

@@ -9,7 +9,8 @@ from spectral_cube import SpectralCube
 from warnings import warn
 
 from log import overlap_metric
-from utils import floor_int, ceil_int, wrap_to_pi, robust_skewed_std
+from utils import (floor_int, ceil_int, wrap_to_pi, robust_skewed_std,
+                   check_give_beam)
 from fan_pvslice import pv_wedge
 from fit_models import fit_region
 
@@ -288,7 +289,8 @@ class BubbleNDBase(object):
             raise TypeError("data must be a SpectralCube or"
                             " LowerDimensionalObject.")
 
-    def set_shell_properties(self, data, mask, **shell_kwargs):
+    def set_shell_properties(self, data, mask, flux_unit=u.K * u.km / u.s,
+                             rest_freq=1.141 * u.GHz, **shell_kwargs):
         '''
         Get the properties of the shell
         '''
@@ -318,8 +320,38 @@ class BubbleNDBase(object):
         # Actually it's even worse than that: nanmean won't work with
         # Projections... Lazy work around it to convert to a Quantity
         mom0 = u.Quantity(shell_cube.moment0())
-        self._avg_shell_flux_density = np.mean(mom0)
-        self._total_shell_flux_density = np.sum(mom0)
+        self._avg_shell_flux_density = np.nanmean(mom0)
+        self._total_shell_flux_density = np.nansum(mom0)
+
+        if not flux_unit.is_equivalent(mom0.unit):
+            # I'm going to assume that this case should only arise when
+            # converting from Jy/beam to K.
+
+            # Either conversion needs a defined beam
+            beam = check_give_beam(data)
+
+            if beam is None:
+                raise ValueError("data does not have an attached beam. A beam"
+                                 " is needed to convert to"
+                                 " {}".format(flux_unit.to_string()))
+
+            jtok = beam.jtok(rest_freq)
+
+            # Only supporting units equivalent to K km/s
+            if flux_unit.is_equivalent(u.K * u.m / u.s):
+                self._avg_shell_flux_density = \
+                    (self._avg_shell_flux_density * jtok / u.Jy).to(flux_unit)
+                self._total_shell_flux_density = \
+                    (self._total_shell_flux_density * jtok /
+                     u.Jy).to(flux_unit)
+            else:
+                raise TypeError("Only support conversion to units equivalent"
+                                " to K km/s.")
+        else:
+            self._avg_shell_flux_density = \
+                self._avg_shell_flux_density.to(flux_unit)
+            self._total_shell_flux_density = \
+                self._total_shell_flux_density.to(flux_unit)
 
         # In 3D, set the velocity properties
         if isinstance(self, Bubble3D):
@@ -336,6 +368,10 @@ class BubbleNDBase(object):
     @property
     def total_shell_flux_density(self):
         return self._total_shell_flux_density
+
+    @property
+    def shell_column_density(self):
+        return 1.823e18 * self.avg_shell_flux_density.value / u.cm**2
 
     def as_ellipse(self, zero_center=True, extend_factor=1):
         '''
@@ -448,7 +484,7 @@ class BubbleNDBase(object):
                 region_mask[:start] = \
                     np.zeros((start, yshape, xshape), dtype=bool)
                 region_mask[end + 1:] = \
-                    np.zeros((nchans - end, yshape, xshape),
+                    np.zeros((nchans - (end + 1), yshape, xshape),
                              dtype=bool)
 
         # Multiply by the mask to remove potential empty regions in the shell.
@@ -866,6 +902,62 @@ class Bubble3D(BubbleNDBase):
         tkin = prefactor * 0.5 * self.diameter_physical.to(u.km) / \
             self.expansion_velocity.to(u.km / u.s)
         return tkin.to(age_unit)
+
+    def shell_volume_density(self, scale_height=100 * u.pc, inc=55):
+        '''
+        Bagetakos+11 eqs. 8 & 9
+
+        Only defined in 3D for now. *Technically* getting this from an
+        integrated intensity map is fine too, so long as the slice thickness
+        is appropriate.
+        '''
+
+        # Effective thckness of the HI layer (1-sigma) of the scale height
+        # assuming a Gaussian profile
+        l_thick = np.sqrt(8 * np.log(2)) * scale_height.to(u.cm) / \
+            np.cos(inc)
+
+        return self.shell_column_density / l_thick
+
+    def volume(self, scale_height=None):
+        '''
+        Definitions from Bagetakos+11 eqs. 10/11
+
+        For complete blowouts, you need the scale height.
+        '''
+
+        if self.bubble_type == 1:
+            if scale_height is None:
+                raise ValueError("Blowouts require the scale height to"
+                                 " compute the volume.")
+            l_thick = np.sqrt(8 * np.log(2)) * scale_height.to(u.pc)
+
+            return 2 * np.pi * (0.5 * self.diameter_physical) ** 2 * l_thick
+        else:
+            return (4 * np.pi / 3.) * (0.5 * self.diameter_physical) ** 3
+
+    def hole_mass(self, scale_height=100. * u.pc, inc=55):
+        '''
+        Calculate the approximate mass of HI evacuated from the hole. This
+        relies on the volume and the midplane volume density.
+
+        Bagetakos+11 eq. 12
+        '''
+        return 2.9e5 * self.shell_volume_density(scale_height, inc) * \
+            self.volume(scale_height).to(u.cm**3) * u.Msun
+
+    def formation_energy(self, scale_height=100. * u.pc, inc=55):
+        '''
+        Chevalier's equation for the energy needed to drive an expanding
+        shell. Using the form as shown in Bagetakos+11 eq. 18.
+
+        '''
+
+        vol_dens = np.power(self.shell_volume_density(scale_height, inc).value)
+        size = np.power(0.5 * self.diameter_physical.value, 3.12)
+        exp_vel = np.power(self.expansion_velocity.value, 1.4)
+
+        return 5.3e43 * vol_dens * size * exp_vel * u.J
 
     @property
     def bubble_type(self):

@@ -973,7 +973,7 @@ class Bubble3D(BubbleNDBase):
         '''
         Return a PV slice. Aligns the direction along the major axis.
         '''
-        from matplotlib.patches import Ellipse
+        from matplotlib.patches import Ellipse, Rectangle
 
         if x_cent is None:
             x_cent = self.major
@@ -981,16 +981,16 @@ class Bubble3D(BubbleNDBase):
         if chan_cent is None:
             chan_cent = self.channel_center
 
-        ## Return a rectangle (side-view of a cylinder) when the bubble
+        # Return a rectangle (side-view of a cylinder) when the bubble
         # is a blowout.
-
-        # if self.bubble_type == 1:
-        #     return Rectangle(...)
-        # else:
-        return Ellipse((x_cent, chan_cent),
-                       width=2 * self.major,
-                       height=self.channel_width,
-                       angle=0.0, **kwargs)
+        if self.bubble_type == 1:
+            return Rectangle((x_cent, chan_cent), 2 * self.major,
+                             self.channel_width, angle=0.0, **kwargs)
+        else:
+            return Ellipse((x_cent, chan_cent),
+                           width=2 * self.major,
+                           height=self.channel_width,
+                           angle=0.0, **kwargs)
 
     # def as_mask(self, spatial_shape, zero_center=False):
     #     '''

@@ -799,7 +799,7 @@ class Bubble3D(BubbleNDBase):
 
         self._bubble_type = input_type
 
-    def find_bubble_type(self, cube, mask, min_frac_filled=0.5):
+    def find_bubble_type(self, cube, mask, min_frac_filled=0.5, nsig=2):
         '''
         Use the cube to determine what type of bubble this is.
 
@@ -816,7 +816,8 @@ class Bubble3D(BubbleNDBase):
         # We want to check whether the next channel in each direction contain
         # a similar intensity level as found within the hole.
 
-        # mean, std = self.intensity_props(cube)
+        hole_mean, hole_sig = \
+            self.intensity_props(cube, mask=mask, region='hole')
 
         # Look before
         if self.channel_start == 0:
@@ -826,10 +827,14 @@ class Bubble3D(BubbleNDBase):
         else:
             before_channel = self.channel_start - 1
 
-            # Check the mask to see if the majority is not a bubble region.
-            twoD_mask = self.as_mask(mask=~mask[before_channel])
+            # Check how much of the previous channel within the bubble mask
+            # is above the hole intensity threshold
+            twoD_mask = self.as_mask(shape=cube.shape[1:])
 
-            frac_filled = twoD_mask.sum() / np.floor(self.area)
+            region_mask = cube[before_channel].value > \
+                nsig * hole_sig + hole_mean
+
+            frac_filled = (twoD_mask * region_mask).sum() / np.floor(self.area)
 
             if frac_filled >= min_frac_filled:
                 before_blowout = False
@@ -837,17 +842,21 @@ class Bubble3D(BubbleNDBase):
                 before_blowout = True
 
         # Now look after
-        if self.channel_end == cube.shape[0]:
+        if self.channel_end == cube.shape[0] - 1:
             warn("Bubble ends on the last channel. We're going to assume"
                  " that this constitutes a blow-out.")
             end_blowout = True
         else:
             end_channel = self.channel_end + 1
 
-            # Check the mask to see if the majority is not a bubble region.
-            twoD_mask = self.as_mask(mask=~mask[end_channel])
+            # Check how much of the previous channel within the bubble mask
+            # is above the hole intensity threshold
+            twoD_mask = self.as_mask(shape=cube.shape[1:])
 
-            frac_filled = twoD_mask.sum() / np.floor(self.area)
+            region_mask = cube[end_channel].value > \
+                nsig * hole_sig + hole_mean
+
+            frac_filled = (twoD_mask * region_mask).sum() / np.floor(self.area)
 
             if frac_filled >= min_frac_filled:
                 end_blowout = False

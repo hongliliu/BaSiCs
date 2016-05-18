@@ -330,7 +330,8 @@ class BubbleNDBase(object):
             self.as_ellipse(zero_center=zero_center)(xx, yy).astype(np.bool)
 
         # Just return the 2D footprint
-        spectral_extent = spectral_extent if len(mask.shape) == 2 else True
+        if mask is not None:
+            spectral_extent = spectral_extent if len(mask.shape) == 2 else True
         if not spectral_extent:
             region_mask = twoD_mask
         elif spectral_extent and isinstance(self, Bubble2D):

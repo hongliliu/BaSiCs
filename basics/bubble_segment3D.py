@@ -95,7 +95,7 @@ class BubbleFinder(object):
                               self.cube.mask.include(view=(i, ))
                               if use_cube_mask else None,
                               i, self.sigma, nsig, overlap_frac,
-                              self.keep_threshold_mask) for i in
+                              self.keep_threshold_mask, distance) for i in
                              xrange(self.cube.shape[0])),
                             multiprocess=multiprocess,
                             file=output,
@@ -307,11 +307,12 @@ class BubbleFinder(object):
 
 
 def _region_return(imps):
-    arr, mask, i, sigma, nsig, overlap_frac, return_mask = imps
+    arr, mask, i, sigma, nsig, overlap_frac, return_mask, distance = imps
     bubs = BubbleFinder2D(arr, channel=i,
                           mask=mask, sigma=sigma).\
         multiscale_bubblefind(nsig=nsig,
-                              overlap_frac=overlap_frac)
+                              overlap_frac=overlap_frac,
+                              distance=distance)
     if return_mask:
         return i, bubs.regions, bubs.mask
 

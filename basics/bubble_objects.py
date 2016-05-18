@@ -3,6 +3,7 @@ import numpy as np
 from astropy.modeling.models import Ellipse2D
 from astropy.stats import circmean
 from astropy import units as u
+from astropy.wcs.utils import proj_plane_pixel_scales
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 from spectral_cube import SpectralCube
 from warnings import warn
@@ -15,6 +16,10 @@ from fit_models import fit_region
 
 def no_wcs_warning():
     warn("No data product with an attached WCS was provided.")
+
+
+def no_distance_warning():
+    warn("No distance was provided.")
 
 
 class BubbleNDBase(object):
@@ -48,12 +53,44 @@ class BubbleNDBase(object):
         return self._major
 
     @property
+    def major_physical(self):
+        if hasattr(self, "_major_physical"):
+            return self._major_physical
+        no_distance_warning()
+
+    @property
+    def major_angular(self):
+        if self._major_angular is not None:
+            return self._major_angular
+        no_wcs_warning()
+
+    @property
     def minor(self):
         return self._minor
 
     @property
+    def minor_physical(self):
+        if hasattr(self, "_minor_physical"):
+            return self._minor_physical
+        no_distance_warning()
+
+    @property
+    def minor_angular(self):
+        if self._minor_angular is not None:
+            return self._minor_angular
+        no_wcs_warning()
+
+    @property
     def diameter(self):
         return 2 * np.sqrt(self.major * self.minor)
+
+    @property
+    def diameter_physical(self):
+        return 2 * np.sqrt(self.major_physical * self.minor_physical)
+
+    @property
+    def diameter_angular(self):
+        return 2 * np.sqrt(self.major_angular * self.minor_angular)
 
     @property
     def ra(self):
@@ -183,7 +220,7 @@ class BubbleNDBase(object):
             return np.nanmean(data.with_mask(local_mask)), \
                 np.nanstd(data.with_mask(local_mask))
 
-    def set_wcs_extents(self, data):
+    def set_wcs_props(self, data):
         '''
         Set the spatial and/or spectral extents of the bubble.
         '''
@@ -204,6 +241,13 @@ class BubbleNDBase(object):
             self._velocity_center = data.spectral_axis[self.channel_center]
             self._vel_width = np.abs(data.spectral_axis[1] -
                                      data.spectral_axis[0])
+
+            # Get the spatial pixel scales. Should be either of the first 2
+            # Also must be positive values, so no need for abs
+            spat_pix_scale = proj_plane_pixel_scales(data.wcs)[0]
+
+            self._major_angular = self.major * spat_pix_scale * u.deg
+            self._minor_angular = self.minor * spat_pix_scale * u.deg
 
         elif isinstance(data, LowerDimensionalObject):
             # At some point, the 2D LDO will also have a
@@ -544,9 +588,9 @@ class Bubble2D(BubbleNDBase):
 
         self._shell_coords = shell_coords
 
-        # Requires finishing the WCS extents portion in set_wcs_extents
+        # Requires finishing the WCS extents portion in set_wcs_props
         # if data is not None:
-        #     self.set_wcs_extents(data)
+        #     self.set_wcs_props(data)
 
         # The last position is the velocity channel in the cube
         if channel is not None:
@@ -643,7 +687,7 @@ class Bubble3D(BubbleNDBase):
             self._shell_fraction = np.max(fracs)
 
         if cube is not None:
-            self.set_wcs_extents(cube)
+            self.set_wcs_props(cube)
 
         # Set the bubble type
         if cube is not None and mask is not None:

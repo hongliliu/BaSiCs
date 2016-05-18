@@ -447,7 +447,7 @@ class BubbleNDBase(object):
                 region_mask[:start] = \
                     np.zeros((start, yshape, xshape), dtype=bool)
                 region_mask[end + 1:] = \
-                    np.zeros((nchans - (end + 1), yshape, xshape),
+                    np.zeros((nchans - end, yshape, xshape),
                              dtype=bool)
 
         # Multiply by the mask to remove potential empty regions in the shell.

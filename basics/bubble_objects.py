@@ -102,6 +102,10 @@ class BubbleNDBase(object):
             no_wcs_warning()
 
     @property
+    def eccentricity(self):
+        return self.major / float(self.minor)
+
+    @property
     def distance(self):
         return self._distance
 

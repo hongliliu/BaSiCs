@@ -295,11 +295,11 @@ class BubbleNDBase(object):
         if noise_std is not None:
             if hole_mean < noise_std:
                 self._hole_contrast = \
-                    (shell_mean.value - noise_std) / shell_mean.value
+                    (shell_mean - noise_std) / shell_mean
         elif hole_mean < 0.0:
-            self._hole_contrast = ((shell_mean - hole_std) / shell_mean).value
+            self._hole_contrast = ((shell_mean - hole_std) / shell_mean)
         else:
-            self._hole_contrast = ((shell_mean - hole_mean) / shell_mean).value
+            self._hole_contrast = ((shell_mean - hole_mean) / shell_mean)
 
     @property
     def hole_contrast(self):

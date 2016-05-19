@@ -1370,8 +1370,9 @@ class Bubble3D(BubbleNDBase):
         p.show()
 
     def __repr__(self):
-        s = "3D Bubble at: ({0:6f}, {1:6f}," \
-            "{2:6f})\n".format(self.channel_center, self.y, self.x)
+        s = "Type {0} Bubble at: ({1:6f}, {2:6f}," \
+            "{3:6f})\n".format(self.bubble_type, self.channel_center,
+                               self.y, self.x)
         if self.major == self.minor:
             s += "Radius: {0:6f} \n".format(self.major)
         else:

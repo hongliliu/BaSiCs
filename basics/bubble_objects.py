@@ -217,6 +217,9 @@ class BubbleNDBase(object):
             is_2D = True
         elif isinstance(data, SpectralCube):
             is_2D = False
+        else:
+            raise TypeError("data must be a LowerDimensionalObject or "
+                            "SpectralCube.")
 
         if mask is not None:
             if not is_2D and len(mask.shape) != 3:
@@ -224,25 +227,25 @@ class BubbleNDBase(object):
                                 "data.")
 
         if region == "hole":
-            local_mask = self.as_mask(mask=mask)
+            local_mask, slices = self.as_mask(mask=mask, minimal_shape=True)
         elif region == "shell":
-            local_mask = self.as_shell_mask(mask=mask)
+            local_mask, slices = self.as_shell_mask(mask=mask,
+                                                    minimal_shape=True)
         else:
             raise TypeError("region must be 'hole' or 'shell'")
 
         if is_2D:
             if robust_estimate:
-                return robust_skewed_std(data.value[local_mask])
+                return robust_skewed_std(data[slices].value[local_mask])
 
-            return np.nanmean(data.value[local_mask]), \
-                np.nanstd(data.value[local_mask])
+            return np.nanmean(data[slices].value[local_mask]), \
+                np.nanstd(data[slices].value[local_mask])
         else:
             if robust_estimate:
-                return robust_skewed_std(data.with_mask(local_mask).subcube()
-                                         .filled_data[:].value.ravel())
+                return robust_skewed_std(data.filled_data[slices].value[local_mask])
 
-            return np.nanmean(data.with_mask(local_mask)), \
-                np.nanstd(data.with_mask(local_mask))
+            return np.nanmean(data.filled_data[slices][local_mask]), \
+                np.nanstd(data.filled_data[slices][local_mask])
 
     def set_wcs_props(self, data):
         '''
@@ -303,16 +306,24 @@ class BubbleNDBase(object):
         if isinstance(self, Bubble3D):
             spectral_extent = True
 
+        minimal_shape = True
+
         if "spectral_extent" in shell_kwargs:
             warn("spectral_extent is automatically set. Ignoring input.")
             del shell_kwargs["spectral_extent"]
 
-        shell_mask = self.as_shell_mask(mask=mask,
-                                        spectral_extent=spectral_extent,
-                                        **shell_kwargs)
+        if "minimal_shape" in shell_kwargs:
+            warn("minimal_shape is automatically set. Ignoring input.")
+            del shell_kwargs["minimal_shape"]
+
+        shell_mask, slices = \
+            self.as_shell_mask(mask=mask,
+                               spectral_extent=spectral_extent,
+                               minimal_shape=minimal_shape,
+                               **shell_kwargs)
 
         # Apply the mask, then cut to its extents
-        shell_cube = data.with_mask(shell_mask).minimal_subcube()
+        shell_cube = data[slices].with_mask(shell_mask).minimal_subcube()
         # Once 2D is supported, need extra if/else for minimal_sub-something
 
         # Can't just use mom0.mean() right now until this issue is dealt with:
@@ -395,7 +406,7 @@ class BubbleNDBase(object):
 
     def as_mask(self, mask=None, shape=None, zero_center=False,
                 spectral_extent=False, use_twoD_regions=False,
-                minimal_shape=True):
+                minimal_shape=False):
         '''
         Return a boolean mask of the 2D region.
 
@@ -418,16 +429,12 @@ class BubbleNDBase(object):
             raise NotImplementedError("Issues with defining a single grid for"
                                       " each local region.")
 
-        # Returns the bbox shape. Forces zero_center to be True
-        if shape is None:
-            zero_center = True
-            bbox = self.as_ellipse(zero_center=False).bounding_box
-            y_range = ceil_int((bbox[0][1] - bbox[0][0]))
-            x_range = ceil_int((bbox[1][1] - bbox[1][0]))
+        model_ellipse = self.as_ellipse(zero_center=False)
 
-            yy, xx = np.mgrid[-int(y_range / 2): int(y_range / 2) + 1,
-                              -int(x_range / 2): int(x_range / 2) + 1]
-
+        if minimal_shape or shape is None:
+            bbox = model_ellipse.bounding_box
+            yextents = (floor_int(bbox[0][0]), ceil_int(bbox[0][1]) + 1)
+            xextents = (floor_int(bbox[1][0]), ceil_int(bbox[1][1]) + 1)
         else:
             if len(shape) == 2:
                 yshape, xshape = shape
@@ -435,15 +442,32 @@ class BubbleNDBase(object):
                 yshape, xshape = shape[1:]
             else:
                 raise TypeError("shape must be for 2D or 3D.")
+            yextents = (0, yshape)
+            xextents = (0, xshape)
 
+        # Returns the bbox shape. Forces zero_center to be True
+        if shape is None or minimal_shape:
+            yy, xx = np.mgrid[yextents[0]: yextents[1],
+                              xextents[0]: xextents[1]]
+        else:
             yy, xx = np.mgrid[:yshape, :xshape]
 
-        twoD_mask = \
-            self.as_ellipse(zero_center=zero_center)(xx, yy).astype(np.bool)
+        yshape = yy.shape[0]
+        xshape = yy.shape[1]
+
+        twoD_mask = model_ellipse(xx, yy).astype(np.bool)
 
         # Just return the 2D footprint
         if mask is not None:
             spectral_extent = spectral_extent if len(mask.shape) == 2 else True
+
+        if shape is None:
+            slices = (slice(0, yshape),
+                      slice(0, xshape))
+        else:
+            slices = (slice(yextents[0], yextents[1]),
+                      slice(xextents[0], xextents[1]))
+
         if not spectral_extent:
             region_mask = twoD_mask
         elif spectral_extent and isinstance(self, Bubble2D):
@@ -451,21 +475,17 @@ class BubbleNDBase(object):
                             " objects.")
         else:
 
-            if shape is None:
+            if minimal_shape or shape is None:
                 nchans = self.channel_width
                 start = 0
-                end = self.channel_width + 1
-                yshape = yy.shape[0]
-                xshape = yy.shape[1]
+                end = self.channel_width
             else:
                 if len(shape) != 3:
                     raise TypeError("A 3D shape must be given when returning"
                                     " a 3D mask.")
                 nchans = shape[0]
                 start = self.channel_start
-                end = self.channel_end + 1
-                yshape = shape[1]
-                xshape = shape[2]
+                end = self.channel_end
 
             if use_twoD_regions:
                 region_mask = \
@@ -476,24 +496,34 @@ class BubbleNDBase(object):
                 for i, region in zip(chans, self._twoD_region_iter()):
                     region_mask[i] = \
                         region.as_mask(shape=(yshape, xshape),
-                                       zero_center=zero_center)
+                                       zero_center=zero_center,
+                                       minimal_shape=False)
             else:
                 region_mask = np.tile(twoD_mask, (nchans, 1, 1))
 
                 # Now blank the channels where the mask isn't there
                 region_mask[:start] = \
                     np.zeros((start, yshape, xshape), dtype=bool)
-                region_mask[end + 1:] = \
-                    np.zeros((nchans - (end + 1), yshape, xshape),
+                region_mask[end:] = \
+                    np.zeros((nchans - end, yshape, xshape),
                              dtype=bool)
+
+            if minimal_shape:
+                slices = (slice(self.channel_start, self.channel_end + 1), ) \
+                    + slices
+            else:
+                slices = (slice(0, nchans), ) + slices
 
         # Multiply by the mask to remove potential empty regions in the shell.
         # The hole masks are defined where there isn't signal, so multiple by
         # not mask
         if mask is not None:
-            region_mask *= mask
+            region_mask *= mask[slices]
 
-        return region_mask
+        if minimal_shape:
+            return region_mask, slices
+        else:
+            return region_mask
 
     def as_shell_annulus(self, area_factor=2, zero_center=False):
         '''
@@ -521,7 +551,7 @@ class BubbleNDBase(object):
 
     def as_shell_mask(self, mask=None, shape=None, include_center=True,
                       zero_center=False, area_factor=2, spectral_extent=False,
-                      use_twoD_regions=False):
+                      use_twoD_regions=False, minimal_shape=False):
         '''
         Realize the shell region as a boolean mask.
 
@@ -544,19 +574,23 @@ class BubbleNDBase(object):
             raise NotImplementedError("Issues with defining a single grid for"
                                       " each local region.")
 
-        # Returns the bbox shape. Forces zero_center to be True
-        if shape is None:
-            zero_center = True
+        if include_center and mask is not None:
+            model_shell = \
+                self.as_ellipse(zero_center=zero_center,
+                                extend_factor=np.sqrt(area_factor))
+        else:
+            if include_center:
+                warn("include_mask is only used when a mask is given.")
+            model_shell = \
+                self.as_shell_annulus(zero_center=zero_center,
+                                      area_factor=area_factor)
+
+        if minimal_shape or shape is None:
             bbox = self.as_ellipse(zero_center=False,
                                    extend_factor=np.sqrt(area_factor)).\
                 bounding_box
-
-            y_range = ceil_int((bbox[0][1] - bbox[0][0]))
-            x_range = ceil_int((bbox[1][1] - bbox[1][0]))
-
-            yy, xx = np.mgrid[-int(y_range / 2): int(y_range / 2) + 1,
-                              -int(x_range / 2): int(x_range / 2) + 1]
-
+            yextents = (floor_int(bbox[0][0]), ceil_int(bbox[0][1]) + 1)
+            xextents = (floor_int(bbox[1][0]), ceil_int(bbox[1][1]) + 1)
         else:
             if len(shape) == 2:
                 yshape, xshape = shape
@@ -564,23 +598,32 @@ class BubbleNDBase(object):
                 yshape, xshape = shape[1:]
             else:
                 raise TypeError("shape must be for 2D or 3D.")
+            yextents = (0, yshape)
+            xextents = (0, xshape)
 
+        # Returns the bbox shape. Forces zero_center to be True
+        if shape is None or minimal_shape:
+            yy, xx = np.mgrid[yextents[0]: yextents[1],
+                              xextents[0]: xextents[1]]
+        else:
             yy, xx = np.mgrid[:yshape, :xshape]
 
-        if include_center and mask is not None:
-            twoD_mask = \
-                self.as_ellipse(zero_center=zero_center,
-                                extend_factor=np.sqrt(area_factor))(xx, yy).\
-                astype(np.bool)
-        else:
-            if include_center:
-                warn("include_mask is only used when a mask is given.")
-            twoD_mask = \
-                self.as_shell_annulus(zero_center=zero_center,
-                                      area_factor=area_factor)(xx, yy).\
-                astype(np.bool)
+        yshape = yy.shape[0]
+        xshape = yy.shape[1]
+
+        twoD_mask = model_shell(xx, yy).astype(np.bool)
 
         # Just return the 2D footprint
+        if mask is not None:
+            spectral_extent = spectral_extent if len(mask.shape) == 2 else True
+
+        if shape is None:
+            slices = (slice(0, yshape),
+                      slice(0, xshape))
+        else:
+            slices = (slice(yextents[0], yextents[1]),
+                      slice(xextents[0], xextents[1]))
+
         if not spectral_extent:
             shell_mask = twoD_mask
         elif spectral_extent and isinstance(self, Bubble2D):
@@ -588,21 +631,17 @@ class BubbleNDBase(object):
                             " objects.")
         else:
 
-            if shape is None:
+            if minimal_shape or shape is None:
                 nchans = self.channel_width
                 start = 0
-                end = self.channel_width + 1
-                yshape = yy.shape[0]
-                xshape = yy.shape[1]
+                end = self.channel_width
             else:
                 if len(shape) != 3:
                     raise TypeError("A 3D shape must be given when returning"
                                     " a 3D mask.")
                 nchans = shape[0]
                 start = self.channel_start
-                end = self.channel_end + 1
-                yshape = shape[1]
-                xshape = shape[2]
+                end = self.channel_end
 
             if use_twoD_regions:
                 shell_mask = \
@@ -612,26 +651,35 @@ class BubbleNDBase(object):
                 chans = np.arange(start, end).astype(int)
                 for i, region in zip(chans, self._twoD_region_iter()):
                     shell_mask[i] = \
-                        region.as_shell_mask(shape=(yshape, xshape),
-                                             zero_center=zero_center,
-                                             area_factor=area_factor)
+                        region.as_mask(shape=(yshape, xshape),
+                                       zero_center=zero_center,
+                                       minimal_shape=False)
             else:
                 shell_mask = np.tile(twoD_mask, (nchans, 1, 1))
 
                 # Now blank the channels where the mask isn't there
                 shell_mask[:start] = \
                     np.zeros((start, yshape, xshape), dtype=bool)
-                shell_mask[end + 1:] = \
-                    np.zeros((nchans - (end + 1), yshape, xshape),
+                shell_mask[end:] = \
+                    np.zeros((nchans - end, yshape, xshape),
                              dtype=bool)
+
+            if minimal_shape:
+                slices = (slice(self.channel_start, self.channel_end + 1), ) \
+                    + slices
+            else:
+                slices = (slice(0, nchans), ) + slices
 
         # Multiply by the mask to remove potential empty regions in the shell.
         # The hole masks are defined where there isn't signal, so multiple by
         # not mask
         if mask is not None:
-            shell_mask *= ~mask
+            shell_mask *= ~mask[slices]
 
-        return shell_mask
+        if minimal_shape:
+            return shell_mask, slices
+        else:
+            return shell_mask
 
 
 class Bubble2D(BubbleNDBase):
@@ -1011,9 +1059,13 @@ class Bubble3D(BubbleNDBase):
 
             # Check how much of the previous channel within the bubble mask
             # is above the hole intensity threshold
-            twoD_mask = self.as_mask(shape=cube.shape[1:])
+            twoD_mask, slices = \
+                self.as_mask(shape=cube.shape[1:], minimal_shape=True)
 
-            region_mask = cube[before_channel].value > \
+            # Add the velocity channel
+            slices = (before_channel, ) + slices
+
+            region_mask = cube[slices].value > \
                 nsig * hole_sig + hole_mean
 
             frac_filled = (twoD_mask * region_mask).sum() / np.floor(self.area)
@@ -1033,9 +1085,13 @@ class Bubble3D(BubbleNDBase):
 
             # Check how much of the previous channel within the bubble mask
             # is above the hole intensity threshold
-            twoD_mask = self.as_mask(shape=cube.shape[1:])
+            twoD_mask, slices = \
+                self.as_mask(shape=cube.shape[1:], minimal_shape=True)
 
-            region_mask = cube[end_channel].value > \
+            # Add the velocity channel
+            slices = (end_channel, ) + slices
+
+            region_mask = cube[slices].value > \
                 nsig * hole_sig + hole_mean
 
             frac_filled = (twoD_mask * region_mask).sum() / np.floor(self.area)
@@ -1172,27 +1228,6 @@ class Bubble3D(BubbleNDBase):
                            width=2 * self.major,
                            height=self.channel_width,
                            angle=0.0, **kwargs)
-
-    # def as_mask(self, spatial_shape, zero_center=False):
-    #     '''
-    #     Return an elliptical mask.
-    #     '''
-
-    #     if len(spatial_shape) != 2:
-    #         raise ValueError("spatial_shape must have a length of 2.")
-
-    #     if not self.has_2D_regions:
-    #         raise NotImplementedError("")
-
-    #     ellip_mask = np.zeros((len(self.twoD_regions),) + spatial_shape,
-    #                           dtype=bool)
-
-    #     for i, region in enumerate(self._twoD_region_iter()):
-    #         ellip_mask[i] = \
-    #             region.as_mask(shape=spatial_shape,
-    #                            zero_center=zero_center)
-
-    #     return ellip_mask
 
     def slice_to_bubble(self, cube, spatial_pad=0, spec_pad=0):
         '''

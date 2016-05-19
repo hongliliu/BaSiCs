@@ -132,7 +132,7 @@ class BubbleNDBase(object):
 
     @property
     def center_coordinate(self):
-        return SkyCoord(self.ra, self.dec, units=(u.deg, u.deg))
+        return SkyCoord(self.ra, self.dec, unit=(u.deg, u.deg))
 
     @property
     def ra(self):
@@ -1150,12 +1150,17 @@ class Bubble3D(BubbleNDBase):
             self._expansion_velocity = self.shell_velocity_disp
         # Half blowouts use the difference between the mean gas velocity in
         # the shell and the channel velocity of the bounded side.
-        elif self.bubble_type == 2:
-            self._expansion_velocity = \
-                np.abs(self.shell_velocity_mean - self.velocity_end)
-        elif self.bubble_type == 3:
-            self._expansion_velocity = \
-                np.abs(self.shell_velocity_mean - self.velocity_start)
+        # NOTE: the Bagetakos Vexp definition for half blow-outs is giving
+        # very small values (>> channel width). We're going to adopt the same
+        # form as the enclosed shells. Given that the uncertainty is capped
+        # at the velocity resolution, this assumption does not seem significant
+
+        # elif self.bubble_type == 2:
+        #     self._expansion_velocity = \
+        #         np.abs(self.shell_velocity_mean - self.velocity_end)
+        # elif self.bubble_type == 3:
+        #     self._expansion_velocity = \
+        #         np.abs(self.shell_velocity_mean - self.velocity_start)
         # And bounded bubbles use half of the difference between their extents
         else:
             self._expansion_velocity =  \

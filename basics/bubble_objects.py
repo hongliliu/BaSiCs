@@ -4,6 +4,7 @@ from astropy.modeling.models import Ellipse2D
 from astropy.stats import circmean
 from astropy import units as u
 from astropy.wcs.utils import proj_plane_pixel_scales
+from astropy.coordinates import SkyCoord
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 from spectral_cube import SpectralCube
 from warnings import warn
@@ -13,6 +14,7 @@ from utils import (floor_int, ceil_int, wrap_to_pi, robust_skewed_std,
                    check_give_beam)
 from fan_pvslice import pv_wedge
 from fit_models import fit_region
+from galaxy_utils import galactic_radius
 
 
 def no_wcs_warning():
@@ -115,6 +117,22 @@ class BubbleNDBase(object):
                              " of distance.")
 
         self._distance = value.to(u.kpc)
+
+    def galactocentric_radius(self, galaxy_coord, pa, inc, unit=u.kpc):
+        '''
+        Requires a few galaxy properties
+        '''
+
+        if not hasattr(self, "_distance"):
+            raise ValueError("distance must be provided to find the "
+                             "galactocentric radius.")
+
+        return galactic_radius(self.center_coordinate, galaxy_coord,
+                               self.distance, pa, inc)
+
+    @property
+    def center_coordinate(self):
+        return SkyCoord(self.ra, self.dec, units=(u.deg, u.deg))
 
     @property
     def ra(self):

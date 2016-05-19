@@ -147,7 +147,8 @@ class BubbleFinder(object):
                 self._bubbles.append(
                     Bubble3D.from_2D_regions(regions, refit=refit,
                                              cube=self.cube, mask=self.mask,
-                                             distance=distance))
+                                             distance=distance,
+                                             sigma=self.sigma))
             else:
                 self._unclustered_regions.append(regions)
 

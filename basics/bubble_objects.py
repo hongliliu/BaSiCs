@@ -876,7 +876,7 @@ class Bubble3D(BubbleNDBase):
 
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,
-                        cube=None, mask=None, distance=None,
+                        cube=None, mask=None, distance=None, sigma=None,
                         **fit_kwargs):
         '''
         Create a 3D regions from a collection of 2D regions.
@@ -925,7 +925,7 @@ class Bubble3D(BubbleNDBase):
 
         self = Bubble3D(props, cube=cube, mask=mask,
                         twoD_regions=twod_region_list,
-                        distance=distance)
+                        distance=distance, sigma=sigma)
 
         self._shell_coords = all_coords
 

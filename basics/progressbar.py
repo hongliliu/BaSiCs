@@ -242,7 +242,7 @@ class ProgressBar(six.Iterator):
 
     @classmethod
     def map(cls, function, items, multiprocess=False, file=None, step=100,
-            item_len=None):
+            item_len=None, nprocesses=None):
         """
         Does a `map` operation while displaying a progress bar with
         percentage complete.
@@ -308,7 +308,13 @@ class ProgressBar(six.Iterator):
                     if (i % chunksize) == 0:
                         bar.update(i)
             else:
-                p = multiprocessing.Pool()
+                max_proc = multiprocessing.cpu_count()
+                if nprocesses is None:
+                    nprocesses = max_proc
+                elif nprocesses > max_proc:
+                    nprocesses = max_proc
+
+                p = multiprocessing.Pool(nprocesses)
                 for i, out in enumerate(p.imap_unordered(function,
                                                          items,
                                                          chunksize=chunksize)):

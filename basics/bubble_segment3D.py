@@ -77,8 +77,8 @@ class BubbleFinder(object):
         self._sigma = val
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
-                    multiprocess=True, use_cube_mask=False, nsig=2.,
-                    refit=True, distance=None, **kwargs):
+                    use_cube_mask=False, nsig=2., refit=False, distance=None,
+                    multiprocess=True, nprocesses=None, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -98,6 +98,7 @@ class BubbleFinder(object):
                               self.keep_threshold_mask, distance) for i in
                              xrange(self.cube.shape[0])),
                             multiprocess=multiprocess,
+                            nprocesses=nprocesses,
                             file=output,
                             step=self.cube.shape[0],
                             item_len=self.cube.shape[0])

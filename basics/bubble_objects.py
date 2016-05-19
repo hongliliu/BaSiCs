@@ -269,6 +269,42 @@ class BubbleNDBase(object):
             return np.nanmean(data.filled_data[slices][local_mask]), \
                 np.nanstd(data.filled_data[slices][local_mask])
 
+    def find_hole_contrast(self, data, mask=None, area_factor=2.,
+                           noise_std=None):
+        '''
+        Relative difference between the mean intensity in the hole versus the
+        shell. Sort of similar to Column 8 in Table 1 of Deul & den Hartog
+        (1990).
+        '''
+
+        shell_mean, shell_std = \
+            self.intensity_props(data, area_factor=area_factor,
+                                 region='shell', mask=mask,
+                                 robust_estimate=True)
+
+        hole_mean, hole_std = \
+            self.intensity_props(data, area_factor=1.,
+                                 region='hole', mask=mask,
+                                 robust_estimate=True)
+
+        # Since a lot of the holes will have a bkg at/near the noise limit,
+        # use the std when the hole mean is less than hole std. Low values
+        # may result from a lack of samples of the noise, but we should
+        # assume the complete noise distribution is normal with mean 0.
+        # The true noise std can be provided to avoid this.
+        if noise_std is not None:
+            if hole_mean < noise_std:
+                self._hole_contrast = \
+                    (shell_mean.value - noise_std) / shell_mean.value
+        elif hole_mean < 0.0:
+            self._hole_contrast = ((shell_mean - hole_std) / shell_mean).value
+        else:
+            self._hole_contrast = ((shell_mean - hole_mean) / shell_mean).value
+
+    @property
+    def hole_contrast(self):
+        return self._hole_contrast
+
     def set_wcs_props(self, data):
         '''
         Set the spatial and/or spectral extents of the bubble.
@@ -805,7 +841,7 @@ class Bubble3D(BubbleNDBase):
         Uses the cube to find the spatial and spectral extents of the bubble.
     """
     def __init__(self, props, cube=None, twoD_regions=None, mask=None,
-                 distance=None, **kwargs):
+                 distance=None, sigma=None, **kwargs):
         super(Bubble3D, self).__init__()
 
         self._y = props[0]
@@ -836,6 +872,7 @@ class Bubble3D(BubbleNDBase):
             self.find_bubble_type(cube, mask, **kwargs)
             self.set_shell_properties(cube, mask)
             self.find_expansion_velocity()
+            self.find_hole_contrast(cube, mask=mask, noise_std=sigma)
 
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,

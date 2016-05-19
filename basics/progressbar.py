@@ -317,7 +317,7 @@ class ProgressBar(six.Iterator):
                 p = multiprocessing.Pool(nprocesses)
                 for i, out in enumerate(p.imap_unordered(function,
                                                          items,
-                                                         chunksize=chunksize)):
+                                                         chunksize=1)):
                     bar.update(i)
                     results.append(out)
                 p.close()

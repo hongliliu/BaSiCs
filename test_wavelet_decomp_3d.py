@@ -23,7 +23,7 @@ cube = cube[:, 500:1500, 500:1500]
 bub_find = BubbleFinder(cube, keep_threshold_mask=True)
 
 bub_find.get_bubbles(verbose=True, overlap_frac=0.5, multiprocess=True,
-                     refit=False, nsig=2.0, cut_val=0.5, min_channels=5,
+                     refit=False, nsig=2.0, cut_val=0.5, min_channels=3,
                      distance=0.84 * u.Mpc, nprocesses=None)
 
 # Show the moment 0

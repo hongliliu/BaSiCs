@@ -93,11 +93,18 @@ def warp_ellipse_to_circle(cube, a, b, pa, stop_if_huge=True):
 
     warped_array = np.array(warped_array)
 
+    # We want to mask outside of the original bounds
+    mask = np.ones(data.shape[1:])
+    warp_mask = \
+        np.isclose(nd.zoom(nd.rotate(mask, np.rad2deg(-pa)),
+                           (1, a / b)), 1)
+
     # There's probably a clever way to transform the WCS, but all the
     # solutions appear to need pyast/starlink. The output of the wrap should
     # give a radius of b and the spectral dimension is unaffected.
     # Also this is hidden and users won't be able to use this weird cube
     # directly
     warped_cube = SpectralCube(warped_array * cube.unit, cube.wcs)
+    warped_cube = warped_cube.with_mask(warp_mask)
 
     return warped_cube

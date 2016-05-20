@@ -425,10 +425,10 @@ class BubbleNDBase(object):
         # In 3D, set the velocity properties
         if isinstance(self, Bubble3D):
             self._shell_velocity_mean = \
-                np.nanmedian(u.Quantity(shell_cube.moment1()))
+                np.nanmean(u.Quantity(shell_cube.moment1()))
             # Define the dispersion as half the FWHM linewidth
             self._shell_velocity_disp = \
-                np.nanmedian(u.Quantity(0.5 * shell_cube.linewidth_fwhm()))
+                np.nanmean(u.Quantity(0.5 * shell_cube.linewidth_fwhm()))
 
     @property
     def avg_shell_flux_density(self):
@@ -543,7 +543,7 @@ class BubbleNDBase(object):
                                     " a 3D mask.")
                 nchans = shape[0]
                 start = self.channel_start
-                end = self.channel_end
+                end = self.channel_end + 1
 
             if use_twoD_regions:
                 region_mask = \

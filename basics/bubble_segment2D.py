@@ -156,7 +156,7 @@ class BubbleFinder2D(object):
 
         self._sigma = value
 
-    def create_mask(self, bkg_nsig=2, region_min_nsig=4, adap_patch=None,
+    def create_mask(self, bkg_nsig=3, region_min_nsig=6, adap_patch=None,
                     median_radius=None, edge_smooth_radius=None,
                     min_pixels=None, fill_radius=None):
         '''

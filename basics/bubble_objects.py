@@ -1266,11 +1266,15 @@ class Bubble3D(BubbleNDBase):
         if use_subcube:
 
             subcube = self.slice_to_bubble(cube, **kwargs)
+            spatial_shape = subcube.shape[1:]
 
             if warp_to_circle:
                 subcube = warp_ellipse_to_circle(subcube, self.major,
                                                  self.minor, self.pa)
-                max_dist = 2 * float(self.minor + spatial_pad)
+                warp_factor = \
+                    max([war / float(orig) for war, orig in
+                         zip(subcube.shape[1:], spatial_shape)])
+                max_dist = 2 * float(self.minor + spatial_pad) * warp_factor
             else:
                 # Use major here. Will be find ~ circular regions.
                 max_dist = 2 * float(self.major + spatial_pad)

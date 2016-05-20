@@ -2,6 +2,9 @@
 import numpy as np
 from astropy.io.fits import PrimaryHDU
 from pvextractor import Path, extract_pv_slice
+import scipy.ndimage as nd
+from warnings import warn
+from spectral_cube import SpectralCube
 
 
 def pv_wedge(cube, center, length, min_theta, max_theta,
@@ -18,11 +21,11 @@ def pv_wedge(cube, center, length, min_theta, max_theta,
 
     for i, theta in enumerate(thetas):
 
-        start_pt = (y0 - (length / 2.)*np.sin(theta),
-                    x0 - (length / 2.)*np.cos(theta))
+        start_pt = (y0 - (length / 2.) * np.sin(theta),
+                    x0 - (length / 2.) * np.cos(theta))
 
-        end_pt = (y0 + (length / 2.)*np.sin(theta),
-                  x0 + (length / 2.)*np.cos(theta))
+        end_pt = (y0 + (length / 2.) * np.sin(theta),
+                  x0 + (length / 2.) * np.cos(theta))
 
         path = Path([start_pt, end_pt], width=width)
 
@@ -53,3 +56,48 @@ def pv_wedge(cube, center, length, min_theta, max_theta,
     avg_pvslice /= float(ntheta)
 
     return PrimaryHDU(avg_pvslice, header=header)
+
+
+def warp_ellipse_to_circle(cube, a, b, pa, stop_if_huge=True):
+    '''
+    Warp a SpectralCube such that the given ellipse is a circle int the
+    warped frame.
+
+    Since you should **NOT** be doing this with a large cube, we're going
+    to assume that the given cube is a subcube centered in the middle of the
+    cube.
+
+    This requires a rotation, then scaling. The equivalent matrix is:
+    [b cos PA    b sin PA]
+    [-a sin PA   a cos PA ].
+
+    '''
+
+    if cube._is_huge:
+        if stop_if_huge:
+            raise Warning("The cube has the huge flag enabled. Disable "
+                          "'stop_if_huge' if you would like to continue "
+                          "anyways with the warp.")
+        else:
+            warn("The cube has the huge flag enabled. This may use a lot "
+                 "of memory!")
+
+    # Let NaNs be 0
+    data = cube.with_fill_value(0.0).filled_data[:].value
+
+    warped_array = []
+
+    for i in range(cube.shape[0]):
+        warped_array.append(nd.zoom(nd.rotate(data[i], np.rad2deg(-pa)),
+                                    (1, a / b)))
+
+    warped_array = np.array(warped_array)
+
+    # There's probably a clever way to transform the WCS, but all the
+    # solutions appear to need pyast/starlink. The output of the wrap should
+    # give a radius of b and the spectral dimension is unaffected.
+    # Also this is hidden and users won't be able to use this weird cube
+    # directly
+    warped_cube = SpectralCube(warped_array * cube.unit, cube.wcs)
+
+    return warped_cube

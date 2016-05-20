@@ -12,7 +12,7 @@ from warnings import warn
 from log import overlap_metric
 from utils import (floor_int, ceil_int, wrap_to_pi, robust_skewed_std,
                    check_give_beam)
-from fan_pvslice import pv_wedge
+from fan_pvslice import pv_wedge, warp_ellipse_to_circle
 from fit_models import fit_region
 from galaxy_utils import galactic_radius
 
@@ -1235,7 +1235,8 @@ class Bubble3D(BubbleNDBase):
         return [[floor_int(np.min(bboxes[0])), ceil_int(np.max(bboxes[1]))],
                 [floor_int(np.min(bboxes[2])), ceil_int(np.max(bboxes[3]))]]
 
-    def extract_pv_slice(self, cube, width=None, use_subcube=True, **kwargs):
+    def extract_pv_slice(self, cube, width=None, use_subcube=True,
+                         warp_to_circle=True, **kwargs):
         '''
         Return a PV Slice. Defaults to across the entire bubble.
         '''
@@ -1246,13 +1247,18 @@ class Bubble3D(BubbleNDBase):
             raise ImportError("pvextractor must be installed to extract "
                               " PV slices.")
 
+        if warp_to_circle:
+            if not use_subcube:
+                raise TypeError("Due to heavy memory usage, warping can"
+                                " only be used with 'use_subcube=True'.")
+            if self.eccentricity < 1.2:
+                warn("Bubble is nearly circular. Skipping the warp.")
+                warp_to_circle = False
+
         if "spatial_pad" in kwargs:
             spatial_pad = kwargs["spatial_pad"]
         else:
             spatial_pad = 0
-
-        # Define end points along the major axis
-        max_dist = 2 * float(self.major + spatial_pad)
 
         if width is None:
             width = 1  # self.minor
@@ -1261,12 +1267,23 @@ class Bubble3D(BubbleNDBase):
 
             subcube = self.slice_to_bubble(cube, **kwargs)
 
+            if warp_to_circle:
+                subcube = warp_ellipse_to_circle(subcube, self.major,
+                                                 self.minor, self.pa)
+                max_dist = 2 * float(self.minor + spatial_pad)
+            else:
+                # Use major here. Will be find ~ circular regions.
+                max_dist = 2 * float(self.major + spatial_pad)
+
             sub_center = (floor_int(subcube.shape[1] / 2.),
                           floor_int(subcube.shape[2] / 2.))
 
             return pv_wedge(subcube, sub_center, max_dist, 0.0, np.pi,
                             width=width)
         else:
+            # Define end points along the major axis
+            max_dist = 2 * float(self.major + spatial_pad)
+
             return pv_wedge(cube, self.center, max_dist, 0.0, np.pi,
                             width=width)
 

@@ -351,9 +351,19 @@ class BubbleNDBase(object):
                             " LowerDimensionalObject.")
 
     def set_shell_properties(self, data, mask, flux_unit=u.K * u.km / u.s,
-                             rest_freq=1.141 * u.GHz, **shell_kwargs):
+                             rest_freq=1.141 * u.GHz, linewidth=None,
+                             **shell_kwargs):
         '''
         Get the properties of the shell
+
+        Parameters
+        ----------
+        linewidth : Projection
+            The FWHM linewidth for the cube. Used for finding the velocity
+            dispersion within the shell. If None, this is estimated from the
+            shell mask, but for coarse velocity resolution this is **NOT A
+            GOOD APPROXIMATION** and will lead to sever underestimations.
+
         '''
 
         # Requires masking for 2D objects in SpectralCube to be ready
@@ -427,8 +437,18 @@ class BubbleNDBase(object):
             self._shell_velocity_mean = \
                 np.nanmean(u.Quantity(shell_cube.moment1()))
             # Define the dispersion as half the FWHM linewidth
-            self._shell_velocity_disp = \
-                np.nanmean(u.Quantity(0.5 * shell_cube.linewidth_fwhm()))
+            if linewidth is not None:
+                twoD_shell_mask, slices = \
+                    self.as_shell_mask(mask=mask,
+                                       spectral_extent=False,
+                                       minimal_shape=True,
+                                       **shell_kwargs)
+                self._shell_velocity_disp = \
+                    np.nanmean(u.Quantity(0.5 * linewidth[slices]))
+
+            else:
+                self._shell_velocity_disp = \
+                    np.nanmean(u.Quantity(0.5 * shell_cube.linewidth_fwhm()))
 
     @property
     def avg_shell_flux_density(self):
@@ -841,7 +861,7 @@ class Bubble3D(BubbleNDBase):
         Uses the cube to find the spatial and spectral extents of the bubble.
     """
     def __init__(self, props, cube=None, twoD_regions=None, mask=None,
-                 distance=None, sigma=None, **kwargs):
+                 distance=None, sigma=None, linewidth=None, **kwargs):
         super(Bubble3D, self).__init__()
 
         self._y = props[0]
@@ -870,14 +890,14 @@ class Bubble3D(BubbleNDBase):
         # Set the bubble type
         if cube is not None and mask is not None:
             self.find_bubble_type(cube, mask, **kwargs)
-            self.set_shell_properties(cube, mask)
+            self.set_shell_properties(cube, mask, linewidth=linewidth)
             self.find_expansion_velocity()
             self.find_hole_contrast(cube, mask=mask, noise_std=sigma)
 
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,
                         cube=None, mask=None, distance=None, sigma=None,
-                        **fit_kwargs):
+                        linewidth=None, **fit_kwargs):
         '''
         Create a 3D regions from a collection of 2D regions.
         '''
@@ -925,7 +945,8 @@ class Bubble3D(BubbleNDBase):
 
         self = Bubble3D(props, cube=cube, mask=mask,
                         twoD_regions=twod_region_list,
-                        distance=distance, sigma=sigma)
+                        distance=distance, sigma=sigma,
+                        linewidth=linewidth)
 
         self._shell_coords = all_coords
 

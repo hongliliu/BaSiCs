@@ -78,7 +78,8 @@ class BubbleFinder(object):
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
                     use_cube_mask=False, nsig=2., refit=False, distance=None,
-                    multiprocess=True, nprocesses=None, **kwargs):
+                    cube_linewidth=None, multiprocess=True, nprocesses=None,
+                    **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -153,11 +154,15 @@ class BubbleFinder(object):
 
         if verbose:
             print("Creating bubbles and finding their properties.")
+        # We need to pass a linewidth array for the cube, but don't want to
+        # have to recompute it multiple times. Make sure it's using the mask
+        if cube_linewidth is None:
+            cube_linewidth = self.cube.with_mask(self.mask).linewidth_fwhm()
         # Now create the bubble objects and find their respective properties
         self._bubbles = ProgressBar.map(_make_bubble,
                                         ((regions, refit, self.cube, self.mask,
-                                          distance, self.sigma) for regions in
-                                         good_clusters),
+                                          distance, self.sigma, cube_linewidth)
+                                         for regions in good_clusters),
                                         multiprocess=multiprocess,
                                         nprocesses=nprocesses,
                                         file=output,
@@ -334,8 +339,8 @@ def _region_return(imps):
 
 
 def _make_bubble(imps):
-    regions, refit, cube, mask, distance, sigma = imps
+    regions, refit, cube, mask, distance, sigma, lwidth = imps
     return Bubble3D.from_2D_regions(regions, refit=refit,
                                     cube=cube, mask=mask,
                                     distance=distance,
-                                    sigma=sigma)
+                                    sigma=sigma, linewidth=lwidth)

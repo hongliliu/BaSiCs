@@ -78,8 +78,7 @@ class BubbleFinder(object):
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
                     use_cube_mask=False, nsig=2., refit=False, distance=None,
-                    multiprocess=True, nprocesses=None, verbose=True,
-                    **kwargs):
+                    multiprocess=True, nprocesses=None, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.

@@ -76,7 +76,7 @@ def cluster_2D_regions(twod_region_props, metric='position', cut_val=18,
     return cluster_idx
 
 
-def cluster_and_clean(twod_region_props, min_scatter=9):
+def cluster_and_clean(twod_region_props, min_scatter=9, cut_val=None):
     '''
     Clean-up clusters of 2D regions. Real bubbles must be connected in
     velocity space. This function also looks for clusters that are closely
@@ -124,7 +124,8 @@ def cluster_and_clean(twod_region_props, min_scatter=9):
     return cluster_idx
 
 
-def cluster_brute_force(twod_region_props, cut_val=0.5):
+def cluster_brute_force(twod_region_props, cut_val=0.5, multiprocess=True,
+                        n_jobs=None, min_multi_size=100):
     '''
     Do a brute force clustering of the regions
     '''
@@ -134,45 +135,60 @@ def cluster_brute_force(twod_region_props, cut_val=0.5):
     # Determine the channels which have regions defined in them
     chans = np.unique(twod_region_props[:, 5])
 
+    overlap_func = partial(overlap_metric, return_corr=True)
+
     # Now loop through each channel's regions looking for significant overlap
     # with a region before it.
     for chan in chans[1:]:
         chan_regions_idx = np.where(twod_region_props[:, 5] == chan)[0]
-        area_sorted = np.argsort(twod_region_props[chan_regions_idx, 2] *
-                                 twod_region_props[chan_regions_idx, 3])
-        chan_regions_idx = chan_regions_idx[area_sorted]
         prev_regions_idx = np.where(twod_region_props[:, 5] == chan - 1)[0]
-        prev_area_sorted = np.argsort(twod_region_props[prev_regions_idx, 2] *
-                                      twod_region_props[prev_regions_idx, 3])
-        prev_regions_idx = prev_regions_idx[prev_area_sorted]
 
-        for j in prev_regions_idx:
+        all_overlaps = np.zeros((len(prev_regions_idx),
+                                 len(chan_regions_idx)),
+                                dtype=np.float)
 
-            join_list = []
-            prev_reg = twod_region_props[j]
-            # Sort by some property? Area?
-            for i in chan_regions_idx:
-                reg = twod_region_props[i]
-                overlap = overlap_metric(prev_reg, reg, return_corr=True)
-                if overlap >= cut_val:
-                    join_list.append([i, overlap])
+        multi_conds = (multiprocess and _sklearn_flag and
+                       all_overlaps.size >= min_multi_size)
+        if multi_conds:
+            if n_jobs is None:
+                n_jobs = cpu_count()
 
-            if len(join_list) == 0:
-                continue
-            elif len(join_list) == 1:
-                join_idx = join_list[0][0]
-            else:
-                # If there are multiple overlaps, choose the largest one
-                join_list = np.array(join_list)
-                join_idx = join_list[np.argmax(join_list[:, 1]), 0]
+            all_overlaps = \
+                pairwise_distances(twod_region_props[prev_regions_idx],
+                                   twod_region_props[chan_regions_idx],
+                                   metric=overlap_func,
+                                   n_jobs=n_jobs)
+        else:
+            for i, prev_idx in enumerate(prev_regions_idx):
+                for j, idx in enumerate(chan_regions_idx):
+                    all_overlaps[i, j] = \
+                        overlap_func(twod_region_props[prev_idx],
+                                     twod_region_props[idx])
+
+        if not np.any(all_overlaps >= cut_val):
+            continue
+
+        for _ in range(len(prev_regions_idx)):
+
+            i, j = np.unravel_index(all_overlaps.argmax(), all_overlaps.shape)
+
+            if not all_overlaps[i, j] >= cut_val:
+                break
+
+            idx = prev_regions_idx[i]
+            join_idx = chan_regions_idx[j]
 
             # Create a new cluster, or add to the existing one.
-            if cluster_idx[j] == 0:
+            if cluster_idx[idx] == 0:
                 # Create a new cluster
                 new_idx = cluster_idx.max() + 1
-                cluster_idx[j] = new_idx
+                cluster_idx[idx] = new_idx
                 cluster_idx[join_idx] = new_idx
             else:
-                cluster_idx[join_idx] = cluster_idx[j]
+                cluster_idx[join_idx] = cluster_idx[idx]
+
+            # Set that row and column to 0
+            all_overlaps[i, :] = 0.0
+            all_overlaps[:, j] = 0.0
 
     return cluster_idx

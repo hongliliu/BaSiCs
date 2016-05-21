@@ -78,7 +78,8 @@ class BubbleFinder(object):
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
                     use_cube_mask=False, nsig=2., refit=False, distance=None,
-                    multiprocess=True, nprocesses=None, **kwargs):
+                    multiprocess=True, nprocesses=None, verbose=True,
+                    **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -89,6 +90,8 @@ class BubbleFinder(object):
         else:
             output = None
 
+        if verbose:
+            print("Running bubble finding plane-by-plane.")
         output = \
             ProgressBar.map(_region_return,
                             ((self.cube[i],
@@ -149,6 +152,8 @@ class BubbleFinder(object):
             else:
                 self._unclustered_regions.append(regions)
 
+        if verbose:
+            print("Creating bubbles and finding their properties.")
         # Now create the bubble objects and find their respective properties
         self._bubbles = ProgressBar.map(_make_bubble,
                                         ((regions, refit, self.cube, self.mask,

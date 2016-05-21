@@ -232,10 +232,12 @@ class BubbleFinder(object):
                     if not plot_twoD_shapes:
                         linewidth = 2
                         linestyle = "-"
+                        color = region_col
                     else:
                         linewidth = 3
                         linestyle = "--"
-                    ax.add_patch(bub.as_patch(color=region_col, fill=False,
+                        color = 'm'
+                    ax.add_patch(bub.as_patch(color=color, fill=False,
                                               linewidth=linewidth,
                                               linestyle=linestyle))
                     ax.plot(bub.x, bub.y, region_col + 'D')

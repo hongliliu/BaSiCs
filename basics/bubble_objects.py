@@ -438,8 +438,9 @@ class BubbleNDBase(object):
                 np.nanmean(u.Quantity(shell_cube.moment1()))
             # Define the dispersion as half the FWHM linewidth
             if linewidth is not None:
+                # It is assumed that an appropriate mask was already applied
                 twoD_shell_mask, slices = \
-                    self.as_shell_mask(mask=mask,
+                    self.as_shell_mask(mask=None,
                                        spectral_extent=False,
                                        minimal_shape=True,
                                        **shell_kwargs)

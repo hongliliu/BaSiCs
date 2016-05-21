@@ -443,6 +443,7 @@ class BubbleNDBase(object):
                     self.as_shell_mask(mask=None,
                                        spectral_extent=False,
                                        minimal_shape=True,
+                                       include_center=False,
                                        **shell_kwargs)
                 self._shell_velocity_disp = \
                     np.nanmean(u.Quantity(0.5 * linewidth[slices]))

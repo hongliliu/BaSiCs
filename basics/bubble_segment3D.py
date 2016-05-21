@@ -134,6 +134,7 @@ class BubbleFinder(object):
         for reg in unclusts:
             self._unclustered_regions.append([reg])
 
+        good_clusters = []
         for idx in np.unique(cluster_idx[cluster_idx > 0]):
             regions = [twod_regions[idx] for idx in
                        np.where(cluster_idx == idx)[0]]
@@ -144,13 +145,20 @@ class BubbleFinder(object):
 
             chans = np.array([reg.channel_center for reg in regions])
             if chans.max() + 1 - chans.min() >= min_channels:
-                self._bubbles.append(
-                    Bubble3D.from_2D_regions(regions, refit=refit,
-                                             cube=self.cube, mask=self.mask,
-                                             distance=distance,
-                                             sigma=self.sigma))
+                good_clusters.append(regions)
             else:
                 self._unclustered_regions.append(regions)
+
+        # Now create the bubble objects and find their respective properties
+        self._bubbles = ProgressBar.map(_make_bubble,
+                                        ((regions, refit, self.cube, self.mask,
+                                          distance, self.sigma) for regions in
+                                         good_clusters),
+                                        multiprocess=multiprocess,
+                                        nprocesses=nprocesses,
+                                        file=output,
+                                        step=1,
+                                        item_len=len(good_clusters))
 
         return self
 
@@ -319,3 +327,11 @@ def _region_return(imps):
         return i, bubs.regions, bubs.mask
 
     return i, bubs.regions
+
+
+def _make_bubble(imps):
+    regions, refit, cube, mask, distance, sigma = imps
+    return Bubble3D.from_2D_regions(regions, refit=refit,
+                                    cube=cube, mask=mask,
+                                    distance=distance,
+                                    sigma=sigma)

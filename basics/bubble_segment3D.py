@@ -91,7 +91,7 @@ class BubbleFinder(object):
 
         if verbose:
             print("Running bubble finding plane-by-plane.")
-        output = \
+        twod_results = \
             ProgressBar.map(_region_return,
                             ((self.cube[i],
                               self.cube.mask.include(view=(i, ))
@@ -109,7 +109,7 @@ class BubbleFinder(object):
         if self.keep_threshold_mask:
             self._mask = np.zeros(self.cube.shape, dtype=np.bool)
 
-        for out in output:
+        for out in twod_results:
             if self.keep_threshold_mask:
                 chan, regions, mask_slice = out
 

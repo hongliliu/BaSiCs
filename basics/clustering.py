@@ -124,8 +124,8 @@ def cluster_and_clean(twod_region_props, min_scatter=9, cut_val=None):
     return cluster_idx
 
 
-def cluster_brute_force(twod_region_props, cut_val=0.5, multiprocess=True,
-                        n_jobs=None, min_multi_size=100):
+def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
+                        multiprocess=True, n_jobs=None, min_multi_size=100):
     '''
     Do a brute force clustering of the regions
     '''
@@ -143,37 +143,54 @@ def cluster_brute_force(twod_region_props, cut_val=0.5, multiprocess=True,
         chan_regions_idx = np.where(twod_region_props[:, 5] == chan)[0]
         prev_regions_idx = np.where(twod_region_props[:, 5] == chan - 1)[0]
 
-        all_overlaps = np.zeros((len(prev_regions_idx),
+        all_overlaps = np.zeros((2, len(prev_regions_idx),
                                  len(chan_regions_idx)),
                                 dtype=np.float)
 
         multi_conds = (multiprocess and _sklearn_flag and
-                       all_overlaps.size >= min_multi_size)
+                       all_overlaps[0].size >= min_multi_size)
         if multi_conds:
             if n_jobs is None:
                 n_jobs = cpu_count()
 
-            all_overlaps = \
+            all_overlaps[0] = \
                 pairwise_distances(twod_region_props[prev_regions_idx],
                                    twod_region_props[chan_regions_idx],
                                    metric=overlap_func,
                                    n_jobs=n_jobs)
+            all_overlaps[1] = \
+                pairwise_distances(twod_region_props[prev_regions_idx],
+                                   twod_region_props[chan_regions_idx],
+                                   metric=overlap_metric,
+                                   n_jobs=n_jobs)
+
         else:
             for i, prev_idx in enumerate(prev_regions_idx):
                 for j, idx in enumerate(chan_regions_idx):
-                    all_overlaps[i, j] = \
+                    # Area correlation
+                    all_overlaps[0, i, j] = \
                         overlap_func(twod_region_props[prev_idx],
                                      twod_region_props[idx])
+                    # Area fractional overlap
+                    all_overlaps[1, i, j] = \
+                        overlap_metric(twod_region_props[prev_idx],
+                                       twod_region_props[idx])
 
-        if not np.any(all_overlaps >= cut_val):
+        any_corr = np.any(all_overlaps[0] >= min_corr)
+        any_frac = np.any(all_overlaps[1] >= min_overlap)
+        if not any_corr or not any_frac:
             continue
+
+        # Blank all positions that don't satisfy the criteria
+        good_mask = np.logical_and(all_overlaps[0] >= min_corr,
+                                   all_overlaps[1] >= min_overlap)
+
+        all_overlaps = all_overlaps * good_mask
 
         for _ in range(len(prev_regions_idx)):
 
-            i, j = np.unravel_index(all_overlaps.argmax(), all_overlaps.shape)
-
-            if not all_overlaps[i, j] >= cut_val:
-                break
+            i, j = np.unravel_index(all_overlaps[0].argmax(),
+                                    all_overlaps.shape[1:])
 
             idx = prev_regions_idx[i]
             join_idx = chan_regions_idx[j]
@@ -188,7 +205,7 @@ def cluster_brute_force(twod_region_props, cut_val=0.5, multiprocess=True,
                 cluster_idx[join_idx] = cluster_idx[idx]
 
             # Set that row and column to 0
-            all_overlaps[i, :] = 0.0
-            all_overlaps[:, j] = 0.0
+            all_overlaps[:, i, :] = 0.0
+            all_overlaps[:, :, j] = 0.0
 
     return cluster_idx

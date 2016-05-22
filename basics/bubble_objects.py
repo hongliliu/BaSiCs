@@ -16,7 +16,7 @@ from utils import (floor_int, ceil_int, wrap_to_pi, robust_skewed_std,
                    check_give_beam)
 from fan_pvslice import pv_wedge, warp_ellipse_to_circle
 from fit_models import fit_region
-from galaxy_utils import galactic_radius_pa
+from galaxy_utils import galactic_radius_pa, gal_props_checker
 
 
 def no_wcs_warning():
@@ -124,7 +124,7 @@ class BubbleNDBase(object):
 
         self._distance = value.to(u.kpc)
 
-    def set_galactic_properties(self, galaxy_coord, pa, inc, unit=u.kpc):
+    def set_galactic_properties(self, galaxy_props, unit=u.kpc):
         '''
         Requires a few galaxy properties
         '''
@@ -133,9 +133,14 @@ class BubbleNDBase(object):
             raise ValueError("distance must be provided to find the "
                              "galactocentric radius.")
 
+        gal_props_checker(galaxy_props)
+
         self._galactic_radius, self._galactic_pa = \
-            galactic_radius_pa(self.center_coordinate, galaxy_coord,
-                               self.distance, pa, inc)
+            galactic_radius_pa(self.center_coordinate,
+                               galaxy_props["center_coord"],
+                               self.distance,
+                               galaxy_props["position_angle"],
+                               galaxy_props["inclination"])
 
     @property
     def galactic_radius(self):
@@ -1101,7 +1106,8 @@ class Bubble3D(BubbleNDBase):
             self.expansion_velocity.to(u.km / u.s)
         return tkin.to(age_unit)
 
-    def shell_volume_density(self, scale_height=100 * u.pc, inc=55):
+    def shell_volume_density(self, scale_height=100 * u.pc,
+                             inclination=55 * u.deg):
         '''
         Bagetakos+11 eqs. 8 & 9
 
@@ -1113,7 +1119,7 @@ class Bubble3D(BubbleNDBase):
         # Effective thckness of the HI layer (1-sigma) of the scale height
         # assuming a Gaussian profile
         l_thick = np.sqrt(8 * np.log(2)) * scale_height.to(u.cm) / \
-            np.cos(inc)
+            np.cos(inclination)
 
         return self.shell_column_density / l_thick
 

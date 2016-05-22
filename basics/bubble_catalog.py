@@ -138,7 +138,9 @@ class PPV_Catalog(object):
                                   description=descrip,
                                   unit=unit.to_string()))
 
-        self.table = Table(columns)
+        all_names = ["center_coordinate"] + props.keys() + prop_funcs.keys()
+
+        self.table = Table(columns, names=all_names)
 
     def population_statistics(self, percentiles=[25, 50, 75]):
         '''

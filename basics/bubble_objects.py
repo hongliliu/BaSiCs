@@ -134,8 +134,8 @@ class BubbleNDBase(object):
                              "galactocentric radius.")
 
         self._galactic_radius, self._galactic_pa = \
-            galactic_radius(self.center_coordinate, galaxy_coord,
-                            self.distance, pa, inc)
+            galactic_radius_pa(self.center_coordinate, galaxy_coord,
+                               self.distance, pa, inc)
 
     @property
     def galactic_radius(self):

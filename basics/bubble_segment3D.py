@@ -116,7 +116,7 @@ class BubbleFinder(object):
         self._galaxy_props = input_dict
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
-                    use_cube_mask=False, nsig=2., refit=False, distance=None,
+                    use_cube_mask=False, nsig=2., refit=False,
                     cube_linewidth=None, multiprocess=True, nprocesses=None,
                     **kwargs):
         '''
@@ -137,8 +137,8 @@ class BubbleFinder(object):
                               self.cube.mask.include(view=(i, ))
                               if use_cube_mask else None,
                               i, self.sigma, nsig, overlap_frac,
-                              self.keep_threshold_mask, distance) for i in
-                             xrange(self.cube.shape[0])),
+                              self.keep_threshold_mask, self.distance)
+                             for i in xrange(self.cube.shape[0])),
                             multiprocess=multiprocess,
                             nprocesses=nprocesses,
                             file=output,
@@ -200,7 +200,8 @@ class BubbleFinder(object):
         # Now create the bubble objects and find their respective properties
         self._bubbles = ProgressBar.map(_make_bubble,
                                         ((regions, refit, self.cube, self.mask,
-                                          distance, self.sigma, cube_linewidth)
+                                          self.distance, self.sigma,
+                                          cube_linewidth, self.galaxy_props)
                                          for regions in good_clusters),
                                         multiprocess=False,
                                         nprocesses=nprocesses,
@@ -386,8 +387,9 @@ def _region_return(imps):
 
 
 def _make_bubble(imps):
-    regions, refit, cube, mask, distance, sigma, lwidth = imps
+    regions, refit, cube, mask, distance, sigma, lwidth, galaxy_props = imps
     return Bubble3D.from_2D_regions(regions, refit=refit,
                                     cube=cube, mask=mask,
                                     distance=distance,
-                                    sigma=sigma, linewidth=lwidth)
+                                    sigma=sigma, linewidth=lwidth,
+                                    galaxy_kwargs=galaxy_props)

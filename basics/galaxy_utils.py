@@ -4,7 +4,7 @@ import numpy as np
 from astropy.coordinates import SkyCoord
 
 
-def galactic_radius(coord, gal_center, distance, pa, inc):
+def galactic_radius_pa(coord, gal_center, distance, pa, inc):
 
     if not isinstance(coord, SkyCoord):
         raise TypeError("coord must be a SkyCoord")
@@ -29,4 +29,4 @@ def galactic_radius(coord, gal_center, distance, pa, inc):
     Ygal = Yplane / np.cos(inc)
     Rgal = np.sqrt(Xgal**2 + Ygal**2)
 
-    return Rgal
+    return Rgal, GalPA

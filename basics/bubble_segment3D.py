@@ -204,7 +204,7 @@ class BubbleFinder(object):
         '''
         Returns a PPV_Catalog to explore the population properties.
         '''
-        return PPV_Catalog(self.bubbles)
+        return PPV_Catalog(self.bubbles, self.galaxy_props)
 
     def visualize_bubbles(self, show=True, edges=False, ax=None,
                           moment0=None, region_col='b', edge_col='g',

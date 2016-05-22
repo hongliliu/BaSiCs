@@ -307,6 +307,9 @@ class BubbleNDBase(object):
             if hole_mean < noise_std:
                 self._hole_contrast = \
                     (shell_mean - noise_std) / shell_mean
+            else:
+                self._hole_contrast = \
+                    (shell_mean - hole_mean) / shell_mean
         elif hole_mean < 0.0:
             self._hole_contrast = ((shell_mean - hole_std) / shell_mean)
         else:
@@ -316,11 +319,18 @@ class BubbleNDBase(object):
     def hole_contrast(self):
         return self._hole_contrast
 
-    def set_wcs_props(self, data):
+    def set_wcs_props(self, data, spectral_unit=u.km / u.s,
+                      spatial_unit=u.deg):
         '''
         Set the spatial and/or spectral extents of the bubble.
 
         '''
+        if not spectral_unit.is_equivalent(u.m / u.s):
+            raise u.UnitsError("spectral_unit must be in velocity units.")
+
+        if not spatial_unit.is_equivalent(u.deg):
+            raise u.UnitsError("spatial_unit must be in angular units.")
+
         if isinstance(data, SpectralCube):
 
             self._ra = data.spatial_coordinate_map[0][self.center_pixel]
@@ -333,18 +343,23 @@ class BubbleNDBase(object):
                 data.spatial_coordinate_map[1][np.c_[y_extents],
                                                np.c_[x_extents]]
 
-            self._velocity_start = data.spectral_axis[self.channel_start]
-            self._velocity_end = data.spectral_axis[self.channel_end]
-            self._velocity_center = data.spectral_axis[self.channel_center]
+            self._velocity_start = \
+                data.spectral_axis[self.channel_start].to(spectral_unit)
+            self._velocity_end = \
+                data.spectral_axis[self.channel_end].to(spectral_unit)
+            self._velocity_center = \
+                data.spectral_axis[self.channel_center].to(spectral_unit)
             self._vel_width = np.abs(data.spectral_axis[1] -
-                                     data.spectral_axis[0])
+                                     data.spectral_axis[0]).to(spectral_unit)
 
             # Get the spatial pixel scales. Should be either of the first 2
             # Also must be positive values, so no need for abs
             spat_pix_scale = proj_plane_pixel_scales(data.wcs)[0] * u.deg
 
-            self._major_angular = self.major * spat_pix_scale
-            self._minor_angular = self.minor * spat_pix_scale
+            self._major_angular = \
+                (self.major * spat_pix_scale).to(spatial_unit)
+            self._minor_angular = \
+                (self.minor * spat_pix_scale).to(spatial_unit)
 
             # Now set the physical distances, if there distance has been given
             if hasattr(self, "_distance"):
@@ -1506,7 +1521,7 @@ class Bubble3D(BubbleNDBase):
         p.show()
 
     def __repr__(self):
-        s = "Type {0} Bubble at: ({1:6f}, {2:6f}," \
+        s = "Type {0} Bubble at: ({1:6f}, {2:6f}, " \
             "{3:6f})\n".format(self.bubble_type, self.channel_center,
                                self.y, self.x)
         if self.major == self.minor:

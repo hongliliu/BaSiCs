@@ -14,7 +14,7 @@ from utils import (floor_int, ceil_int, wrap_to_pi, robust_skewed_std,
                    check_give_beam)
 from fan_pvslice import pv_wedge, warp_ellipse_to_circle
 from fit_models import fit_region
-from galaxy_utils import galactic_radius
+from galaxy_utils import galactic_radius_pa
 
 
 def no_wcs_warning():
@@ -122,7 +122,7 @@ class BubbleNDBase(object):
 
         self._distance = value.to(u.kpc)
 
-    def galactocentric_radius(self, galaxy_coord, pa, inc, unit=u.kpc):
+    def set_galactic_properties(self, galaxy_coord, pa, inc, unit=u.kpc):
         '''
         Requires a few galaxy properties
         '''
@@ -131,8 +131,17 @@ class BubbleNDBase(object):
             raise ValueError("distance must be provided to find the "
                              "galactocentric radius.")
 
-        return galactic_radius(self.center_coordinate, galaxy_coord,
-                               self.distance, pa, inc)
+        self._galactic_radius, self._galactic_pa = \
+            galactic_radius(self.center_coordinate, galaxy_coord,
+                            self.distance, pa, inc)
+
+    @property
+    def galactic_radius(self):
+        return self._galactic_radius
+
+    @property
+    def galactic_pa(self):
+        return self._galactic_pa
 
     @property
     def center_coordinate(self):
@@ -863,7 +872,8 @@ class Bubble3D(BubbleNDBase):
         Uses the cube to find the spatial and spectral extents of the bubble.
     """
     def __init__(self, props, cube=None, twoD_regions=None, mask=None,
-                 distance=None, sigma=None, linewidth=None, **kwargs):
+                 distance=None, sigma=None, linewidth=None,
+                 galaxy_kwargs={}, bubble_kwargs={}):
         super(Bubble3D, self).__init__()
 
         self._y = props[0]
@@ -891,10 +901,11 @@ class Bubble3D(BubbleNDBase):
 
         # Set the bubble type
         if cube is not None and mask is not None:
-            self.find_bubble_type(cube, mask, **kwargs)
+            self.find_bubble_type(cube, mask, **bubble_kwargs)
             self.set_shell_properties(cube, mask, linewidth=linewidth)
             self.find_expansion_velocity()
             self.find_hole_contrast(cube, mask=mask, noise_std=sigma)
+            self.set_galactic_properties(**galaxy_kwargs)
 
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,

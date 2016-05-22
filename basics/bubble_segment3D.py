@@ -3,20 +3,25 @@ import numpy as np
 import astropy.units as u
 from spectral_cube import SpectralCube
 # from astropy.utils.console import ProgressBar
+from astropy.coordinates import SkyCoord, Angle
 import sys
 from warnings import warn
 
 from bubble_segment2D import BubbleFinder2D
 from bubble_objects import Bubble3D
+from bubble_catalog import PPV_Catalog
 from clustering import cluster_and_clean, cluster_brute_force
 from utils import sig_clip
 from progressbar import ProgressBar
+
+GALAXY_KEYS = ["inclination", "position_angle", "center_coord",
+               "scale_height"]
 
 
 class BubbleFinder(object):
     """docstring for BubbleFinder"""
     def __init__(self, cube, wcs=None, mask=None, sigma=None, empty_channel=0,
-                 keep_threshold_mask=False):
+                 keep_threshold_mask=False, distance=None, galaxy_props={}):
         super(BubbleFinder, self).__init__()
 
         if not isinstance(cube, SpectralCube):
@@ -38,6 +43,8 @@ class BubbleFinder(object):
 
         self.keep_threshold_mask = keep_threshold_mask
         self._mask = None
+        self.distance = distance
+        self.galaxy_props = galaxy_props
 
     @property
     def cube(self):
@@ -75,6 +82,38 @@ class BubbleFinder(object):
             raise ValueError("sigma must be positive and finite.")
 
         self._sigma = val
+
+    @property
+    def galaxy_props(self):
+        return self._galaxy_props
+
+    @galaxy_props.setter
+    def galaxy_props(self, input_dict):
+
+        # Make sure all of the kwargs are given.
+        in_input = [True if key in GALAXY_KEYS else False
+                    for key in input_dict]
+        if not np.all(in_input):
+            missing = list(set(GALAXY_KEYS) - set(in_input))
+            raise KeyError("galaxy_props is missing these keys: {}"
+                           .format(missing))
+
+        if not isinstance(input_dict["center_coord"], SkyCoord):
+            raise TypeError("center_coords must be a SkyCoord.")
+
+        if not input_dict["distance"].unit.is_equivalent(u.pc):
+            raise u.UnitsError("distance must have a unit of distance")
+
+        if not input_dict["scale_height"].unit.is_equivalent(u.pc):
+            raise u.UnitsError("scale_height must have a unit of distance")
+
+        if not isinstance(input_dict["inclination"], Angle):
+            raise TypeError("inclination must be an Angle.")
+
+        if not isinstance(input_dict["position_angle"], Angle):
+            raise TypeError("position_angle must be an Angle.")
+
+        self._galaxy_props = input_dict
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
                     use_cube_mask=False, nsig=2., refit=False, distance=None,
@@ -163,7 +202,7 @@ class BubbleFinder(object):
                                         ((regions, refit, self.cube, self.mask,
                                           distance, self.sigma, cube_linewidth)
                                          for regions in good_clusters),
-                                        multiprocess=multiprocess,
+                                        multiprocess=False,
                                         nprocesses=nprocesses,
                                         file=output,
                                         step=1,
@@ -182,6 +221,12 @@ class BubbleFinder(object):
     @property
     def unclustered_regions(self):
         return self._unclustered_regions
+
+    def to_catalog(self):
+        '''
+        Returns a PPV_Catalog to explore the population properties.
+        '''
+        return PPV_Catalog(self.bubbles)
 
     def visualize_bubbles(self, show=True, edges=False, ax=None,
                           moment0=None, region_col='b', edge_col='g',

@@ -2,6 +2,7 @@
 import numpy as np
 from astropy.table import Table, Column
 import astropy.units as u
+from astropy.coordinates import SkyCoord
 
 from galaxy_utils import gal_props_checker
 
@@ -115,9 +116,7 @@ class PPV_Catalog(object):
         columns = []
 
         # The center coordinates are different, since they're SkyCoords
-        columns.append(Column([bub.center_coordinate for bub in bubbles],
-                              name="center_coordinate", unit=(u.deg, u.deg),
-                              description="Center coordinate"))
+        columns.append(SkyCoord([bub.center_coordinate for bub in bubbles]))
 
         # Add the properties
         for name in props:

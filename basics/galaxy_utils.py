@@ -52,9 +52,6 @@ def gal_props_checker(input_dict):
     if not isinstance(input_dict["center_coord"], SkyCoord):
         raise TypeError("center_coords must be a SkyCoord.")
 
-    if not input_dict["distance"].unit.is_equivalent(u.pc):
-        raise u.UnitsError("distance must have a unit of distance")
-
     if not input_dict["scale_height"].unit.is_equivalent(u.pc):
         raise u.UnitsError("scale_height must have a unit of distance")
 

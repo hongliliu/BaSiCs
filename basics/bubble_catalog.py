@@ -68,8 +68,6 @@ class PPV_Catalog(object):
                                                 " is detected."],
                  "eccentricity": [u.dimensionless_unscaled,
                                   "Shape eccentricity"],
-                 "is_closed": [u.dimensionless_unscaled, "Closed or partial"
-                                                         " shell."],
                  "expansion_velocity": [u.km / u.s, "Expansion velocity"],
                  "avg_shell_flux_density": [u.K * u.km / u.s,
                                             "Average flux density in bubble "
@@ -118,10 +116,16 @@ class PPV_Catalog(object):
         # The center coordinates are different, since they're SkyCoords
         columns.append(SkyCoord([bub.center_coordinate for bub in bubbles]))
 
+        # Same for is_closed
+        columns.append(Column([bub.is_closed for bub in bubbles],
+                              unit=u.dimensionless_unscaled,
+                              description="Closed or partial shell.",
+                              name="closed_shell"))
+
         # Add the properties
         for name in props:
             unit, descrip = props[name]
-            columns.append(Column([getattr(bub, name).to(unit) for bub in
+            columns.append(Column([getattr(bub, name).to(unit).value for bub in
                                    bubbles],
                                   name=name, description=descrip,
                                   unit=unit.to_string()))
@@ -129,7 +133,7 @@ class PPV_Catalog(object):
         # Add the functions
         for name in prop_funcs:
             unit, descrip, imps = prop_funcs[name]
-            columns.append(Column([getattr(bub, name)(**imps).to(unit)
+            columns.append(Column([getattr(bub, name)(**imps).to(unit).value
                                    for bub in bubbles], name=name,
                                   description=descrip,
                                   unit=unit.to_string()))

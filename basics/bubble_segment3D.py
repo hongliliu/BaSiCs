@@ -3,7 +3,6 @@ import numpy as np
 import astropy.units as u
 from spectral_cube import SpectralCube
 # from astropy.utils.console import ProgressBar
-from astropy.coordinates import SkyCoord, Angle
 import sys
 from warnings import warn
 
@@ -11,7 +10,8 @@ from bubble_segment2D import BubbleFinder2D
 from bubble_objects import Bubble3D
 from bubble_catalog import PPV_Catalog
 from clustering import cluster_and_clean, cluster_brute_force
-from utils import sig_clip, gal_props_checker
+from utils import sig_clip
+from galaxy_utils import gal_props_checker
 from progressbar import ProgressBar
 
 

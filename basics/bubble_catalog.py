@@ -3,7 +3,7 @@ import numpy as np
 from astropy.table import Table, Column
 import astropy.units as u
 
-from utils import gal_props_checker
+from galaxy_utils import gal_props_checker
 
 
 class PP_Catalog(object):

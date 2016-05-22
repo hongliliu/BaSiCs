@@ -2,8 +2,6 @@
 import numpy as np
 from functools import partial
 from astropy.modeling.models import Ellipse2D
-from astropy.coordinates import SkyCoord, Angle
-import astropy.units as u
 from spectral_cube import SpectralCube
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
@@ -13,9 +11,6 @@ try:
 except ImportError:
     Warning("radio_beam is not installed.")
     _radio_beam_flag = False
-
-GALAXY_KEYS = ["inclination", "position_angle", "center_coord",
-               "scale_height"]
 
 eight_conn = np.ones((3, 3), dtype=bool)
 
@@ -391,33 +386,3 @@ def check_give_beam(data):
             return data.meta['beam']
         except KeyError:
             return None
-
-
-def gal_props_checker(input_dict):
-    '''
-    Ensure the dictionary passed has all of the galactic parameters needed
-    set.
-    '''
-
-    # Make sure all of the kwargs are given.
-    in_input = [True if key in GALAXY_KEYS else False
-                for key in input_dict]
-    if not np.all(in_input):
-        missing = list(set(GALAXY_KEYS) - set(in_input))
-        raise KeyError("galaxy_props is missing these keys: {}"
-                       .format(missing))
-
-    if not isinstance(input_dict["center_coord"], SkyCoord):
-        raise TypeError("center_coords must be a SkyCoord.")
-
-    if not input_dict["distance"].unit.is_equivalent(u.pc):
-        raise u.UnitsError("distance must have a unit of distance")
-
-    if not input_dict["scale_height"].unit.is_equivalent(u.pc):
-        raise u.UnitsError("scale_height must have a unit of distance")
-
-    if not isinstance(input_dict["inclination"], Angle):
-        raise TypeError("inclination must be an Angle.")
-
-    if not isinstance(input_dict["position_angle"], Angle):
-        raise TypeError("position_angle must be an Angle.")

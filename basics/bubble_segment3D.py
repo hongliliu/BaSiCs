@@ -283,7 +283,7 @@ class BubbleFinder(object):
     def visualize_channel_maps(self, all_chans=False, subplot=False,
                                edges=False, plot_unclustered=False,
                                interactive_plot=True,
-                               show_mask_contours=False):
+                               show_mask_contours=False, start_chan=None):
         '''
         Plot each channel optionally overlaid with the regions and/or the
         edges.
@@ -301,6 +301,13 @@ class BubbleFinder(object):
         import matplotlib.pyplot as p
         if interactive_plot:
             p.ion()
+
+        if start_chan is not None:
+            if start_chan >= self.cube.shape[0]:
+                raise ValueError("start_chan must be below the number of"
+                                 " channels: {}".format(self.cube.shape[0]))
+
+            chans = chans[chans >= start_chan]
 
         for chan in chans:
             if subplot:

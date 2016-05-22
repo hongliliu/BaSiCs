@@ -187,7 +187,13 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
 
         all_overlaps = all_overlaps * good_mask
 
-        for _ in range(len(prev_regions_idx)):
+        # The max number of matches is the smallest number of regions in the
+        # two channels.
+        for _ in range(min(len(chan_regions_idx), len(prev_regions_idx))):
+
+            # They don't all have to match, so break when nothing is left.
+            if not np.any(all_overlaps):
+                break
 
             i, j = np.unravel_index(all_overlaps[0].argmax(),
                                     all_overlaps.shape[1:])

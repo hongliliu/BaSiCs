@@ -60,8 +60,7 @@ class PPV_Catalog(object):
         gal_props_checker(galaxy_props)
 
         # Create columns of the bubble properties
-        props = {"center_coordinate": [(u.deg, u.deg), "Center coordinate"],
-                 "pa": [u.deg, "Position angle of the bubble"],
+        props = {"pa": [u.deg, "Position angle of the bubble"],
                  "bubble_type": [u.dimensionless_unscaled, "Type of bubble"],
                  "velocity_center": [u.km / u.s, "Center velocity"],
                  "velocity_width": [u.km / u.s, "Range of velocities bubble"
@@ -114,6 +113,11 @@ class PPV_Catalog(object):
                         "inclination": galaxy_props["inclination"]}]}
 
         columns = []
+
+        # The center coordinates are different, since they're SkyCoords
+        columns.append(Column([bub.center_coordinate for bub in bubbles],
+                              name="center_coordinate", unit=(u.deg, u.deg),
+                              description="Center coordinate"))
 
         # Add the properties
         for name in props:

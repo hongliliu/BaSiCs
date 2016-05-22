@@ -8,6 +8,8 @@ from astropy.coordinates import SkyCoord
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 from spectral_cube import SpectralCube
 from warnings import warn
+import cPickle as pickle
+from copy import deepcopy
 
 from log import overlap_metric
 from utils import (floor_int, ceil_int, wrap_to_pi, robust_skewed_std,
@@ -770,6 +772,44 @@ class BubbleNDBase(object):
         else:
             return shell_mask
 
+    def save_bubble(self, output_name):
+        '''
+        Save the bubble object.
+
+        Parameters
+        ----------
+        output_name : str, optional
+            Name of the outputted pickle file.
+        '''
+
+        self_copy = deepcopy(self)
+
+        with open(output_name, 'wb') as output:
+                pickle.dump(self_copy, output, -1)
+
+    @staticmethod
+    def load_bubble(pickle_file):
+        '''
+        Load in a saved pickle file.
+
+        Parameters
+        ----------
+        pickle_file : str
+            Name of filename to load in.
+        Returns
+        -------
+        self : Bubble2D or Bubble3D instance
+            A saved bubble object.
+        Examples
+        --------
+        Load saved results.
+        >>> bubble = Bubble3D.load_results("bubble.pkl") # doctest: +SKIP
+        '''
+
+        with open(pickle_file, 'rb') as input:
+                self = pickle.load(input)
+
+        return self
 
 class Bubble2D(BubbleNDBase):
     """
@@ -910,7 +950,8 @@ class Bubble3D(BubbleNDBase):
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,
                         cube=None, mask=None, distance=None, sigma=None,
-                        linewidth=None, **fit_kwargs):
+                        linewidth=None, galaxy_kwargs={},
+                        **fit_kwargs):
         '''
         Create a 3D regions from a collection of 2D regions.
         '''

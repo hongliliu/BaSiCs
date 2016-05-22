@@ -811,6 +811,7 @@ class BubbleNDBase(object):
 
         return self
 
+
 class Bubble2D(BubbleNDBase):
     """
     Class for candidate bubble portions from 2D planes.
@@ -1151,7 +1152,7 @@ class Bubble3D(BubbleNDBase):
 
     @property
     def bubble_type(self):
-        return self._bubble_type
+        return self._bubble_type * u.dimensionless_unscaled
 
     @bubble_type.setter
     def bubble_type(self, input_type):
@@ -1281,6 +1282,8 @@ class Bubble3D(BubbleNDBase):
         else:
             self._expansion_velocity =  \
                 0.5 * np.abs(self.velocity_start - self.velocity_end)
+
+        self._expansion_velocity = self._expansion_velocity.to(u.km / u.s)
 
     def _chan_iter(self):
         return xrange(int(self.channel_start), int(self.channel_end) + 1)

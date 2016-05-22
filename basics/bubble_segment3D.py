@@ -11,11 +11,8 @@ from bubble_segment2D import BubbleFinder2D
 from bubble_objects import Bubble3D
 from bubble_catalog import PPV_Catalog
 from clustering import cluster_and_clean, cluster_brute_force
-from utils import sig_clip
+from utils import sig_clip, gal_props_checker
 from progressbar import ProgressBar
-
-GALAXY_KEYS = ["inclination", "position_angle", "center_coord",
-               "scale_height"]
 
 
 class BubbleFinder(object):
@@ -91,27 +88,7 @@ class BubbleFinder(object):
     def galaxy_props(self, input_dict):
 
         # Make sure all of the kwargs are given.
-        in_input = [True if key in GALAXY_KEYS else False
-                    for key in input_dict]
-        if not np.all(in_input):
-            missing = list(set(GALAXY_KEYS) - set(in_input))
-            raise KeyError("galaxy_props is missing these keys: {}"
-                           .format(missing))
-
-        if not isinstance(input_dict["center_coord"], SkyCoord):
-            raise TypeError("center_coords must be a SkyCoord.")
-
-        if not input_dict["distance"].unit.is_equivalent(u.pc):
-            raise u.UnitsError("distance must have a unit of distance")
-
-        if not input_dict["scale_height"].unit.is_equivalent(u.pc):
-            raise u.UnitsError("scale_height must have a unit of distance")
-
-        if not isinstance(input_dict["inclination"], Angle):
-            raise TypeError("inclination must be an Angle.")
-
-        if not isinstance(input_dict["position_angle"], Angle):
-            raise TypeError("position_angle must be an Angle.")
+        gal_props_checker(input_dict)
 
         self._galaxy_props = input_dict
 

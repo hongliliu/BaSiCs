@@ -204,6 +204,10 @@ class BubbleFinder(object):
         '''
         Returns a PPV_Catalog to explore the population properties.
         '''
+        if self.num_bubbles == 0:
+            warn("No bubbles were found. Cannot return a catalog.")
+            return
+
         return PPV_Catalog(self.bubbles, self.galaxy_props)
 
     def visualize_bubbles(self, show=True, edges=False, ax=None,

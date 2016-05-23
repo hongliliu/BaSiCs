@@ -5,6 +5,7 @@ import astropy.units as u
 from warnings import warn, catch_warnings, filterwarnings
 import scipy.ndimage as nd
 import skimage.morphology as mo
+from skimage.segmentation import clear_border
 from skimage.filters import threshold_adaptive
 from copy import copy
 
@@ -167,7 +168,8 @@ class BubbleFinder2D(object):
 
     def create_mask(self, bkg_nsig=3, region_min_nsig=6, adap_patch=None,
                     median_radius=None, edge_smooth_radius=None,
-                    min_pixels=None, fill_radius=None):
+                    min_pixels=None, fill_radius=None,
+                    mask_clear_border=True):
         '''
         Create the adaptive thresholded mask, which defines potential bubble
         edges.
@@ -257,6 +259,9 @@ class BubbleFinder2D(object):
                  "thresholding. Try lowering the minimum peak required for "
                  "regions (region_min_nsig)")
             self._empty_mask_flag = True
+
+        if mask_clear_border:
+            adap_mask = ~clear_border(~adap_mask)
 
         self.mask = adap_mask
 
@@ -365,6 +370,11 @@ class BubbleFinder2D(object):
                         shell_frac >= ellfit_thresh["min_shell_frac"] and \
                         angular_std >= ellfit_thresh["min_angular_std"]
 
+                    if _ == 0:
+                        iter_min_in_mask = 0.2
+                    else:
+                        iter_min_in_mask = min_in_mask
+
                     props, resid = \
                         fit_region(coords, initial_props=props,
                                    try_fit_ellipse=try_fit_ellipse,
@@ -372,7 +382,8 @@ class BubbleFinder2D(object):
                                    ransac_trials=ransac_trials,
                                    beam_pix=self.beam_pix, max_rad=max_rad,
                                    max_eccent=max_eccent,
-                                   min_in_mask=min_in_mask, mask=self.mask,
+                                   min_in_mask=iter_min_in_mask,
+                                   mask=self.mask,
                                    image_shape=self.array.shape,
                                    max_resid=2 * self.beam_pix,
                                    verbose=verbose)
@@ -455,10 +466,10 @@ class BubbleFinder2D(object):
             # possible that a much larger region could be lost when it
             # shouldn't be. So long as the minimum cut used in the clustering
             # is ~0.5, these can still be clustered appropriately.
-            all_props, all_coords = \
-                _prune_blobs(all_props, all_coords,
-                             method="shell fraction",
-                             min_corr=overlap_frac)
+            # all_props, all_coords = \
+            #     _prune_blobs(all_props, all_coords,
+            #                  method="shell fraction",
+            #                  min_corr=overlap_frac)
 
             # Any highly overlapping regions should now be small regions
             # inside much larger ones. We're going to assume that the

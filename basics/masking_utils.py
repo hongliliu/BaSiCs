@@ -69,12 +69,12 @@ def fraction_in_mask(blob, mask):
     yextents = (floor_int(yextents[0]), ceil_int(yextents[1]))
     xextents = (floor_int(xextents[0]), ceil_int(xextents[1]))
 
-    yy, xx = np.mgrid[yextents[0]:yextents[1] + 1,
-                      xextents[0]:xextents[1] + 1]
+    yy, xx = np.mgrid[xextents[0]:xextents[1] + 1,
+                      yextents[0]:yextents[1] + 1]
 
     ellip_mask = ellipse(yy, xx).astype(np.bool)
 
-    local_mask = mask[yextents[0]:yextents[1] + 1,
-                      xextents[0]:xextents[1] + 1]
+    local_mask = mask[xextents[0]:xextents[1] + 1,
+                      yextents[0]:yextents[1] + 1]
 
     return (ellip_mask * local_mask).sum() / float(ellip_mask.sum())

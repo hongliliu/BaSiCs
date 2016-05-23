@@ -23,7 +23,7 @@ class BubbleFinder2D(object):
     """
     def __init__(self, array, scales=None, sigma=None, channel=None,
                  mask=None, cut_to_box=False, pad_size=0, structure="beam",
-                 beam=None, wcs=None, unit=None):
+                 beam=None, wcs=None, unit=None, auto_cut=True):
 
         if isinstance(array, LowerDimensionalObject):
             self.array = array.value
@@ -73,7 +73,12 @@ class BubbleFinder2D(object):
             self.mask = mask
         self.pad_size = pad_size
 
-        self.array = np.nan_to_num(self.array)
+        if auto_cut:
+            # Also pass kwargs here (some cross-over with create_mask)
+            self.cut_to_bounding_box()
+        else:
+            self.array = np.nan_to_num(self.array)
+
         self._orig_shape = self.array.shape
         self.channel = channel
 
@@ -251,35 +256,45 @@ class BubbleFinder2D(object):
 
         self.mask = adap_mask
 
-    def cut_to_bounding_box(self, pad_size=0):
+    def cut_to_bounding_box(self, pad_size=None, bkg_nsig=3):
         '''
         Reduce the array down to the minimum size based on the mask.
         Optionally add padding to the reduced size.
         '''
 
-        if pad_size != self.pad_size:
+        if pad_size is not None:
             self.pad_size = pad_size
 
-        mask_pixels = np.where(self.mask)
+        self.pad_size = 100
 
-        yedges = [mask_pixels[0].min(), mask_pixels[0].max()]
-        xedges = [mask_pixels[1].min(), mask_pixels[1].max()]
+        # Not mask, since the mask is for holes.
+        yslice, xslice = nd.find_objects(~self.mask)[0]
 
-        self._center_coords = ((yedges[1] + 1 + yedges[0])/2,
-                               (xedges[1] + 1 + xedges[0])/2)
+        yextent = int(yslice.stop - yslice.start)
+        xextent = int(xslice.stop - xslice.start)
 
-        cut_shape = (yedges[1]+1-yedges[0], xedges[1]+1-xedges[0])
+        self._center_coords = (int(yslice.start) + (yextent / 2),
+                               int(xslice.start) + (xextent / 2))
 
-        cut_arr = extract_array(self.array, cut_shape, self.center_coords)
-        cut_mask = extract_array(self.mask, cut_shape, self.center_coords)
+        cut_shape = (yextent + 2 * self.pad_size,
+                     xextent + 2 * self.pad_size)
 
-        if self.pad_size > 0:
-            # Pads edges with zeros
-            self.array = np.pad(cut_arr, self.pad_size, mode='constant')
-            self.mask = np.pad(cut_mask, self.pad_size, mode='constant')
-        else:
-            self.array = cut_arr
-            self.mask = cut_mask
+        cut_arr = extract_array(self.array, cut_shape, self.center_coords,
+                                mode='partial', fill_value=np.NaN)
+        # Fill the NaNs with samples from the noise distribution
+        # This does take the correlation of the beam out... this is fine for
+        # the time being, but adding a quick convolution w/ the beam will make
+        # this "proper".
+        all_noise = self.array <= bkg_nsig * self.sigma
+        nans = np.isnan(cut_arr)
+        samps = np.random.random_integers(0, all_noise.sum(), size=nans.sum())
+        cut_arr[nans] = self.array[all_noise][samps]
+
+        cut_mask = extract_array(self.mask, cut_shape, self.center_coords,
+                                 mode='partial', fill_value=True)
+
+        self.array = cut_arr
+        self.mask = cut_mask
 
     @property
     def center_coords(self):
@@ -303,7 +318,7 @@ class BubbleFinder2D(object):
     def multiscale_bubblefind(self, scales=None, nsig=2,
                               overlap_frac=0.6, edge_find=True,
                               edge_loc_bkg_nsig=3, max_eccent=3,
-                              ellfit_thresh={"min_shell_frac": 0.5,
+                              ellfit_thresh={"min_shell_frac": 0.3,
                                              "min_angular_std": 0.7},
                               max_rad=1.5, verbose=False,
                               use_ransac=False, ransac_trials=50,
@@ -418,7 +433,7 @@ class BubbleFinder2D(object):
             all_props, all_coords = \
                 _prune_blobs(all_props, all_coords,
                              method="shell fraction",
-                             min_corr=0.9, blob_merge=False)
+                             min_corr=0.8, blob_merge=False)
 
             # Now look on smaller scales, and enable matching between smaller
             # regions embedded in a larger one. About 0.5 is appropriate since
@@ -427,10 +442,10 @@ class BubbleFinder2D(object):
             # possible that a much larger region could be lost when it
             # shouldn't be. So long as the minimum cut used in the clustering
             # is ~0.5, these can still be clustered appropriately.
-            all_props, all_coords = \
-                _prune_blobs(all_props, all_coords,
-                             method="shell fraction",
-                             min_corr=overlap_frac)
+            # all_props, all_coords = \
+            #     _prune_blobs(all_props, all_coords,
+            #                  method="shell fraction",
+            #                  min_corr=overlap_frac)
 
             # Any highly overlapping regions should now be small regions
             # inside much larger ones. We're going to assume that the
@@ -440,9 +455,9 @@ class BubbleFinder2D(object):
             # an upper limit on how overlapped region may be. This is fairly
             # necessary though due to the shape ambiguities present in
             # assuming an elliptical shape.
-            all_props, all_coords = \
-                _prune_blobs(all_props, all_coords, overlap=0.75,
-                             method='size')
+            # all_props, all_coords = \
+            #     _prune_blobs(all_props, all_coords, overlap=0.75,
+            #                  method='size')
 
             self._regions = \
                 [Bubble2D(prop, shell_coords=coord, channel=self.channel,

@@ -6,6 +6,7 @@ from warnings import warn, catch_warnings, filterwarnings
 import scipy.ndimage as nd
 import skimage.morphology as mo
 from skimage.filters import threshold_adaptive
+from copy import copy
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
@@ -22,7 +23,7 @@ class BubbleFinder2D(object):
     Image segmentation for bubbles in a 2D image.
     """
     def __init__(self, array, scales=None, sigma=None, channel=None,
-                 mask=None, cut_to_box=False, pad_size=0, structure="beam",
+                 mask=None, cut_to_box=False, structure="beam",
                  beam=None, wcs=None, unit=None, auto_cut=True):
 
         if isinstance(array, LowerDimensionalObject):
@@ -71,16 +72,6 @@ class BubbleFinder2D(object):
             self.create_mask()
         else:
             self.mask = mask
-        self.pad_size = pad_size
-
-        if auto_cut:
-            # Also pass kwargs here (some cross-over with create_mask)
-            self.cut_to_bounding_box()
-        else:
-            self.array = np.nan_to_num(self.array)
-
-        self._orig_shape = self.array.shape
-        self.channel = channel
 
         if scales is None:
             # Scales incremented by sqrt(2)
@@ -90,6 +81,19 @@ class BubbleFinder2D(object):
                 np.arange(1., 8 + np.sqrt(2), np.sqrt(2))
         else:
             self.scales = scales
+
+        self._orig_shape = copy(self.array.shape)
+        self.channel = channel
+
+        if auto_cut:
+            self.pad_size = 6 * np.floor(self.scales[-1]).astype(int)
+            # Also pass kwargs here (some cross-over with create_mask)
+            self.cut_to_bounding_box()
+        else:
+            self.array = np.nan_to_num(self.array)
+            self._center_coords = (self._orig_shape[0] / 2,
+                                   self._orig_shape[1] / 2)
+            self.pad_size = None
 
         # Default relative weightings for finding local maxima.
         self.weightings = np.ones_like(self.scales)
@@ -256,16 +260,10 @@ class BubbleFinder2D(object):
 
         self.mask = adap_mask
 
-    def cut_to_bounding_box(self, pad_size=None, bkg_nsig=3):
+    def cut_to_bounding_box(self, bkg_nsig=3):
         '''
         Reduce the array down to the minimum size based on the mask.
-        Optionally add padding to the reduced size.
         '''
-
-        if pad_size is not None:
-            self.pad_size = pad_size
-
-        self.pad_size = 100
 
         # Not mask, since the mask is for holes.
         yslice, xslice = nd.find_objects(~self.mask)[0]
@@ -300,20 +298,16 @@ class BubbleFinder2D(object):
     def center_coords(self):
         return self._center_coords
 
-    def insert_in_shape(self, shape):
+    def insert_in_shape(self, array, shape):
         '''
         Insert the cut down mask into the given shape.
         '''
 
-        if self.bubble_mask.shape == shape:
-            return self.bubble_mask
+        if array.shape == shape:
+            return array
         else:
             full_size = np.zeros(shape)
-            return add_array(full_size, self.bubble_mask, self.center_coords)
-
-    @property
-    def bubble_mask(self):
-        return self._bubble_mask
+            return add_array(full_size, array, self.center_coords)
 
     def multiscale_bubblefind(self, scales=None, nsig=2,
                               overlap_frac=0.6, edge_find=True,
@@ -414,6 +408,20 @@ class BubbleFinder2D(object):
                     print(coords)
                 continue
 
+            # Transform coordinates to the original array shape. Needed when
+            # auto_cut is used (i.e., cut_to_bounding_box)
+            # Defined using the center of the arrays, the transform is:
+            # X = (x - x_c) + X_c
+            cut_shape = self.array.shape
+            props[0] = (props[0] - cut_shape[0] / 2) + self.center_coords[0]
+            props[1] = (props[1] - cut_shape[1] / 2) + self.center_coords[1]
+
+            coords = np.array(coords)
+            coords[:, 0] = (coords[:, 0] - cut_shape[0] / 2) + \
+                self.center_coords[0]
+            coords[:, 1] = (coords[:, 1] - cut_shape[1] / 2) + \
+                self.center_coords[1]
+
             # Append useful info onto the properties
             props = np.append(props, response_value)
             props = np.append(props, shell_frac)
@@ -421,7 +429,7 @@ class BubbleFinder2D(object):
             props = np.append(props, resid)
 
             all_props.append(props)
-            all_coords.append(np.array(coords))
+            all_coords.append(coords)
 
         all_props = np.array(all_props)
 
@@ -495,10 +503,12 @@ class BubbleFinder2D(object):
         if ax is None:
             ax = p.subplot(111)
 
+        full_array = self.insert_in_shape(self.array, self._orig_shape)
+
         if log_scale:
-            ax.imshow(np.log10(self.array), cmap='afmhot', origin='lower')
+            ax.imshow(np.log10(full_array), cmap='afmhot', origin='lower')
         else:
-            ax.imshow(self.array, cmap='afmhot', origin='lower')
+            ax.imshow(full_array, cmap='afmhot', origin='lower')
 
         for bub in self.regions:
             ax.add_patch(bub.as_patch(color=region_col, fill=False,
@@ -508,8 +518,8 @@ class BubbleFinder2D(object):
                 ax.plot(bub.shell_coords[:, 1], bub.shell_coords[:, 0],
                         edge_col + "o")
 
-        p.xlim([0, self.array.shape[1]])
-        p.ylim([0, self.array.shape[0]])
+        p.xlim([0, full_array.shape[1]])
+        p.ylim([0, full_array.shape[0]])
 
         if show:
             p.show()

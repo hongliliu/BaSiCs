@@ -450,10 +450,10 @@ class BubbleFinder2D(object):
             # possible that a much larger region could be lost when it
             # shouldn't be. So long as the minimum cut used in the clustering
             # is ~0.5, these can still be clustered appropriately.
-            # all_props, all_coords = \
-            #     _prune_blobs(all_props, all_coords,
-            #                  method="shell fraction",
-            #                  min_corr=overlap_frac)
+            all_props, all_coords = \
+                _prune_blobs(all_props, all_coords,
+                             method="shell fraction",
+                             min_corr=overlap_frac)
 
             # Any highly overlapping regions should now be small regions
             # inside much larger ones. We're going to assume that the
@@ -488,8 +488,9 @@ class BubbleFinder2D(object):
     def num_regions(self):
         return len(self.regions)
 
-    def visualize_regions(self, show=True, edges=False, ax=None,
-                          region_col='b', edge_col='g', log_scale=False):
+    def visualize_regions(self, show=True, edges=False, ax=None, array=None,
+                          region_col='b', edge_col='g', log_scale=False,
+                          show_mask_contours=True):
         '''
         Show the regions optionally overlaid with the edges.
         '''
@@ -503,12 +504,19 @@ class BubbleFinder2D(object):
         if ax is None:
             ax = p.subplot(111)
 
-        full_array = self.insert_in_shape(self.array, self._orig_shape)
+        if array is not None:
+            full_array = array
+        else:
+            full_array = self.insert_in_shape(self.array, self._orig_shape)
 
         if log_scale:
             ax.imshow(np.log10(full_array), cmap='afmhot', origin='lower')
         else:
             ax.imshow(full_array, cmap='afmhot', origin='lower')
+
+        if show_mask_contours:
+            ax.contour(self.insert_in_shape(self.mask, self._orig_shape),
+                       colors='k')
 
         for bub in self.regions:
             ax.add_patch(bub.as_patch(color=region_col, fill=False,

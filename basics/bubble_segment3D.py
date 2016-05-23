@@ -369,7 +369,9 @@ def _region_return(imps):
                               overlap_frac=overlap_frac,
                               distance=distance)
     if return_mask:
-        return i, bubs.regions, bubs.mask
+        return i, bubs.regions, \
+            bubs.insert_in_shape(bubs.mask, bubs._orig_shape, fill_value=True,
+                                 dtype=bool)
 
     return i, bubs.regions
 

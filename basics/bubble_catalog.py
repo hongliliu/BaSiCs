@@ -31,7 +31,7 @@ class PPV_Catalog(object):
             if galaxy_props is None:
                 raise TypeError("Galaxy properties must be given when bubbles"
                                 " is a list of bubble objects.")
-            self.table = self.create_table(bubbles, galaxy_props)
+            self.create_table(bubbles, galaxy_props)
 
         elif isinstance(bubbles, Table):
             self.table = bubbles
@@ -138,9 +138,9 @@ class PPV_Catalog(object):
                                   description=descrip,
                                   unit=unit.to_string()))
 
-        all_names = ["center_coordinate"] + props.keys() + prop_funcs.keys()
+        # all_names = ["center_coordinate"] + props.keys() + prop_funcs.keys()
 
-        self.table = Table(columns, names=all_names)
+        self.table = Table(columns)
 
     def population_statistics(self, percentiles=[25, 50, 75]):
         '''

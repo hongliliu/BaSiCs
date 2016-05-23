@@ -252,7 +252,7 @@ class BubbleFinder2D(object):
         for idx in np.where(maxes < region_min_nsig * self.sigma)[0]:
             adap_mask[labels == idx + 1] = True
 
-        if not adap_mask.any():
+        if adap_mask.all():
             warn("No significant regions were found by the adaptive "
                  "thresholding. Try lowering the minimum peak required for "
                  "regions (region_min_nsig)")
@@ -264,6 +264,10 @@ class BubbleFinder2D(object):
         '''
         Reduce the array down to the minimum size based on the mask.
         '''
+
+        if self._empty_mask_flag:
+            warn("The mask is empty.")
+            return
 
         # Not mask, since the mask is for holes.
         yslice, xslice = nd.find_objects(~self.mask)[0]

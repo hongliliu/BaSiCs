@@ -289,7 +289,8 @@ class BubbleFinder2D(object):
         # this "proper".
         all_noise = self.array <= bkg_nsig * self.sigma
         nans = np.isnan(cut_arr)
-        samps = np.random.random_integers(0, all_noise.sum(), size=nans.sum())
+        samps = np.random.random_integers(0, all_noise.sum() - 1,
+                                          size=nans.sum())
         cut_arr[nans] = self.array[all_noise][samps]
 
         cut_mask = extract_array(self.mask, cut_shape, self.center_coords,

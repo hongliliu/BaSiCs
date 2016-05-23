@@ -1,6 +1,6 @@
 
 import numpy as np
-from astropy.nddata.utils import extract_array, add_array
+from astropy.nddata.utils import extract_array, overlap_slices
 import astropy.units as u
 from warnings import warn, catch_warnings, filterwarnings
 import scipy.ndimage as nd
@@ -313,11 +313,15 @@ class BubbleFinder2D(object):
         Insert the cut down mask into the given shape.
         '''
 
-        if array.shape == shape:
-            return array
-        else:
-            full_size = np.ones(shape, dtype=dtype) * fill_value
-            return add_array(full_size, array, self.center_coords)
+        full_size = np.ones(shape, dtype=dtype) * fill_value
+
+        large_slices, small_slices = \
+            overlap_slices(shape, array.shape,
+                           self._center_coords, mode='partial')
+
+        full_size[large_slices] = array[small_slices]
+
+        return full_size
 
     def multiscale_bubblefind(self, scales=None, nsig=2,
                               overlap_frac=0.6, edge_find=True,

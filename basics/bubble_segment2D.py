@@ -308,7 +308,7 @@ class BubbleFinder2D(object):
     def center_coords(self):
         return self._center_coords
 
-    def insert_in_shape(self, array, shape):
+    def insert_in_shape(self, array, shape, fill_value=True):
         '''
         Insert the cut down mask into the given shape.
         '''
@@ -316,7 +316,7 @@ class BubbleFinder2D(object):
         if array.shape == shape:
             return array
         else:
-            full_size = np.zeros(shape)
+            full_size = np.ones(shape) * fill_value
             return add_array(full_size, array, self.center_coords)
 
     def multiscale_bubblefind(self, scales=None, nsig=2,
@@ -523,7 +523,8 @@ class BubbleFinder2D(object):
         if array is not None:
             full_array = array
         else:
-            full_array = self.insert_in_shape(self.array, self._orig_shape)
+            full_array = self.insert_in_shape(self.array, self._orig_shape,
+                                              fill_value=0.0)
 
         if log_scale:
             ax.imshow(np.log10(full_array), cmap='afmhot', origin='lower')

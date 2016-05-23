@@ -7,7 +7,7 @@ GALAXY_KEYS = ["inclination", "position_angle", "center_coord",
                "scale_height"]
 
 
-def galactic_radius_pa(coord, gal_center, distance, pa, inc):
+def galactic_radius_pa(coord, gal_center, distance, pa, inc, out_unit=u.pc):
 
     if not isinstance(coord, SkyCoord):
         raise TypeError("coord must be a SkyCoord")
@@ -17,6 +17,10 @@ def galactic_radius_pa(coord, gal_center, distance, pa, inc):
 
     if not distance.unit.is_equivalent(u.pc):
         raise TypeError("distance must have an appropriate unit of"
+                        " distance.")
+
+    if not out_unit.is_equivalent(u.pc):
+        raise TypeError("out_unit must have an appropriate unit of"
                         " distance.")
 
     PA = gal_center.position_angle(coord)
@@ -30,7 +34,7 @@ def galactic_radius_pa(coord, gal_center, distance, pa, inc):
 
     Xgal = Xplane
     Ygal = Yplane / np.cos(inc)
-    Rgal = np.sqrt(Xgal**2 + Ygal**2)
+    Rgal = np.sqrt(Xgal**2 + Ygal**2).to(out_unit)
 
     return Rgal, GalPA
 

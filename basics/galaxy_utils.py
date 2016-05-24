@@ -59,8 +59,12 @@ def gal_props_checker(input_dict):
     if not input_dict["scale_height"].unit.is_equivalent(u.pc):
         raise u.UnitsError("scale_height must have a unit of distance")
 
-    if not isinstance(input_dict["inclination"], Angle):
-        raise TypeError("inclination must be an Angle.")
+    if not isinstance(input_dict["inclination"], u.Quantity):
+        raise TypeError("inclination must be an Quantity.")
+        if not input_dict["inclination"].unit.is_equivalent(u.deg):
+            raise u.UnitsError("inclination must have an angular unit.")
 
-    if not isinstance(input_dict["position_angle"], Angle):
-        raise TypeError("position_angle must be an Angle.")
+    if not isinstance(input_dict["position_angle"], u.Quantity):
+        raise TypeError("position_angle must be an Quantity.")
+        if not input_dict["position_angle"].unit.is_equivalent(u.deg):
+            raise u.UnitsError("position_angle must have an angular unit.")

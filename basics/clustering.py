@@ -125,6 +125,7 @@ def cluster_and_clean(twod_region_props, min_scatter=9, cut_val=None):
 
 
 def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
+                        global_corr=0.5,
                         multiprocess=True, n_jobs=None, min_multi_size=100):
     '''
     Do a brute force clustering of the regions
@@ -208,6 +209,19 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
                 cluster_idx[idx] = new_idx
                 cluster_idx[join_idx] = new_idx
             else:
+                # Global connectivity check
+                clust_overlaps = []
+                for memb in np.where(cluster_idx == cluster_idx[idx])[0]:
+                    # We already know this one is good.
+                    if memb == idx:
+                        continue
+                    clust_overlaps.append(
+                        overlap_func(twod_region_props[memb],
+                                     twod_region_props[join_idx]))
+                clust_overlaps = np.array(clust_overlaps)
+                if np.any(clust_overlaps < global_corr):
+                    all_overlaps[:, i, j] = 0.0
+
                 cluster_idx[join_idx] = cluster_idx[idx]
 
             # Set that row and column to 0
@@ -215,3 +229,11 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
             all_overlaps[:, :, j] = 0.0
 
     return cluster_idx
+
+
+def join_bubbles():
+    pass
+
+
+def threeD_overlaps():
+    pass

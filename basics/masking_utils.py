@@ -80,3 +80,20 @@ def fraction_in_mask(blob, mask):
                       yextents[0]:yextents[1] + 1]
 
     return (ellip_mask * local_mask).sum() / float(ellip_mask.sum())
+
+
+def fill_nans_with_noise(array, sigma, nsig=2, pad_size=0):
+    '''
+    Pad the array to avoid edge effects. Fill the NaNs with samples from
+    the noise distribution. This does take the correlation of the beam
+    out... this is fine for the time being, but adding a quick
+    convolution with the beam will make this "proper".
+    '''
+
+    all_noise = array <= nsig * sigma
+    nans = np.isnan(array)
+    samps = np.random.random_integers(0, all_noise.sum() - 1,
+                                      size=nans.sum())
+    array[nans] = array[all_noise][samps]
+
+    return array

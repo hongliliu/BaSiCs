@@ -66,8 +66,10 @@ def fraction_in_mask(blob, mask):
     yextents, xextents = ellipse.bounding_box
 
     # Need to round to nearest ints
-    yextents = (floor_int(yextents[0]), ceil_int(yextents[1]))
-    xextents = (floor_int(xextents[0]), ceil_int(xextents[1]))
+    yextents = (max(0, floor_int(yextents[0])),
+                min(mask.shape[0], ceil_int(yextents[1])))
+    xextents = (max(0, floor_int(xextents[0])),
+                min(mask.shape[1], ceil_int(xextents[1])))
 
     yy, xx = np.mgrid[xextents[0]:xextents[1] + 1,
                       yextents[0]:yextents[1] + 1]

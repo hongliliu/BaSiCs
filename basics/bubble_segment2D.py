@@ -90,14 +90,18 @@ class BubbleFinder2D(object):
         self.channel = channel
 
         if auto_cut:
-            self.pad_size = 6 * np.floor(self.scales[-1]).astype(int)
+            # Note: I'm still a little unsure on how much padding is necessary
+            # Since the scales map to gaussians by a sqrt(2) factor, 3 times
+            # should be about double the maximum kernel width, and that seems
+            # like it should be enough.
+            self.pad_size = 3 * np.floor(self.scales[-1]).astype(int)
             # Also pass kwargs here (some cross-over with create_mask)
             self.cut_to_bounding_box()
         else:
             self.array = np.nan_to_num(self.array)
             self._center_coords = (self._orig_shape[0] / 2,
                                    self._orig_shape[1] / 2)
-            self.pad_size = None
+            self.pad_size = 0
 
         # Default relative weightings for finding local maxima.
         self.weightings = np.ones_like(self.scales)

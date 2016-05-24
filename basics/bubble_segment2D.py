@@ -25,7 +25,8 @@ class BubbleFinder2D(object):
     """
     def __init__(self, array, scales=None, sigma=None, channel=None,
                  mask=None, cut_to_box=False, structure="beam",
-                 beam=None, wcs=None, unit=None, auto_cut=True):
+                 beam=None, wcs=None, unit=None, auto_cut=True,
+                 ignore_warnings=True):
 
         if isinstance(array, LowerDimensionalObject):
             self.array = array.value
@@ -63,6 +64,8 @@ class BubbleFinder2D(object):
 
         # Set to avoid computing an array with nothing in it
         self._empty_mask_flag = False
+
+        self.ignore_warnings = ignore_warnings
 
         pixscale = np.abs(self.wcs.pixel_scale_matrix[0, 0])
         fwhm_beam_pix = self.beam.major.value / pixscale
@@ -220,8 +223,9 @@ class BubbleFinder2D(object):
                  " than the beam!")
 
         with catch_warnings():
-            filterwarnings("ignore",
-                           r"Only one label")
+            if self.ignore_warnings:
+                filterwarnings("ignore",
+                               r"Only one label")
 
             medianed = nd.median_filter(self.array,
                                         footprint=mo.disk(median_radius))
@@ -255,9 +259,10 @@ class BubbleFinder2D(object):
             adap_mask[labels == idx + 1] = True
 
         if adap_mask.all():
-            warn("No significant regions were found by the adaptive "
-                 "thresholding. Try lowering the minimum peak required for "
-                 "regions (region_min_nsig)")
+            if self.ignore_warnings:
+                warn("No significant regions were found by the adaptive "
+                     "thresholding. Try lowering the minimum peak required for"
+                     " regions (region_min_nsig)")
             self._empty_mask_flag = True
 
         if mask_clear_border:
@@ -271,7 +276,8 @@ class BubbleFinder2D(object):
         '''
 
         if self._empty_mask_flag:
-            warn("The mask is empty.")
+            if self.ignore_warnings:
+                warn("The mask is empty.")
             return
 
         # Not mask, since the mask is for holes.

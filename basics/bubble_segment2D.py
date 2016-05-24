@@ -363,8 +363,8 @@ class BubbleFinder2D(object):
 
             # Adjust the region properties based on where the bubble edges are
             if edge_find:
-                # Use + 1 sigma used to find local minima. Ensures the
-                # edges that are found are real.
+                # Edges are defined here by the mask. value_thresh is used
+                # in the case where the mask is given
                 coords, shell_frac, angular_std, value_thresh = \
                     find_bubble_edges(self.array, props, max_extent=1.35,
                                       value_thresh=(nsig + 1) * self.sigma,

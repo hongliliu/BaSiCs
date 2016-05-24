@@ -220,12 +220,13 @@ class BubbleNDBase(object):
 
         return True if self.shell_fraction >= 0.9 else False
 
-    def overlap_with(self, other_bubble):
+    def overlap_with(self, other_bubble, return_corr=False):
         '''
         Return the overlap with another bubble.
         '''
 
-        return overlap_metric(self.params, other_bubble.params)
+        return overlap_metric(self.params, other_bubble.params,
+                              return_corr=return_corr)
 
     def as_patch(self, x_cent=None, y_cent=None, **kwargs):
         from matplotlib.patches import Ellipse

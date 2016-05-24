@@ -278,6 +278,9 @@ class BubbleFinder2D(object):
         if self._empty_mask_flag:
             if self.ignore_warnings:
                 warn("The mask is empty.")
+            # Set the center_coords to the default then
+            self._center_coords = (self._orig_shape[0] / 2,
+                                   self._orig_shape[1] / 2)
             return
 
         # Not mask, since the mask is for holes.

@@ -16,7 +16,8 @@ from basics.bubble_objects import Bubble2D
 from basics.log import blob_log, _prune_blobs
 from basics.bubble_edge import find_bubble_edges
 from basics.fit_models import fit_region
-from basics.masking_utils import smooth_edges, remove_spurs
+from basics.masking_utils import (smooth_edges, remove_spurs,
+                                  fill_nans_with_noise)
 
 
 class BubbleFinder2D(object):
@@ -25,7 +26,7 @@ class BubbleFinder2D(object):
     """
     def __init__(self, array, scales=None, sigma=None, channel=None,
                  mask=None, cut_to_box=False, structure="beam",
-                 beam=None, wcs=None, unit=None, auto_cut=True,
+                 beam=None, wcs=None, unit=None, auto_cut=False,
                  ignore_warnings=True):
 
         if isinstance(array, LowerDimensionalObject):
@@ -262,15 +263,15 @@ class BubbleFinder2D(object):
         for idx in np.where(maxes < region_min_nsig * self.sigma)[0]:
             adap_mask[labels == idx + 1] = True
 
+        if mask_clear_border:
+            adap_mask = ~clear_border(~adap_mask)
+
         if adap_mask.all():
             if not self.ignore_warnings:
                 warn("No significant regions were found by the adaptive "
                      "thresholding. Try lowering the minimum peak required for"
                      " regions (region_min_nsig)")
             self._empty_mask_flag = True
-
-        if mask_clear_border:
-            adap_mask = ~clear_border(~adap_mask)
 
         self.mask = adap_mask
 

@@ -63,7 +63,7 @@ def fraction_in_mask(blob, mask):
         ellipse = Ellipse2D(True, blob[1], blob[0], blob[2], blob[2], 0.0)
 
     # Cut the mask to the bounding box
-    yextents, xextents = ellipse.bounding_box
+    xextents, yextents = ellipse.bounding_box
 
     # Need to round to nearest ints
     yextents = (max(0, floor_int(yextents[0])),
@@ -71,13 +71,13 @@ def fraction_in_mask(blob, mask):
     xextents = (max(0, floor_int(xextents[0])),
                 min(mask.shape[1], ceil_int(xextents[1])))
 
-    yy, xx = np.mgrid[xextents[0]:xextents[1] + 1,
+    xx, yy = np.mgrid[xextents[0]:xextents[1] + 1,
                       yextents[0]:yextents[1] + 1]
 
     ellip_mask = ellipse(yy, xx).astype(np.bool)
 
-    local_mask = mask[xextents[0]:xextents[1] + 1,
-                      yextents[0]:yextents[1] + 1]
+    local_mask = mask[yextents[0]:yextents[1] + 1,
+                      xextents[0]:xextents[1] + 1].T
 
     return (ellip_mask * local_mask).sum() / float(ellip_mask.sum())
 

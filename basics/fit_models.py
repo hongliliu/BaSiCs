@@ -774,12 +774,13 @@ def fit_region(coords, initial_props=None,
 
         if image_shape is not None and not fail_conds:
             fail_conds = fail_conds or \
-                not in_array(pars[:2], image_shape)
+                not in_array(pars[:2], image_shape[::-1])
 
             # We require the entire region be inside the array. This
             # shouldn't be a big issue for galaxies, but should be revisited
             # when testing on galactic emission or incomplete maps.
-            fail_conds = fail_conds or not ellipse_in_array(pars, image_shape)
+            fail_conds = fail_conds or not \
+                ellipse_in_array(pars, image_shape[::-1])
 
         if mask is not None and not fail_conds:
             fail_conds = fail_conds or \
@@ -837,12 +838,13 @@ def fit_region(coords, initial_props=None,
 
         if image_shape is not None and not fail_conds:
             fail_conds = fail_conds or \
-                not in_array(pars[:2], image_shape)
+                not in_array(pars[:2], image_shape[::-1])
 
             # We require the entire region be inside the array. This
             # shouldn't be a big issue for galaxies, but should be revisited
             # when testing on galactic emission or incomplete maps.
-            fail_conds = fail_conds or not circle_in_array(pars, image_shape)
+            fail_conds = fail_conds or not \
+                circle_in_array(pars, image_shape[::-1])
 
         if mask is not None and not fail_conds:
             fail_conds = fail_conds or \

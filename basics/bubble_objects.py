@@ -341,14 +341,14 @@ class BubbleNDBase(object):
 
         if isinstance(data, SpectralCube):
 
-            self._ra = data.spatial_coordinate_map[0][self.center_pixel]
-            self._dec = data.spatial_coordinate_map[1][self.center_pixel]
+            self._ra = data.spatial_coordinate_map[1][self.center_pixel]
+            self._dec = data.spatial_coordinate_map[0][self.center_pixel]
 
             y_extents, x_extents = self.find_spatial_extents()
-            self._ra_extents = data.spatial_coordinate_map[0][np.c_[y_extents],
+            self._ra_extents = data.spatial_coordinate_map[1][np.c_[y_extents],
                                                               np.c_[x_extents]]
             self._dec_extents = \
-                data.spatial_coordinate_map[1][np.c_[y_extents],
+                data.spatial_coordinate_map[0][np.c_[y_extents],
                                                np.c_[x_extents]]
 
             self._velocity_start = \

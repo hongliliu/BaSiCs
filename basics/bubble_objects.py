@@ -51,7 +51,7 @@ class BubbleNDBase(object):
 
     @property
     def pa(self):
-        return self._pa
+        return self._pa * u.deg
 
     @property
     def major(self):
@@ -105,7 +105,7 @@ class BubbleNDBase(object):
 
     @property
     def eccentricity(self):
-        return self.major / float(self.minor)
+        return (self.major / float(self.minor)) * u.dimensionless_unscaled
 
     @property
     def distance(self):
@@ -124,7 +124,7 @@ class BubbleNDBase(object):
 
         self._distance = value.to(u.kpc)
 
-    def set_galactic_properties(self, galaxy_props, unit=u.kpc):
+    def set_galactic_properties(self, galaxy_props):
         '''
         Requires a few galaxy properties
         '''
@@ -141,6 +141,8 @@ class BubbleNDBase(object):
                                self.distance,
                                galaxy_props["position_angle"],
                                galaxy_props["inclination"])
+
+        self._galactic_radius = self._galactic_radius.to(u.kpc)
 
     @property
     def galactic_radius(self):
@@ -322,7 +324,7 @@ class BubbleNDBase(object):
 
     @property
     def hole_contrast(self):
-        return self._hole_contrast
+        return self._hole_contrast * u.dimensionless_unscaled
 
     def set_wcs_props(self, data, spectral_unit=u.km / u.s,
                       spatial_unit=u.deg):
@@ -966,7 +968,7 @@ class Bubble3D(BubbleNDBase):
             self.set_shell_properties(cube, mask, linewidth=linewidth)
             self.find_expansion_velocity()
             self.find_hole_contrast(cube, mask=mask, noise_std=sigma)
-            self.set_galactic_properties(**galaxy_kwargs)
+            self.set_galactic_properties(galaxy_kwargs)
 
     @staticmethod
     def from_2D_regions(twod_region_list, refit=True,
@@ -1021,7 +1023,8 @@ class Bubble3D(BubbleNDBase):
         self = Bubble3D(props, cube=cube, mask=mask,
                         twoD_regions=twod_region_list,
                         distance=distance, sigma=sigma,
-                        linewidth=linewidth)
+                        linewidth=linewidth,
+                        galaxy_kwargs=galaxy_kwargs)
 
         self._shell_coords = all_coords
 
@@ -1141,7 +1144,7 @@ class Bubble3D(BubbleNDBase):
         else:
             return (4 * np.pi / 3.) * (0.5 * self.diameter_physical) ** 3
 
-    def hole_mass(self, scale_height=100. * u.pc, inc=55):
+    def hole_mass(self, scale_height=100. * u.pc, inclination=55 * u.deg):
         '''
         Calculate the approximate mass of HI evacuated from the hole. This
         relies on the volume and the midplane volume density.
@@ -1154,17 +1157,20 @@ class Bubble3D(BubbleNDBase):
         # number of hydrogen atoms, just convert straight to the mass
         mass_factor = (1.67e-27 * u.kg).to(u.Msun)
 
-        return mass_factor * self.shell_volume_density(scale_height, inc) * \
+        return mass_factor * \
+            self.shell_volume_density(scale_height, inclination) * \
             self.volume(scale_height).to(u.cm**3)
 
-    def formation_energy(self, scale_height=100. * u.pc, inc=55):
+    def formation_energy(self, scale_height=100. * u.pc,
+                         inclination=55 * u.deg):
         '''
         Chevalier's equation for the energy needed to drive an expanding
         shell. Using the form as shown in Bagetakos+11 eq. 18.
 
         '''
 
-        vol_dens = np.power(self.shell_volume_density(scale_height, inc).value,
+        vol_dens = np.power(self.shell_volume_density(scale_height,
+                                                      inclination).value,
                             1.12)
         size = np.power(0.5 * self.diameter_physical.value, 3.12)
         exp_vel = np.power(self.expansion_velocity.to(u.km / u.s).value, 1.4)

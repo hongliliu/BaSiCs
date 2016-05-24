@@ -12,17 +12,22 @@ from spectral_cube.lower_dimensional_structures import Projection
 
 def test_random_gray_holes():
     np.random.seed(375467546)
-    gray_holes = add_holes((500, 500), hole_level=100, nholes=20,
+    gray_holes = add_holes((500, 500), hole_level=100, nholes=40,
                            max_corr=0.1, rad_max=40)
     test_gray_holes = Projection(gray_holes, wcs=wcs.WCS())
 
+    scales = 3 * np.arange(1, 8, np.sqrt(2))
+
     test_bubble = BubbleFinder2D(test_gray_holes, beam=Beam(10), sigma=10,
-                                 channel=0)
-    test_bubble.multiscale_bubblefind(edge_find=True, nsig=5, use_ransac=True)
+                                 channel=0, scales=scales)
+    test_bubble.multiscale_bubblefind(edge_find=True, nsig=3,
+                                      overlap_frac=0.6)
 
     test_bubble.visualize_regions(edges=True)
 
-    print(test_bubble.region_params)
+    # print(test_bubble.region_params)
+
+    return test_bubble
 
 
 def test_single_gray_hole():
@@ -95,4 +100,4 @@ def test_multiple_shell():
     print(test_bubble.region_params)
 
 if __name__ == "__main__":
-    test_random_gray_holes()
+    test_bubble = test_random_gray_holes()

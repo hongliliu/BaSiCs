@@ -330,7 +330,7 @@ class BubbleFinder2D(object):
                                              "min_angular_std": 0.7},
                               max_rad=1.5, verbose=False,
                               use_ransac=False, ransac_trials=50,
-                              fit_iterations=2, min_in_mask=0.8,
+                              fit_iterations=2, min_in_mask=0.75,
                               distance=None):
         '''
         Run find_bubbles on the specified scales.
@@ -374,10 +374,10 @@ class BubbleFinder2D(object):
                         shell_frac >= ellfit_thresh["min_shell_frac"] and \
                         angular_std >= ellfit_thresh["min_angular_std"]
 
-                    if _ == 0:
-                        iter_min_in_mask = 0.2
-                    else:
+                    if _ == fit_iterations - 1:
                         iter_min_in_mask = min_in_mask
+                    else:
+                        iter_min_in_mask = 0.2
 
                     props, resid = \
                         fit_region(coords, initial_props=props,

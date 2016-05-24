@@ -259,7 +259,7 @@ class BubbleFinder2D(object):
             adap_mask[labels == idx + 1] = True
 
         if adap_mask.all():
-            if self.ignore_warnings:
+            if not self.ignore_warnings:
                 warn("No significant regions were found by the adaptive "
                      "thresholding. Try lowering the minimum peak required for"
                      " regions (region_min_nsig)")
@@ -276,7 +276,7 @@ class BubbleFinder2D(object):
         '''
 
         if self._empty_mask_flag:
-            if self.ignore_warnings:
+            if not self.ignore_warnings:
                 warn("The mask is empty.")
             # Set the center_coords to the default then
             self._center_coords = (self._orig_shape[0] / 2,
@@ -525,7 +525,7 @@ class BubbleFinder2D(object):
         '''
 
         if len(self.regions) == 0:
-            Warning("No regions were found. Nothing to show.")
+            warn("No regions were found. Nothing to show.")
             return
 
         import matplotlib.pyplot as p

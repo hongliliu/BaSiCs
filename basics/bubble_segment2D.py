@@ -337,7 +337,7 @@ class BubbleFinder2D(object):
 
         return full_size
 
-    def multiscale_bubblefind(self, scales=None, nsig=2,
+    def multiscale_bubblefind(self, scales=None, nsig=2, region_pruning=False,
                               overlap_frac=0.6, edge_find=True,
                               edge_loc_bkg_nsig=3, max_eccent=3,
                               ellfit_thresh={"min_shell_frac": 0.5,
@@ -477,29 +477,34 @@ class BubbleFinder2D(object):
                              method="shell fraction",
                              min_corr=0.8, blob_merge=False)
 
-            # Now look on smaller scales, and enable matching between smaller
-            # regions embedded in a larger one. About 0.5 is appropriate since
-            # a completely embedded smaller region will have 1/sqrt(3) for the
-            # maximally eccentric shape allowed (e~3). This does make it
-            # possible that a much larger region could be lost when it
-            # shouldn't be. So long as the minimum cut used in the clustering
-            # is ~0.5, these can still be clustered appropriately.
-            # all_props, all_coords = \
-            #     _prune_blobs(all_props, all_coords,
-            #                  method="shell fraction",
-            #                  min_corr=overlap_frac)
+            # Only keep pruning if region_pruning is enabled. If you're
+            # stacking between channels, it is recommended that this be
+            # disabled.
+            if region_pruning:
+                # Now look on smaller scales, and enable matching between
+                # smaller regions embedded in a larger one. About 0.5 is
+                # appropriate since a completely embedded smaller region will
+                # have 1/sqrt(3) for the maximally eccentric shape allowed
+                # (e~3). This does make it possible that a much larger region
+                # could be lost when it shouldn't be. So long as the minimum
+                # cut used in the clustering is ~0.5, these can still be
+                # clustered appropriately.
+                all_props, all_coords = \
+                    _prune_blobs(all_props, all_coords,
+                                 method="shell fraction",
+                                 min_corr=overlap_frac)
 
-            # Any highly overlapping regions should now be small regions
-            # inside much larger ones. We're going to assume that the
-            # remaining large regions are more important (good based on by-eye
-            # evaluation). Keeping this at 0.65, since we only want to remove
-            # very highly overlapping small regions. Note that this does set
-            # an upper limit on how overlapped region may be. This is fairly
-            # necessary though due to the shape ambiguities present in
-            # assuming an elliptical shape.
-            # all_props, all_coords = \
-            #     _prune_blobs(all_props, all_coords, overlap=0.75,
-            #                  method='size')
+                # Any highly overlapping regions should now be small regions
+                # inside much larger ones. We're going to assume that the
+                # remaining large regions are more important (good based on
+                # by-eye evaluation). Keeping this at 0.65, since we only want
+                # to remove very highly overlapping small regions. Note that
+                # this does set an upper limit on how overlapped region may
+                # be. This is fairly necessary though due to the shape
+                # ambiguities present in assuming an elliptical shape.
+                all_props, all_coords = \
+                    _prune_blobs(all_props, all_coords, overlap=0.75,
+                                 method='size')
 
             self._regions = \
                 [Bubble2D(prop, shell_coords=coord, channel=self.channel,

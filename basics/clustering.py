@@ -237,7 +237,7 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
 def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
                     min_chan_overlap=2,
                     multiprocess=True, join_overlap_frac=0.7,
-                    join_overlap_corr=0.7, min_multi_size=100,
+                    join_overlap_corr=0.6, min_multi_size=100,
                     n_jobs=None):
     '''
     Overlap removal and joining of 3D bubbles.
@@ -283,7 +283,17 @@ def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
 
         potential_removals = []
 
-        for small_idx in np.where(overlaps >= overlap_frac)[0]:
+        # We need to make sure to only compare to smaller matches
+        matches = np.where(overlaps >= overlap_frac)[0]
+        smaller_idxs = []
+        for match in matches:
+            if large_bubble.area < bubbles[match].area:
+                continue
+
+            smaller_idxs.append(match)
+        smaller_idxs = np.array(smaller_idxs)
+
+        for small_idx in smaller_idxs:
 
             small_bubble = bubbles[small_idx]
 

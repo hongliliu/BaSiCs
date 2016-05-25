@@ -312,7 +312,21 @@ def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
                     can_join = (overlaps[small_idx] >= join_overlap_frac) & \
                         (corr_overlap >= join_overlap_corr)
                     if can_join:
-                        joined_bubbles.append([idx, small_idx])
+                        # Now we want to check if either of these bubbles has
+                        # already been marked for joining
+                        has_joined = False
+                        if len(joined_bubbles) > 0:
+                            for i in range(len(joined_bubbles)):
+                                if idx in joined_bubbles[i]:
+                                    joined_bubbles[i].append(small_idx)
+                                    has_joined = True
+                                    break
+                                elif small_idx in joined_bubbles[i]:
+                                    joined_bubbles[i].append(idx)
+                                    has_joined = True
+                                    break
+                        if not has_joined:
+                            joined_bubbles.append([idx, small_idx])
                     continue
                 elif start_overlap < 0 and end_overlap > 0:
                     chan_overlap = -start_overlap
@@ -364,8 +378,14 @@ def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
     return bubbles, bubbles_to_join
 
 
-def join_bubbles(bubbles, overlap_corr=0.5):
+def join_bubbles(join_bubbles, overlap_corr=0.5):
     '''
     Combine two bubble objects together.
+
+    Parameters
+    ----------
+    join_bubbles : list of lists
+        A list of the pairs of bubbles to join.
     '''
-    pass
+
+

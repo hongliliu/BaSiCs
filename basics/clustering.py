@@ -424,12 +424,12 @@ def join_bubbles(join_bubbles):
                 continue
             # There's multiple, so one must die.
             chan_regs = [new_cluster[i] for i in
-                         np.where(channel_cents == val)]
+                         np.where(channel_cents == val)[0]]
             shell_fracs = np.array([reg.shell_fraction for reg in chan_regs])
 
             keeper = np.argmax(shell_fracs)
 
-            chan_regs.remove(keeper)
+            chan_regs.pop(keeper)
 
             # Now remove all others from the cluster
             for reg in chan_regs:

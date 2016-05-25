@@ -3,6 +3,7 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import fcluster, fclusterdata, linkage, dendrogram
 from functools import partial
+from itertools import combinations
 
 try:
     from sklearn.metrics import pairwise_distances
@@ -190,7 +191,8 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
 
         # The max number of matches is the smallest number of regions in the
         # two channels.
-        for _ in range(min(len(chan_regions_idx), len(prev_regions_idx))):
+        # for _ in range(min(len(chan_regions_idx), len(prev_regions_idx))):
+        while True:
 
             # They don't all have to match, so break when nothing is left.
             if not np.any(all_overlaps):
@@ -221,6 +223,7 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
                 clust_overlaps = np.array(clust_overlaps)
                 if np.any(clust_overlaps < global_corr):
                     all_overlaps[:, i, j] = 0.0
+                    continue
 
                 cluster_idx[join_idx] = cluster_idx[idx]
 
@@ -231,9 +234,138 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
     return cluster_idx
 
 
-def join_bubbles():
-    pass
+def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
+                    min_chan_overlap=2,
+                    multiprocess=True, join_overlap_frac=0.7,
+                    join_overlap_corr=0.7, min_multi_size=100,
+                    n_jobs=None):
+    '''
+    Overlap removal and joining of 3D bubbles.
+    '''
+
+    all_overlaps = np.zeros((len(bubbles), len(bubbles)),
+                            dtype=np.float)
+    remove_bubbles = []
+    joined_bubbles = []
+
+    metric = lambda one, two: one.overlap_with(two)
+
+    # Calculate overlap between all pairs
+    multi_conds = (multiprocess and _sklearn_flag and
+                   all_overlaps[0].size >= min_multi_size)
+    if multi_conds:
+        if n_jobs is None:
+            n_jobs = cpu_count()
+
+        all_overlaps = \
+            pairwise_distances(bubbles, metric=metric,
+                               n_jobs=n_jobs)
+
+    else:
+        for i, j in combinations(range(len(bubbles)), 2):
+            # Area fractional overlap
+            all_overlaps[i, j] = metric(bubbles[i], bubbles[j])
+
+    size_sort = np.argsort(np.array([bub.area for bub in bubbles]))[::-1]
+
+    # Now loop through and start the rejection/join process
+    for idx in size_sort:
+        # Skip if it has satisfied a removal criterion
+        if idx in remove_bubbles:
+            continue
+
+        overlaps = all_overlaps[idx]
+
+        if not (overlaps >= overlap_frac).any():
+            continue
+
+        large_bubble = bubbles[idx]
+
+        potential_removals = []
+
+        for small_idx in np.where(overlaps >= overlap_frac)[0]:
+
+            small_bubble = bubbles[small_idx]
+
+            # Check spectral overlap
+            start_overlap = \
+                small_bubble.channel_start - large_bubble.channel_end
+            end_overlap = \
+                small_bubble.channel_end - large_bubble.channel_start
+            # Checking for no spectral overlap, or complete
+            # First two cases are for after and before the larger bubble.
+            if start_overlap > 0 and end_overlap > 0:
+                continue
+            elif start_overlap < 0 and end_overlap < 0:
+                continue
+            elif start_overlap < 0 and end_overlap > 0:
+                # Contained completely inside
+                potential_removals.append(small_idx)
+            else:
+                corr_overlap = \
+                    small_bubble.overlap_with(large_bubble,
+                                              return_corr=True)
+
+                # We now need to find the amount of channel overlap
+                if start_overlap == 0 or end_overlap == 0:
+                    # Join if overlapping enough
+                    can_join = (overlaps[small_idx] >= join_overlap_frac) & \
+                        (corr_overlap >= join_overlap_corr)
+                    if can_join:
+                        joined_bubbles.append([idx, small_idx])
+                    continue
+                elif start_overlap < 0 and end_overlap > 0:
+                    chan_overlap = -start_overlap
+                elif start_overlap > 0 and end_overlap < 0:
+                    chan_overlap = end_overlap
+                elif -start_overlap == end_overlap:
+                    chan_overlap = end_overlap
+                else:
+                    raise Warning("Check the bubble inputs. All potential"
+                                  " cases should be handled, so this should "
+                                  "not occur...")
+
+                # If the channel overlap is enough, consider for removal
+                if chan_overlap < min_chan_overlap:
+                    # Not enough, don't touch either
+                    continue
+                elif small_bubble.channel_width > large_bubble.channel_width:
+                    # If the correlation is high enough, remove the large one
+                    if corr_overlap > overlap_corr:
+                        remove_bubbles.append(idx)
+                        continue
+                    else:
+                        potential_removals.append(small_idx)
+                else:
+                    larger_shell_frac = small_bubble.shell_fraction > \
+                        large_bubble.shell_fraction
+                    # Determine which should be removed
+                    if corr_overlap > overlap_corr:
+                        # If the smaller has the larger shell fraction, remove
+                        # the larger
+                        if larger_shell_frac:
+                            remove_bubbles.append(idx)
+                            continue
+
+        # If the larger region was removed at all, don't add the potential
+        # removals
+        if idx in remove_bubbles:
+            continue
+        else:
+            remove_bubbles.extend(potential_removals)
+
+    # Make a list of the bubble objects to be joined
+    bubbles_to_join = \
+        [[bubbles[ind[0]], bubbles[ind[1]]] for ind in joined_bubbles]
+
+    # Remove all bubbles marked
+    bubbles = [bub for i, bub in enumerate(bubbles) if i not in remove_bubbles]
+
+    return bubbles, bubbles_to_join
 
 
-def threeD_overlaps():
+def join_bubbles(bubbles, overlap_corr=0.5):
+    '''
+    Combine two bubble objects together.
+    '''
     pass

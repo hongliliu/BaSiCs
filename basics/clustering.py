@@ -372,8 +372,14 @@ def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
     bubbles_to_join = \
         [[bubbles[ind[0]], bubbles[ind[1]]] for ind in joined_bubbles]
 
-    # Remove all bubbles marked
-    bubbles = [bub for i, bub in enumerate(bubbles) if i not in remove_bubbles]
+    join_flattened = []
+    for join in joined_bubbles:
+        join_flattened.extend(join)
+
+    # Remove all bubbles marked, and the joins, since they will be added back
+    # on
+    all_remove = list(set(remove_bubbles + join_flattened))
+    bubbles = [bub for i, bub in enumerate(bubbles) if i not in all_remove]
 
     return bubbles, bubbles_to_join
 
@@ -385,7 +391,16 @@ def join_bubbles(join_bubbles, overlap_corr=0.5):
     Parameters
     ----------
     join_bubbles : list of lists
-        A list of the pairs of bubbles to join.
+        A list of the  bubbles to join.
     '''
 
+    # Create a list of the twoD regions in each
+    new_twoD_clusters = []
 
+    for join in join_bubbles:
+        new_cluster = []
+        for bub in join:
+            new_cluster.extend(bub.twoD_regions)
+        new_twoD_clusters.append(new_cluster)
+
+    return new_twoD_clusters

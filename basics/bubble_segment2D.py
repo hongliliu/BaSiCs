@@ -342,7 +342,7 @@ class BubbleFinder2D(object):
                               edge_loc_bkg_nsig=3, max_eccent=3,
                               ellfit_thresh={"min_shell_frac": 0.5,
                                              "min_angular_std": 0.7},
-                              max_rad=2.0, verbose=False,
+                              max_rad=2.0, min_shell_frac=0.3, verbose=False,
                               use_ransac=False, ransac_trials=50,
                               fit_iterations=3, min_in_mask=0.75,
                               distance=None):
@@ -429,9 +429,23 @@ class BubbleFinder2D(object):
                         if corr >= 0.95:
                             break
 
-                    old_props = props.copy()
+                        # If the shell fraction went down, stop and revert to
+                        # the last iteration
+                        if old_shell_frac >= shell_frac:
+                            props = old_props
+                            shell_frac = old_shell_frac
+                            coords = old_coords
+                            angular_std = old_angular_std
+                            resid = old_resid
+                            break
 
-                if fail_fit:
+                    old_props = props.copy()
+                    old_shell_frac = shell_frac
+                    old_coords = coords
+                    old_angular_std = angular_std
+                    old_resid = resid
+
+                if fail_fit or shell_frac < min_shell_frac:
                     continue
 
             else:

@@ -13,7 +13,7 @@ from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
 from basics.utils import sig_clip
 from basics.bubble_objects import Bubble2D
-from basics.log import blob_log, _prune_blobs
+from basics.log import blob_log, _prune_blobs, overlap_metric
 from basics.bubble_edge import find_bubble_edges
 from basics.fit_models import fit_region
 from basics.masking_utils import (smooth_edges, remove_spurs,
@@ -382,13 +382,13 @@ class BubbleFinder2D(object):
 
                 fail_fit = False
 
-                for _ in range(fit_iterations):
+                for niter in range(fit_iterations):
                     coords = np.array(coords)
                     try_fit_ellipse = \
                         shell_frac >= ellfit_thresh["min_shell_frac"] and \
                         angular_std >= ellfit_thresh["min_angular_std"]
 
-                    if _ == fit_iterations - 1:
+                    if niter == fit_iterations - 1:
                         iter_min_in_mask = min_in_mask
                     else:
                         iter_min_in_mask = 0.2
@@ -422,6 +422,15 @@ class BubbleFinder2D(object):
 
                     if len(coords) < 4:
                         break
+
+                    if not niter == 0:
+                        corr = overlap_metric(old_props, props,
+                                              return_corr=True)
+                        if corr >= 0.95:
+                            break
+
+                    old_props = props.copy()
+
                 if fail_fit:
                     continue
 
@@ -497,7 +506,7 @@ class BubbleFinder2D(object):
                 # Any highly overlapping regions should now be small regions
                 # inside much larger ones. We're going to assume that the
                 # remaining large regions are more important (good based on
-                # by-eye evaluation). Keeping this at 0.65, since we only want
+                # by-eye evaluation). Keeping this at 0.75, since we only want
                 # to remove very highly overlapping small regions. Note that
                 # this does set an upper limit on how overlapped region may
                 # be. This is fairly necessary though due to the shape

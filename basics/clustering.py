@@ -4,6 +4,7 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import fcluster, fclusterdata, linkage, dendrogram
 from functools import partial
 from itertools import combinations
+from collections import Counter
 
 try:
     from sklearn.metrics import pairwise_distances
@@ -234,9 +235,9 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
     return cluster_idx
 
 
-def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
+def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
                     min_chan_overlap=2,
-                    multiprocess=True, join_overlap_frac=0.7,
+                    multiprocess=False, join_overlap_frac=0.6,
                     join_overlap_corr=0.6, min_multi_size=100,
                     n_jobs=None):
     '''
@@ -289,7 +290,6 @@ def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
         for match in matches:
             if large_bubble.area < bubbles[match].area:
                 continue
-
             smaller_idxs.append(match)
         smaller_idxs = np.array(smaller_idxs)
 
@@ -302,11 +302,12 @@ def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
                 small_bubble.channel_start - large_bubble.channel_end
             end_overlap = \
                 small_bubble.channel_end - large_bubble.channel_start
+
             # Checking for no spectral overlap, or complete
             # First two cases are for after and before the larger bubble.
-            if start_overlap > 0 and end_overlap > 0:
+            if start_overlap > 1 and end_overlap > 0:
                 continue
-            elif start_overlap < 0 and end_overlap < 0:
+            elif start_overlap < 0 and end_overlap < 1:
                 continue
             elif start_overlap < 0 and end_overlap > 0:
                 # Contained completely inside
@@ -317,7 +318,7 @@ def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
                                               return_corr=True)
 
                 # We now need to find the amount of channel overlap
-                if start_overlap == 0 or end_overlap == 0:
+                if start_overlap in [0, 1] or end_overlap in [0, 1]:
                     # Join if overlapping enough
                     can_join = (overlaps[small_idx] >= join_overlap_frac) & \
                         (corr_overlap >= join_overlap_corr)
@@ -413,6 +414,27 @@ def join_bubbles(join_bubbles):
         new_cluster = []
         for bub in join:
             new_cluster.extend(bub.twoD_regions)
+        # Check for multiple regions within the same channel and keep whichever
+        # has the higher shell_fraction.
+        channel_cents = np.array([reg.channel_center for reg in new_cluster])
+        # Count how many in each
+        counts = Counter(channel_cents)
+        for val in counts:
+            if counts[val] == 1:
+                continue
+            # There's multiple, so one must die.
+            chan_regs = [new_cluster[i] for i in
+                         np.where(channel_cents == val)]
+            shell_fracs = np.array([reg.shell_fraction for reg in chan_regs])
+
+            keeper = np.argmax(shell_fracs)
+
+            chan_regs.remove(keeper)
+
+            # Now remove all others from the cluster
+            for reg in chan_regs:
+                new_cluster.remove(reg)
+
         new_twoD_clusters.append(new_cluster)
 
     return new_twoD_clusters

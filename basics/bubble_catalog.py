@@ -145,7 +145,7 @@ class PPV_Catalog(object):
         for name in props:
             unit, descrip = props[name]
             columns.append(Column(_has_nan([getattr(bub, name).to(unit).value
-                                            for bub in bubbles]),
+                                            for bub in bubbles], name),
                                   name=name, description=descrip,
                                   unit=unit.to_string()))
 
@@ -154,7 +154,7 @@ class PPV_Catalog(object):
             unit, descrip, imps = prop_funcs[name]
             columns.append(
                 Column(_has_nan([getattr(bub, name)(**imps).to(unit).value
-                                 for bub in bubbles]), name=name,
+                                 for bub in bubbles], name), name=name,
                        description=descrip,
                        unit=unit.to_string()))
 

@@ -265,7 +265,11 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
     else:
         for i, j in combinations(range(len(bubbles)), 2):
             # Area fractional overlap
-            all_overlaps[i, j] = metric(bubbles[i], bubbles[j])
+            overlaps = metric(bubbles[i], bubbles[j])
+            all_overlaps[i, j] = overlaps
+            all_overlaps[j, i] = overlaps
+
+    # print(all_overlaps)
 
     size_sort = np.argsort(np.array([bub.area for bub in bubbles]))[::-1]
 
@@ -303,13 +307,19 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
             end_overlap = \
                 small_bubble.channel_end - large_bubble.channel_start
 
+            # print(start_overlap)
+            # print(end_overlap)
+
             # Checking for no spectral overlap, or complete
             # First two cases are for after and before the larger bubble.
             if start_overlap > 1 and end_overlap > 0:
+                # print("None start")
                 continue
-            elif start_overlap < 0 and end_overlap < 1:
+            elif start_overlap < 0 and end_overlap < 0:
+                # print("None end")
                 continue
             elif start_overlap < 0 and end_overlap > 0:
+                # print("All inside")
                 # Contained completely inside
                 potential_removals.append(small_idx)
             else:

@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from scipy import optimize
+from skimage.morphology import convex_hull_image
 from warnings import filterwarnings, catch_warnings
 
 from basics.utils import (wrap_to_pi, in_ellipse, in_circle, in_array,
@@ -725,6 +726,10 @@ def fit_region(coords, initial_props=None,
     coords[:, 1] -= int(xmean)
     new_props = np.empty((5,))
 
+    # Make the convex hull once.
+    if mask is not None:
+        conv_hull = convex_hull_image(~mask)
+
     if len(coords) < 3:
         raise ValueError("Must have at least 3 points to fit.")
 
@@ -783,8 +788,16 @@ def fit_region(coords, initial_props=None,
                 ellipse_in_array(pars, image_shape[::-1])
 
         if mask is not None and not fail_conds:
+            # Make sure most of the region falls within the hole mask
             fail_conds = fail_conds or \
                 fraction_in_mask(pars, mask) < min_in_mask
+
+            # Now make sure the region is within a region with signal.
+            # We define this based on the convex hull. It seems
+            # appropriate to just use min_in_mask, since most of it needs to
+            # be within the region.
+            fail_conds = fail_conds or \
+                fraction_in_mask(pars, conv_hull) < min_in_mask
 
         if fail_conds:
             ellip_fail = True
@@ -849,6 +862,10 @@ def fit_region(coords, initial_props=None,
         if mask is not None and not fail_conds:
             fail_conds = fail_conds or \
                 fraction_in_mask(pars, mask) < min_in_mask
+
+            # Needs to be in convex hull. See ellipse rejections
+            fail_conds = fail_conds or \
+                fraction_in_mask(pars, conv_hull) < min_in_mask
 
         if fail_conds:
             if verbose:

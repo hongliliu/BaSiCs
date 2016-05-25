@@ -381,7 +381,9 @@ def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
     all_remove = list(set(remove_bubbles + join_flattened))
     bubbles = [bub for i, bub in enumerate(bubbles) if i not in all_remove]
 
-    return bubbles, bubbles_to_join
+    new_twoD_clusters = [join_bubbles(join) for join in bubbles_to_join]
+
+    return bubbles, new_twoD_clusters
 
 
 def join_bubbles(join_bubbles):

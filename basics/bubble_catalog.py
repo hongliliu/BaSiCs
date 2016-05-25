@@ -176,7 +176,7 @@ class PPV_Catalog(object):
         return np.percentile(self.table[column], percentiles) * \
             self.table[column].unit
 
-    def histogram_parameters(self, column, **kwargs):
+    def histogram(self, column, **kwargs):
         self._check_given_column(column)
 
         p.hist(self.table[column], **kwargs)
@@ -185,7 +185,7 @@ class PPV_Catalog(object):
                                    self.table[column].unit)
         p.xlabel(label)
 
-    def scatter_parameters(self, xcolumn, ycolumn, **kwargs):
+    def scatter(self, xcolumn, ycolumn, **kwargs):
 
         self._check_given_column(xcolumn)
         self._check_given_column(ycolumn)

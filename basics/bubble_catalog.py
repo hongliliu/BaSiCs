@@ -17,6 +17,12 @@ all_columns = ["pa", "bubble_type", "velocity_center", "velocity_width",
                "formation_energy"]
 
 
+def _has_nan(values, name):
+    if np.isnan(np.array(values)).any():
+        raise ValueError("NaN in {}".format(name))
+    return values
+
+
 class PP_Catalog(object):
     """docstring for PP_Catalog"""
     def __init__(self, bubbles):
@@ -135,18 +141,19 @@ class PPV_Catalog(object):
         # Add the properties
         for name in props:
             unit, descrip = props[name]
-            columns.append(Column([getattr(bub, name).to(unit).value for bub in
-                                   bubbles],
+            columns.append(Column(_has_nan([getattr(bub, name).to(unit).value
+                                            for bub in bubbles]),
                                   name=name, description=descrip,
                                   unit=unit.to_string()))
 
         # Add the functions
         for name in prop_funcs:
             unit, descrip, imps = prop_funcs[name]
-            columns.append(Column([getattr(bub, name)(**imps).to(unit).value
-                                   for bub in bubbles], name=name,
-                                  description=descrip,
-                                  unit=unit.to_string()))
+            columns.append(
+                Column(_has_nan([getattr(bub, name)(**imps).to(unit).value
+                                 for bub in bubbles]), name=name,
+                       description=descrip,
+                       unit=unit.to_string()))
 
         # all_names = ["center_coordinate"] + props.keys() + prop_funcs.keys()
 
@@ -161,6 +168,9 @@ class PPV_Catalog(object):
         Return percentiles of properties in the population
         '''
         self._check_given_column(column)
+
+        # There really should never be a NaN in the table...
+        return np.percentile()
 
     def histogram_parameters(self, column):
         self._check_given_column(column)

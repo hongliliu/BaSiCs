@@ -7,6 +7,16 @@ from astropy.coordinates import SkyCoord
 from galaxy_utils import gal_props_checker
 
 
+all_columns = ["pa", "bubble_type", "velocity_center", "velocity_width",
+               "eccentricity", "expansion_velocity", "avg_shell_flux_density",
+               "total_shell_flux_density", "shell_column_density",
+               "hole_contrast", "diameter_physical", "major_physical",
+               "minor_physical", "diameter_angular", "major_angular",
+               "minor_angular", "galactic_radius", "galactic_pa",
+               "tkin", "shell_volume_density", "volume", "hole_mass",
+               "formation_energy"]
+
+
 class PP_Catalog(object):
     """docstring for PP_Catalog"""
     def __init__(self, bubbles):
@@ -142,19 +152,35 @@ class PPV_Catalog(object):
 
         self.table = Table(columns)
 
-    def population_statistics(self, percentiles=[25, 50, 75]):
+    def _check_given_column(self, name):
+        if name not in all_columns:
+            raise ValueError("{} is not a defined column name.".format(name))
+
+    def population_statistics(self, column, percentiles=[25, 50, 75]):
         '''
         Return percentiles of properties in the population
         '''
+        self._check_given_column(column)
+
+    def histogram_parameters(self, column):
+        self._check_given_column(column)
         pass
 
-    def histogram_parameters(self, show_params=None):
+    def scatter_parameters(self, columns):
+        for column in columns:
+            self._check_given_column(column)
         pass
 
-    def scatter_parameters(self, show_params=None):
-        pass
+    def triangle_plot(self, columns, show_params=None, **kwargs):
+        '''
+        Parameters
+        ----------
+        columns : list of columns names
+            Columns to include in the cornerplot.
+        '''
 
-    def triangle_plot(self, show_params=None, **kwargs):
+        for column in columns:
+            self._check_given_column(column)
 
         try:
             from triangle import cornerplot

@@ -384,7 +384,7 @@ def threeD_overlaps(bubbles, overlap_frac=0.8, overlap_corr=0.7,
     return bubbles, bubbles_to_join
 
 
-def join_bubbles(join_bubbles, overlap_corr=0.5):
+def join_bubbles(join_bubbles):
     '''
     Combine two bubble objects together.
 

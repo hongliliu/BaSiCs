@@ -3,6 +3,7 @@ import numpy as np
 from astropy.table import Table, Column
 import astropy.units as u
 from astropy.coordinates import SkyCoord
+import matplotlib.pyplot as p
 
 from galaxy_utils import gal_props_checker
 
@@ -15,6 +16,8 @@ all_columns = ["pa", "bubble_type", "velocity_center", "velocity_width",
                "minor_angular", "galactic_radius", "galactic_pa",
                "tkin", "shell_volume_density", "volume", "hole_mass",
                "formation_energy"]
+
+not_numerical = ["col0"]  # Once finished, this will be center_coord
 
 
 def _has_nan(values, name):
@@ -170,18 +173,33 @@ class PPV_Catalog(object):
         self._check_given_column(column)
 
         # There really should never be a NaN in the table...
-        return np.percentile()
+        return np.percentile(self.table[column], percentiles) * \
+            self.table[column].unit
 
-    def histogram_parameters(self, column):
+    def histogram_parameters(self, column, **kwargs):
         self._check_given_column(column)
-        pass
 
-    def scatter_parameters(self, columns):
-        for column in columns:
-            self._check_given_column(column)
-        pass
+        p.hist(self.table[column], **kwargs)
 
-    def triangle_plot(self, columns, show_params=None, **kwargs):
+        label = "{0} ({1})".format(self.table[column].name,
+                                   self.table[column].unit)
+        p.xlabel(label)
+
+    def scatter_parameters(self, xcolumn, ycolumn, **kwargs):
+
+        self._check_given_column(xcolumn)
+        self._check_given_column(ycolumn)
+
+        p.scatter(self.table[xcolumn], self.table[ycolumn], **kwargs)
+
+        ylabel = "{0} ({1})".format(self.table[ycolumn].name,
+                                    self.table[ycolumn].unit)
+        p.ylabel(ylabel)
+        xlabel = "{0} ({1})".format(self.table[xcolumn].name,
+                                    self.table[xcolumn].unit)
+        p.xlabel(xlabel)
+
+    def corner_plot(self, columns, **kwargs):
         '''
         Parameters
         ----------
@@ -190,14 +208,28 @@ class PPV_Catalog(object):
         '''
 
         for column in columns:
+            if column in not_numerical:
+                raise ValueError("{} is not numerical. Cannot "
+                                 "plot.".format(column))
             self._check_given_column(column)
 
         try:
-            from triangle import cornerplot
+            from corner import corner
         except ImportError:
-            raise ImportError("The triangle package must be installed.")
+            raise ImportError("The corner package must be installed. "
+                              " (pip install corner)")
 
-        pass
+        labels = ["{0} ({1})".format(self.table[column].name,
+                                     self.table[column].unit) for
+                  column in columns]
+
+        data = np.array([self.table[name].astype(np.float)
+                         for name in columns])
+
+        corner(data, labels=labels,
+               truths=[0.0, 0.0, 0.0],
+               quantiles=[0.16, 0.5, 0.84],
+               show_titles=True, title_kwargs={"fontsize": 12})
 
     def write_table(self, filename, format='ascii.ecsv'):
         '''

@@ -356,9 +356,8 @@ class BubbleFinder2D(object):
         # Make the convex hull once.
         conv_hull = \
             nd.binary_fill_holes(
-                nd.binary_dilation(~mask, disk(10 * beam_pix)))
+                nd.binary_dilation(~self.mask, mo.disk(10 * self.beam_pix)))
         # conv_hull = convex_hull_image(~mask)
-
 
         all_props = []
         all_coords = []

@@ -8,16 +8,17 @@ import skimage.morphology as mo
 from skimage.segmentation import clear_border
 from skimage.filters import threshold_adaptive
 from copy import copy
+from skimage.morphology import convex_hull_image
 
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 
-from basics.utils import sig_clip
-from basics.bubble_objects import Bubble2D
-from basics.log import blob_log, _prune_blobs, overlap_metric
-from basics.bubble_edge import find_bubble_edges
-from basics.fit_models import fit_region
-from basics.masking_utils import (smooth_edges, remove_spurs,
-                                  fill_nans_with_noise)
+from utils import sig_clip
+from bubble_objects import Bubble2D
+from log import blob_log, _prune_blobs, overlap_metric
+from bubble_edge import find_bubble_edges
+from fit_models import fit_region
+from masking_utils import (smooth_edges, remove_spurs,
+                           fill_nans_with_noise)
 
 
 class BubbleFinder2D(object):
@@ -357,7 +358,7 @@ class BubbleFinder2D(object):
         conv_hull = \
             nd.binary_fill_holes(
                 nd.binary_dilation(~self.mask, mo.disk(10 * self.beam_pix)))
-        # conv_hull = convex_hull_image(~mask)
+        # conv_hull = convex_hull_image(~self.mask)
 
         all_props = []
         all_coords = []

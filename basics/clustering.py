@@ -301,6 +301,9 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
 
             small_bubble = bubbles[small_idx]
 
+            corr_overlap = \
+                small_bubble.overlap_with(large_bubble,
+                                          return_corr=True)
             # Check spectral overlap
             start_overlap = \
                 small_bubble.channel_start - large_bubble.channel_end
@@ -309,6 +312,9 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
 
             # print(start_overlap)
             # print(end_overlap)
+
+            is_small_wider = small_bubble.channel_width > \
+                large_bubble.channel_width
 
             # Checking for no spectral overlap, or complete
             # First two cases are for after and before the larger bubble.
@@ -321,12 +327,15 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
             elif start_overlap < 0 and end_overlap > 0:
                 # print("All inside")
                 # Contained completely inside
-                potential_removals.append(small_idx)
+                # Remove the larger if the small is wider and highly
+                # correlated.
+                if is_small_wider and corr_overlap:
+                    remove_bubbles.append(idx)
+                # Otherwise remove the smaller one.
+                else:
+                    potential_removals.append(small_idx)
+                continue
             else:
-                corr_overlap = \
-                    small_bubble.overlap_with(large_bubble,
-                                              return_corr=True)
-
                 # We now need to find the amount of channel overlap
                 if start_overlap in [0, 1] or end_overlap in [0, 1]:
                     # Join if overlapping enough
@@ -360,6 +369,8 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
                                   " cases should be handled, so this should "
                                   "not occur...")
 
+                # print(chan_overlap)
+
                 # If the channel overlap is enough, consider for removal
                 if chan_overlap < min_chan_overlap:
                     # Not enough, don't touch either
@@ -368,6 +379,7 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
                 # If the smaller bubble has a larger width, and its
                 # correlation is high enough, remove the larger
                 if small_bubble.channel_width > large_bubble.channel_width:
+                    # print("Small is wider")
                     # If the correlation is high enough, remove the large one
                     if corr_overlap > overlap_corr:
                         remove_bubbles.append(idx)
@@ -376,9 +388,11 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
                     #     potential_removals.append(small_idx)
                 # Remove the smaller one
                 elif small_bubble.channel_width < large_bubble.channel_width:
+                    # print("Small is less wide.")
                     potential_removals.append(small_idx)
                 # If their widths are equal, take the larger shell fraction
                 else:
+                    # print("Widths are equal")
                     larger_shell_frac = small_bubble.shell_fraction > \
                         large_bubble.shell_fraction
                     # Determine which should be removed
@@ -386,6 +400,7 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
                         # If the smaller has the larger shell fraction, remove
                         # the larger
                         if larger_shell_frac:
+                            # print("Removed larger")
                             remove_bubbles.append(idx)
                             continue
 

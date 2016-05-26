@@ -1,14 +1,11 @@
 import math
 import numpy as np
 from scipy import optimize
-from skimage.morphology import convex_hull_image
-import scipy.ndimage as nd
-from skimage.morphology import disk
 from warnings import filterwarnings, catch_warnings
 
-from basics.utils import (wrap_to_pi, in_ellipse, in_circle, in_array,
-                          ellipse_in_array, circle_in_array)
-from basics.masking_utils import fraction_in_mask
+from utils import (wrap_to_pi, in_ellipse, in_circle, in_array,
+                   ellipse_in_array, circle_in_array, floor_int)
+from masking_utils import fraction_in_mask
 
 
 def _check_data_dim(data, dim):
@@ -799,6 +796,10 @@ def fit_region(coords, initial_props=None,
             fail_conds = fail_conds or \
                 fraction_in_mask(pars, conv_hull) < min_in_mask
 
+            # The center of the fit should fall within the convex hull mask
+            y, x = floor_int(pars[1]), floor_int(pars[0])
+            fail_conds = fail_conds or not conv_hull[y, x]
+
         if fail_conds:
             ellip_fail = True
         else:
@@ -867,6 +868,10 @@ def fit_region(coords, initial_props=None,
             # Needs to be in convex hull. See ellipse rejections
             fail_conds = fail_conds or \
                 fraction_in_mask(pars, conv_hull) < min_in_mask
+
+            # The center of the fit should fall within the convex hull mask
+            y, x = floor_int(pars[1]), floor_int(pars[0])
+            fail_conds = fail_conds or not conv_hull[y, x]
 
         if fail_conds:
             if verbose:

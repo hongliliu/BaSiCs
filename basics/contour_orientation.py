@@ -3,7 +3,8 @@ import numpy as np
 from skimage.measure import subdivide_polygon, approximate_polygon
 import scipy.ndimage as nd
 
-execfile("basics/utils.py")
+# execfile("basics/utils.py")
+from utils import consec_split
 
 
 def shell_orientation(coords, center=None, diff_thresh=0.5, smooth_width=5,

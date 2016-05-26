@@ -9,13 +9,12 @@ from skimage.feature import peak_local_max
 from astropy.modeling.models import Ellipse2D
 from skimage.measure import regionprops
 from scipy.spatial.distance import pdist, cdist
-import scipy.ndimage as nd
 from functools import partial
 
 # from .._shared.utils import assert_nD
 
-from basics.utils import (dist_uppertri, wrap_to_pi, find_row, eight_conn,
-                          in_box)
+from utils import (dist_uppertri, wrap_to_pi, find_row, eight_conn,
+                   in_box)
 
 '''
 Copyright (C) 2011, the scikit-image team

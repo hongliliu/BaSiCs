@@ -1,7 +1,7 @@
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import SkyCoord, Angle
+from astropy.coordinates import SkyCoord
 
 GALAXY_KEYS = ["inclination", "position_angle", "center_coord",
                "scale_height"]

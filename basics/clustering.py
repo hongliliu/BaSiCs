@@ -459,6 +459,7 @@ def join_bubbles(join_bubbles):
         channel_cents = np.array([reg.channel_center for reg in new_cluster])
         # Count how many in each
         counts = Counter(channel_cents)
+        removals = []
         for val in counts:
             if counts[val] == 1:
                 continue
@@ -473,7 +474,10 @@ def join_bubbles(join_bubbles):
 
             # Now remove all others from the cluster
             for reg in chan_regs:
-                new_cluster.remove(reg)
+                removals.append(reg)
+
+        for reg in removals:
+            new_cluster.remove(reg)
 
         new_twoD_clusters.append(new_cluster)
 

@@ -2,6 +2,8 @@ import math
 import numpy as np
 from scipy import optimize
 from skimage.morphology import convex_hull_image
+import scipy.ndimage as nd
+from skimage.morphology import disk
 from warnings import filterwarnings, catch_warnings
 
 from basics.utils import (wrap_to_pi, in_ellipse, in_circle, in_array,
@@ -713,7 +715,8 @@ def fit_region(coords, initial_props=None,
                try_fit_ellipse=True, use_ransac=False,
                min_in_mask=0.8, mask=None, max_resid=None,
                ransac_trials=50, beam_pix=4, max_rad=1.75,
-               max_eccent=3., image_shape=None, verbose=False):
+               max_eccent=3., image_shape=None, conv_hull=None,
+               verbose=False):
     '''
     Fit a circle or ellipse to the given coordinates.
     '''
@@ -725,10 +728,6 @@ def fit_region(coords, initial_props=None,
     coords[:, 0] -= int(ymean)
     coords[:, 1] -= int(xmean)
     new_props = np.empty((5,))
-
-    # Make the convex hull once.
-    if mask is not None:
-        conv_hull = convex_hull_image(~mask)
 
     if len(coords) < 3:
         raise ValueError("Must have at least 3 points to fit.")
@@ -796,6 +795,7 @@ def fit_region(coords, initial_props=None,
             # We define this based on the convex hull. It seems
             # appropriate to just use min_in_mask, since most of it needs to
             # be within the region.
+        if conv_hull is not None and not fail_conds:
             fail_conds = fail_conds or \
                 fraction_in_mask(pars, conv_hull) < min_in_mask
 
@@ -863,6 +863,7 @@ def fit_region(coords, initial_props=None,
             fail_conds = fail_conds or \
                 fraction_in_mask(pars, mask) < min_in_mask
 
+        if conv_hull is not None and not fail_conds:
             # Needs to be in convex hull. See ellipse rejections
             fail_conds = fail_conds or \
                 fraction_in_mask(pars, conv_hull) < min_in_mask

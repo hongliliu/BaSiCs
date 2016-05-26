@@ -353,6 +353,13 @@ class BubbleFinder2D(object):
         if scales is not None:
             self.scales = scales
 
+        # Make the convex hull once.
+        conv_hull = \
+            nd.binary_fill_holes(
+                nd.binary_dilation(~mask, disk(10 * beam_pix)))
+        # conv_hull = convex_hull_image(~mask)
+
+
         all_props = []
         all_coords = []
         for i, props in enumerate(blob_log(self.array,
@@ -388,10 +395,10 @@ class BubbleFinder2D(object):
                         shell_frac >= ellfit_thresh["min_shell_frac"] and \
                         angular_std >= ellfit_thresh["min_angular_std"]
 
-                    if niter == fit_iterations - 1:
-                        iter_min_in_mask = min_in_mask
-                    else:
+                    if niter == 0:
                         iter_min_in_mask = 0.2
+                    else:
+                        iter_min_in_mask = min_in_mask
 
                     props, resid = \
                         fit_region(coords, initial_props=props,
@@ -404,6 +411,7 @@ class BubbleFinder2D(object):
                                    mask=self.mask,
                                    image_shape=self.array.shape,
                                    max_resid=2 * self.beam_pix,
+                                   conv_hull=conv_hull,
                                    verbose=verbose)
 
                     # Check if the fitting failed. If it did, continue on

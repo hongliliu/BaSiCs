@@ -176,30 +176,51 @@ class PPV_Catalog(object):
         return np.percentile(self.table[column], percentiles) * \
             self.table[column].unit
 
-    def histogram(self, column, **kwargs):
+    def histogram(self, column, log_scale=False, **kwargs):
         self._check_given_column(column)
 
-        p.hist(self.table[column], **kwargs)
+        if log_scale:
+            p.hist(np.log10(self.table[column]), **kwargs)
 
-        label = "{0} ({1})".format(self.table[column].name,
-                                   self.table[column].unit)
+            label = "log({0} / {1})".format(self.table[column].name,
+                                            self.table[column].unit)
+        else:
+            p.hist(self.table[column], **kwargs)
+
+            label = "{0} ({1})".format(self.table[column].name,
+                                       self.table[column].unit)
         p.xlabel(label)
 
-    def scatter(self, xcolumn, ycolumn, **kwargs):
+    def scatter(self, xcolumn, ycolumn, xlog_scale=False, ylog_scale=False,
+                **kwargs):
 
         self._check_given_column(xcolumn)
         self._check_given_column(ycolumn)
 
-        p.scatter(self.table[xcolumn], self.table[ycolumn], **kwargs)
+        if xlog_scale:
+            xdata = np.log10(self.table[xcolumn])
+            xlabel = "log({0} / {1})".format(self.table[xcolumn].name,
+                                             self.table[xcolumn].unit)
+        else:
+            xdata = self.table[xcolumn]
+            xlabel = "{0} ({1})".format(self.table[xcolumn].name,
+                                        self.table[xcolumn].unit)
 
-        ylabel = "{0} ({1})".format(self.table[ycolumn].name,
-                                    self.table[ycolumn].unit)
+        if ylog_scale:
+            ydata = np.log10(self.table[ycolumn])
+            ylabel = "log({0} / {1})".format(self.table[ycolumn].name,
+                                             self.table[ycolumn].unit)
+        else:
+            ydata = self.table[ycolumn]
+            ylabel = "{0} ({1})".format(self.table[ycolumn].name,
+                                        self.table[ycolumn].unit)
+
+        p.scatter(xdata, ydata, **kwargs)
+
         p.ylabel(ylabel)
-        xlabel = "{0} ({1})".format(self.table[xcolumn].name,
-                                    self.table[xcolumn].unit)
         p.xlabel(xlabel)
 
-    def corner_plot(self, columns, **kwargs):
+    def corner_plot(self, columns, log_scale=None, **kwargs):
         '''
         Parameters
         ----------
@@ -223,8 +244,23 @@ class PPV_Catalog(object):
                                      self.table[column].unit) for
                   column in columns]
 
+        if log_scale is None:
+            log_scale = np.array([False] * len(columns))
+        else:
+            if len(log_scale) != len(columns):
+                raise IndexError("log_scale must have the same length as"
+                                 " columns.")
+
+        data = []
+
+        for name, app_log in zip(columns, log_scale):
+            if app_log:
+                data.append(np.log10(self.table[name].astype(np.float)))
+            else:
+                data.append(self.table[name].astype(np.float))
+
         data = np.array([self.table[name].astype(np.float)
-                         for name in columns])
+                         for name in columns]).T
 
         corner(data, labels=labels,
                truths=[0.0, 0.0, 0.0],

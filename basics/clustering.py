@@ -364,13 +364,20 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
                 if chan_overlap < min_chan_overlap:
                     # Not enough, don't touch either
                     continue
-                elif small_bubble.channel_width > large_bubble.channel_width:
+
+                # If the smaller bubble has a larger width, and its
+                # correlation is high enough, remove the larger
+                if small_bubble.channel_width > large_bubble.channel_width:
                     # If the correlation is high enough, remove the large one
                     if corr_overlap > overlap_corr:
                         remove_bubbles.append(idx)
                         continue
-                    else:
-                        potential_removals.append(small_idx)
+                    # else:
+                    #     potential_removals.append(small_idx)
+                # Remove the smaller one
+                elif small_bubble.channel_width < large_bubble.channel_width:
+                    potential_removals.append(small_idx)
+                # If their widths are equal, take the larger shell fraction
                 else:
                     larger_shell_frac = small_bubble.shell_fraction > \
                         large_bubble.shell_fraction
@@ -397,6 +404,9 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
     for join in joined_bubbles:
         join_flattened.extend(join)
 
+    # Grab the removed bubble objects before removing them
+    removed_bubbles = [bubbles[i] for i in remove_bubbles]
+
     # Remove all bubbles marked, and the joins, since they will be added back
     # on
     all_remove = list(set(remove_bubbles + join_flattened))
@@ -404,7 +414,7 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
 
     new_twoD_clusters = join_bubbles(bubbles_to_join)
 
-    return bubbles, new_twoD_clusters
+    return bubbles, removed_bubbles, new_twoD_clusters
 
 
 def join_bubbles(join_bubbles):

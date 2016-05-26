@@ -16,6 +16,7 @@ except ImportError:
 
 from log import overlap_metric
 from utils import mode
+from progressbar import ProgressBar
 
 
 def cluster_2D_regions(twod_region_props, metric='position', cut_val=18,
@@ -127,8 +128,8 @@ def cluster_and_clean(twod_region_props, min_scatter=9, cut_val=None):
 
 
 def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
-                        global_corr=0.5,
-                        multiprocess=True, n_jobs=None, min_multi_size=100):
+                        global_corr=0.5, verbose=True, multiprocess=True,
+                        n_jobs=None, min_multi_size=100):
     '''
     Do a brute force clustering of the regions
     '''
@@ -142,7 +143,11 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
 
     # Now loop through each channel's regions looking for significant overlap
     # with a region before it.
-    for chan in chans[1:]:
+    if verbose:
+        iterat = ProgressBar(chans[1:])
+    else:
+        iterat = chans[1:]
+    for chan in iterat:
         chan_regions_idx = np.where(twod_region_props[:, 5] == chan)[0]
         prev_regions_idx = np.where(twod_region_props[:, 5] == chan - 1)[0]
 

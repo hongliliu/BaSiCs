@@ -9,7 +9,7 @@ from warnings import warn
 from bubble_segment2D import BubbleFinder2D
 from bubble_objects import Bubble3D
 from bubble_catalog import PPV_Catalog
-from clustering import cluster_and_clean, cluster_brute_force
+from clustering import cluster_brute_force, threeD_overlaps
 from utils import sig_clip
 from galaxy_utils import gal_props_checker
 from progressbar import ProgressBar
@@ -93,9 +93,9 @@ class BubbleFinder(object):
         self._galaxy_props = input_dict
 
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
-                    use_cube_mask=False, nsig=2., refit=False,
+                    use_cube_mask=False, nsig=2., refit=False, scales=None,
                     cube_linewidth=None, multiprocess=True, nprocesses=None,
-                    **kwargs):
+                    overlap_kwargs={}, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -114,7 +114,7 @@ class BubbleFinder(object):
                               self.cube.mask.include(view=(i, ))
                               if use_cube_mask else None,
                               i, self.sigma, nsig, overlap_frac,
-                              self.keep_threshold_mask, self.distance)
+                              self.keep_threshold_mask, self.distance, scales)
                              for i in xrange(self.cube.shape[0])),
                             multiprocess=multiprocess,
                             nprocesses=nprocesses,
@@ -145,6 +145,8 @@ class BubbleFinder(object):
 
         bubble_props = np.vstack([bub.params for bub in twod_regions])
 
+        if verbose:
+            print("Clustering 2D regions across channels.")
         # cluster_idx = cluster_and_clean(bubble_props, **kwargs)
         cluster_idx = cluster_brute_force(bubble_props, **kwargs)
 
@@ -173,7 +175,13 @@ class BubbleFinder(object):
         # We need to pass a linewidth array for the cube, but don't want to
         # have to recompute it multiple times. Make sure it's using the mask
         if cube_linewidth is None:
-            cube_linewidth = self.cube.with_mask(self.mask).linewidth_fwhm()
+            # This gives some funky results
+            # cube_linewidth = self.cube.with_mask(self.mask).linewidth_fwhm()
+            # Just mask with a sigma cut
+            sigma_w_unit = self.sigma * self.cube.unit
+            cube_linewidth = \
+                self.cube.with_mask(self.cube >= 3 *
+                                    sigma_w_unit).linewidth_fwhm()
         # Now create the bubble objects and find their respective properties
         self._bubbles = ProgressBar.map(_make_bubble,
                                         ((regions, refit, self.cube, self.mask,
@@ -185,6 +193,34 @@ class BubbleFinder(object):
                                         file=output,
                                         step=1,
                                         item_len=len(good_clusters))
+
+        # Now we prune off overlapping bubbles
+        self._bubbles, removed_bubbles, new_twoD_clusters = \
+            threeD_overlaps(self.bubbles, **overlap_kwargs)
+
+        # Add the 2D regions in the removed bubbles to the unclustered list
+        for bub in removed_bubbles:
+            self._unclustered_regions.append(bub.twoD_regions)
+
+        # If there is nothing to join, return here
+        if len(new_twoD_clusters) == 0:
+            return self
+
+        print("Found bubbles to join together.")
+
+        new_bubbles = \
+            ProgressBar.map(_make_bubble,
+                            ((regions, refit, self.cube, self.mask,
+                              self.distance, self.sigma,
+                              cube_linewidth, self.galaxy_props)
+                             for regions in new_twoD_clusters),
+                            multiprocess=False,
+                            nprocesses=nprocesses,
+                            file=output,
+                            step=1,
+                            item_len=len(new_twoD_clusters))
+
+        self._bubbles.extend(new_bubbles)
 
         return self
 
@@ -362,9 +398,11 @@ class BubbleFinder(object):
 
 
 def _region_return(imps):
-    arr, mask, i, sigma, nsig, overlap_frac, return_mask, distance = imps
+    arr, mask, i, sigma, nsig, overlap_frac, return_mask, distance, scales = \
+        imps
     bubs = BubbleFinder2D(arr, channel=i,
-                          mask=mask, sigma=sigma).\
+                          mask=mask, sigma=sigma, auto_cut=True,
+                          scales=scales).\
         multiscale_bubblefind(nsig=nsig,
                               overlap_frac=overlap_frac,
                               distance=distance)

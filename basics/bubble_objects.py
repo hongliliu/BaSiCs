@@ -1232,13 +1232,8 @@ class Bubble3D(BubbleNDBase):
             region_mask = cube[slices].value > \
                 nsig * hole_sig + hole_mean
 
-            print("Hole statistics: ")
-            print(hole_sig, hole_mean)
-
-            frac_filled = (twoD_mask * region_mask).sum() / float(twoD_mask.sum())
-
-            print("Before fraction filled")
-            print(frac_filled)
+            frac_filled = (twoD_mask * region_mask).sum() / \
+                float(twoD_mask.sum())
 
             if frac_filled >= min_frac_filled:
                 before_blowout = False
@@ -1264,10 +1259,8 @@ class Bubble3D(BubbleNDBase):
             region_mask = cube[slices].value > \
                 nsig * hole_sig + hole_mean
 
-            frac_filled = (twoD_mask * region_mask).sum() / float(twoD_mask.sum())
-
-            print("End fraction filled")
-            print(frac_filled)
+            frac_filled = (twoD_mask * region_mask).sum() / \
+                float(twoD_mask.sum())
 
             if frac_filled >= min_frac_filled:
                 end_blowout = False

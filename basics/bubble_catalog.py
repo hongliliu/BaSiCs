@@ -15,7 +15,7 @@ all_columns = ["pa", "bubble_type", "velocity_center", "velocity_width",
                "minor_physical", "diameter_angular", "major_angular",
                "minor_angular", "galactic_radius", "galactic_pa",
                "tkin", "shell_volume_density", "volume", "hole_mass",
-               "formation_energy"]
+               "formation_energy", "shell_fraction", "is_closed"]
 
 not_numerical = ["col0"]  # Once finished, this will be center_coord
 
@@ -108,7 +108,11 @@ class PPV_Catalog(object):
                  "minor_angular": [u.deg, "Angular minor radius"],
                  "galactic_radius": [u.kpc, "Galactic radius of the"
                                             " center."],
-                 "galactic_pa": [u.deg, "Galactic PA of the center."]}
+                 "galactic_pa": [u.deg, "Galactic PA of the center."],
+                 "shell_fraction": [u.dimensionless_unscaled,
+                                    "Fraction of shell enclosing the hole."],
+                 "is_closed": [u.dimensionless_unscaled, "Closed or partial "
+                               "shell (shell fraction > 0.9 is closed)"]}
 
         prop_funcs = {"tkin": [u.Myr, "Kinetic age of the bubble.", {}],
                       "shell_volume_density":

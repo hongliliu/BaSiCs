@@ -204,7 +204,7 @@ class BubbleNDBase(object):
         '''
         Fraction of the region surrounded by a shell.
         '''
-        return self._shell_fraction
+        return self._shell_fraction * u.dimensionless_unscaled
 
     @property
     def is_closed(self):
@@ -218,7 +218,8 @@ class BubbleNDBase(object):
             raise Warning("Bubble3D must be created from Bubble2D objects for"
                           " shell_fraction to be defined.")
 
-        return True if self.shell_fraction >= 0.9 else False
+        return (True if self.shell_fraction >= 0.9 else False) * \
+            u.dimensionless_unscaled
 
     def overlap_with(self, other_bubble, return_corr=False):
         '''
@@ -1192,7 +1193,7 @@ class Bubble3D(BubbleNDBase):
 
         self._bubble_type = input_type
 
-    def find_bubble_type(self, cube, mask, min_frac_filled=0.5, nsig=2):
+    def find_bubble_type(self, cube, mask, min_frac_filled=0.3, nsig=2):
         '''
         Use the cube to determine what type of bubble this is.
 
@@ -1231,7 +1232,13 @@ class Bubble3D(BubbleNDBase):
             region_mask = cube[slices].value > \
                 nsig * hole_sig + hole_mean
 
-            frac_filled = (twoD_mask * region_mask).sum() / np.floor(self.area)
+            print("Hole statistics: ")
+            print(hole_sig, hole_mean)
+
+            frac_filled = (twoD_mask * region_mask).sum() / float(twoD_mask.sum())
+
+            print("Before fraction filled")
+            print(frac_filled)
 
             if frac_filled >= min_frac_filled:
                 before_blowout = False
@@ -1257,7 +1264,10 @@ class Bubble3D(BubbleNDBase):
             region_mask = cube[slices].value > \
                 nsig * hole_sig + hole_mean
 
-            frac_filled = (twoD_mask * region_mask).sum() / np.floor(self.area)
+            frac_filled = (twoD_mask * region_mask).sum() / float(twoD_mask.sum())
+
+            print("End fraction filled")
+            print(frac_filled)
 
             if frac_filled >= min_frac_filled:
                 end_blowout = False

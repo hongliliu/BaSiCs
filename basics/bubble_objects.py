@@ -1378,8 +1378,8 @@ class Bubble3D(BubbleNDBase):
             spatial_shape = subcube.shape[1:]
 
             if warp_to_circle:
-                subcube = warp_ellipse_to_circle(subcube, self.major.value,
-                                                 self.minor.value,
+                subcube = warp_ellipse_to_circle(subcube, self.major,
+                                                 self.minor,
                                                  self.pa.value)
                 warp_factor = \
                     max([war / float(orig) for war, orig in
@@ -1387,7 +1387,7 @@ class Bubble3D(BubbleNDBase):
                 max_dist = 2 * float(self.minor + spatial_pad) * warp_factor
             else:
                 # Use major here. Will be find ~ circular regions.
-                max_dist = 2 * float(self.major.value + spatial_pad)
+                max_dist = 2 * float(self.major + spatial_pad)
 
             sub_center = (floor_int(subcube.shape[1] / 2.),
                           floor_int(subcube.shape[2] / 2.))
@@ -1396,7 +1396,7 @@ class Bubble3D(BubbleNDBase):
                             width=width)
         else:
             # Define end points along the major axis
-            max_dist = 2 * float(self.major.value + spatial_pad)
+            max_dist = 2 * float(self.major + spatial_pad)
 
             return pv_wedge(cube, self.center, max_dist, 0.0, np.pi,
                             width=width)

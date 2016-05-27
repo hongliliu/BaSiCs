@@ -18,7 +18,7 @@ from progressbar import ProgressBar
 class BubbleFinder(object):
     """docstring for BubbleFinder"""
     def __init__(self, cube, wcs=None, mask=None, sigma=None, empty_channel=0,
-                 keep_threshold_mask=False, distance=None, galaxy_props={}):
+                 keep_threshold_mask=True, distance=None, galaxy_props={}):
         super(BubbleFinder, self).__init__()
 
         if not isinstance(cube, SpectralCube):
@@ -221,6 +221,23 @@ class BubbleFinder(object):
                             item_len=len(new_twoD_clusters))
 
         self._bubbles.extend(new_bubbles)
+
+        return self
+
+    @staticmethod
+    def reload(cube, bubbles, mask=None, distance=None, galaxy_props=None):
+        '''
+        Reload from a cube and a list of bubbles.
+        '''
+
+        if mask is not None:
+            assert cube.shape == mask.shape
+
+        self = BubbleFinder(cube, mask=mask, distance=distance,
+                            galaxy_props=galaxy_props)
+
+        self._bubbles = bubbles
+        self._unclustered_regions = []
 
         return self
 

@@ -58,7 +58,8 @@ catalog.write_table(os.path.join(output_folder,
 
 # Save the mask as an npy file. This isn't intended for normal output, but I
 # want to be able to tweak parameters dependent on the expansion velocity
-np.save(os.path.join(output_folder, "{}_bubble_mask.npy".format(name)))
+np.save(os.path.join(output_folder, "{}_bubble_mask.npy".format(name)),
+        bub_find.mask)
 
 # Save some plots of the distribution
 # Bubble outlines only

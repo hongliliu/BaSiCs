@@ -4,6 +4,7 @@ from astropy.table import Table, Column
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 import matplotlib.pyplot as p
+from warnings import warn
 
 from galaxy_utils import gal_props_checker
 
@@ -22,7 +23,8 @@ not_numerical = ["col0"]  # Once finished, this will be center_coord
 
 def _has_nan(values, name):
     if np.isnan(np.array(values)).any():
-        raise ValueError("NaN in {}".format(name))
+        # raise ValueError("NaN in {}".format(name))
+        warn("NaN in {}".format(name))
     return values
 
 

@@ -46,12 +46,12 @@ def gal_props_checker(input_dict):
     '''
 
     # Make sure all of the kwargs are given.
-    in_input = [True if key in GALAXY_KEYS else False
-                for key in input_dict]
-    if not np.all(in_input):
-        missing = list(set(GALAXY_KEYS) - set(in_input))
-        raise KeyError("galaxy_props is missing these keys: {}"
-                       .format(missing))
+    # in_input = [True if key in GALAXY_KEYS else False
+    #             for key in input_dict]
+    # if not np.all(in_input):
+    #     missing = list(set(GALAXY_KEYS) - set(in_input))
+    #     raise KeyError("galaxy_props is missing these keys: {}"
+    #                    .format(missing))
 
     if not isinstance(input_dict["center_coord"], SkyCoord):
         raise TypeError("center_coords must be a SkyCoord.")

@@ -481,7 +481,7 @@ class BubbleNDBase(object):
                                        include_center=False,
                                        **shell_kwargs)
                 self._shell_velocity_disp = \
-                    np.nanmean(u.Quantity(0.5 * linewidth[slices]))
+                    np.nanmean(u.Quantity(linewidth[slices]))
 
             else:
                 self._shell_velocity_disp = \

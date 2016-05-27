@@ -396,6 +396,40 @@ class BubbleFinder(object):
             else:
                 p.show()
 
+    def save_bubbles(self, folder=None, name=None):
+        '''
+        Save bubbles as pickled objects.
+
+        Parameters
+        ----------
+        folder : str, optional
+            Path to where objects will be saved.
+        name : str, optional
+            Prefix for the save names.
+        '''
+
+        if len(self.bubbles) == 0:
+            warn("There are no bubbles. Returning.")
+            return
+
+        import os
+
+        if folder is None:
+            folder = ""
+
+        if name is None:
+            name = ""
+
+        file_prefix = os.path.join(folder, name)
+
+        for i, bub in enumerate(self.bubbles):
+            if len(file_prefix) == 0:
+                save_name = "bubble_{}.pkl".format(i)
+            else:
+                save_name = "{0}_bubble_{1}.pkl".format(file_prefix, i)
+
+            bub.save_bubble(save_name)
+
 
 def _region_return(imps):
     arr, mask, i, sigma, nsig, overlap_frac, return_mask, distance, scales = \

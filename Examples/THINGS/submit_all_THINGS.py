@@ -17,4 +17,4 @@ datapath = "/lustre/home/ekoch/THINGS/"
 for name in galaxy_props:
     galaxy_path = os.path.join(datapath, name)
     # Now submit it!
-    os.system("qsub {0} {1}".format(submit_file, galaxy_path))
+    os.system("qsub -v INP={1} {0}".format(submit_file, galaxy_path))

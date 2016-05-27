@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#PBS -S /bin/bash
+#PBS -l pmem=2000m
+#PBS -l nodes=1:ppn=12
+#PBS -l walltime=6:00:00
+#PBS -m bea
+#PBS -M koch.eric.w@gmail.com
+#PBS -l epilogue=/home/ekoch/code_repos/simscript/epilogue.sh
+
+source /home/ekoch/.bashrc
+
+# {1} is the path to the data. Requires that the final folder is the expected
+# object name in (i.e. "NGC_3031")
+
+echo "Starting at: `date`"
+echo "Running "${1}
+
+python2.7 /lustre/home/ekoch/code_repos/BaSiCs/Examples/THINGS/run_THINGS.py ${1}
+
+echo "Exited with code $? at: `date`"

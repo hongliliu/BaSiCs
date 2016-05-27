@@ -4,6 +4,8 @@ import sys
 import numpy as np
 from astropy.io import fits
 from spectral_cube import SpectralCube
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as p
 from basics import BubbleFinder
 

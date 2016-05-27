@@ -33,7 +33,7 @@ lwidth = np.sqrt(mom2.squeeze())
 # ok choice for the whole set, though the continuum sources in NGC 3031
 # might be an issue.
 bub_find = BubbleFinder(cube, distance=galaxy_prop["distance"],
-                        galaxy_prop=galaxy_prop)
+                        galaxy_props=galaxy_prop)
 
 # NOTE: overlap_frac isn't really being used.
 bub_find.get_bubbles(verbose=True, overlap_frac=0.5, multiprocess=True,

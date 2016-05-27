@@ -49,7 +49,7 @@ except OSError:
     pass
 
 # Save the bubble objects
-bub_find.save_bubbles(folder=datapath, name=name)
+bub_find.save_bubbles(folder=output_folder, name=name)
 
 # Create the catalog as an ecsv
 catalog = bub_find.to_catalog()

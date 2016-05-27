@@ -51,6 +51,11 @@ except OSError:
 # Save the bubble objects
 bub_find.save_bubbles(folder=datapath, name=name)
 
+# Create the catalog as an ecsv
+catalog = bub_find.to_catalog()
+catalog.write_table(os.path.join(output_folder,
+                                 "{}_bubbles.ecsv".format(name)))
+
 # Save the mask as an npy file. This isn't intended for normal output, but I
 # want to be able to tweak parameters dependent on the expansion velocity
 np.save(os.path.join(output_folder, "{}_bubble_mask.npy".format(name)))
@@ -71,8 +76,3 @@ ax = bub_find.visualize_bubbles(moment0=mom0, show=False, ax=ax,
 fig.savefig(os.path.join(output_folder,
                          "{}_mom0_bubbles_w_twoD.pdf".format(name)))
 p.close()
-
-# Create the catalog as an ecsv
-catalog = bub_find.to_catalog()
-catalog.write_table(os.path.join(output_folder,
-                                 "{}_bubbles.ecsv".format(name)))

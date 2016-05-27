@@ -23,6 +23,12 @@ galaxy_prop = galaxy_props[name]
 
 cube = SpectralCube.read(os.path.join(datapath,
                                       "{}_NA_CUBE_THINGS.FITS".format(name)))
+# Some of these (at least NGC 4449) have a frequency axis. Convert to velocity
+# if that's the case
+if cube._spectral_unit.is_equivalent(u.Hz):
+    # Assuming RESTFREQ is defined in the header...
+    cube = cube.with_spectral_unit(u.m / u.s, 'radio')
+
 mom2 = fits.getdata(os.path.join(datapath,
                                  "{}_NA_MOM2_THINGS.FITS".format(name)))
 mom0 = fits.getdata(os.path.join(datapath,

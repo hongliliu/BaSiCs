@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as p
 from basics import BubbleFinder
+from basics.utils import sig_clip
 
 # Get the galaxy properties
 # from info_THINGS import galaxy_props
@@ -21,8 +22,13 @@ name = datapath.split("/")[-1]
 
 galaxy_prop = galaxy_props[name]
 
-cube = SpectralCube.read(os.path.join(datapath,
-                                      "{}_NA_CUBE_THINGS.FITS".format(name)))
+if name == "NGC_3031":
+    # Use the continuum pt source masked version
+    cubename = "{}_NA_CUBE_THINGS_PT_MASKED.FITS".format(name)
+else:
+    cubename = "{}_NA_CUBE_THINGS.FITS".format(name)
+
+cube = SpectralCube.read(os.path.join(datapath, cubename))
 # Some of these (at least NGC 4449) have a frequency axis. Convert to velocity
 # if that's the case
 if cube._spectral_unit.is_equivalent(u.Hz):

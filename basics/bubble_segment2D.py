@@ -604,3 +604,37 @@ class BubbleFinder2D(object):
             p.show()
         else:
             return ax
+
+    def save_regions(self, folder=None, name=None):
+        '''
+        Save regions as pickled objects.
+
+        Parameters
+        ----------
+        folder : str, optional
+            Path to where objects will be saved.
+        name : str, optional
+            Prefix for the save names.
+        '''
+
+        if len(self.regions) == 0:
+            warn("There are no regions. Returning.")
+            return
+
+        import os
+
+        if folder is None:
+            folder = ""
+
+        if name is None:
+            name = ""
+
+        file_prefix = os.path.join(folder, name)
+
+        for i, reg in enumerate(self.bubbles):
+            if len(file_prefix) == 0:
+                save_name = "region_{}.pkl".format(i)
+            else:
+                save_name = "{0}_region_{1}.pkl".format(file_prefix, i)
+
+            reg.save_bubble(save_name)

@@ -120,6 +120,9 @@ if __name__ == "__main__":
         props = galaxy_props[key]
 
         cube = SpectralCube.read(os.path.join(data_path, key, "{}_NA_CUBE_THINGS.FITS".format(key)))
+        if cube._spectral_unit.is_equivalent(u.Hz):
+            # Assuming RESTFREQ is defined in the header...
+            cube = cube.with_spectral_unit(u.m / u.s, 'radio')
 
         pixscale = props["distance"].to(u.pc) * (np.pi / 180.) * \
             np.abs(cube.header["CDELT2"])

@@ -919,7 +919,7 @@ class Bubble2D(BubbleNDBase):
             s += "Minor radius: {0:6f} \n".format(self.minor)
             s += "Position Angle: {0:6f} \n".format(self.pa)
 
-        if hasattr(self, "_shell_fraction") is not None:
+        if hasattr(self, "_shell_fraction"):
             shell = "Closed" if self.is_closed else "Partial"
             s += "{0} shell with fraction of: {1:6f}" \
                 " \n".format(shell, self.shell_fraction)

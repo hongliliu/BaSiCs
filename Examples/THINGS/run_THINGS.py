@@ -4,6 +4,7 @@ import sys
 import numpy as np
 from astropy.io import fits
 from spectral_cube import SpectralCube
+from astropy import units as u
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as p

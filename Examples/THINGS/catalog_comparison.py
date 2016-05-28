@@ -89,7 +89,6 @@ def match_sources(set_one, set_two):
     return dists
 
 
-
 if __name__ == "__main__":
 
     import os
@@ -108,8 +107,10 @@ if __name__ == "__main__":
     region_overlaps = []
 
     bubble_folder = "bubbles"
+    bubble_ro_folder = "bubbles_RO"
 
     overlaps = dict.fromkeys(galaxy_props.keys())
+    overlaps_ro = dict.fromkeys(galaxy_props.keys())
 
     for i, key in enumerate(galaxy_props):
 
@@ -119,7 +120,8 @@ if __name__ == "__main__":
 
         props = galaxy_props[key]
 
-        cube = SpectralCube.read(os.path.join(data_path, key, "{}_NA_CUBE_THINGS.FITS".format(key)))
+        cube = SpectralCube.read(os.path.join(data_path, key,
+                                              "{}_NA_CUBE_THINGS.FITS".format(key)))
         if cube._spectral_unit.is_equivalent(u.Hz):
             # Assuming RESTFREQ is defined in the header...
             cube = cube.with_spectral_unit(u.m / u.s, 'radio')
@@ -127,25 +129,44 @@ if __name__ == "__main__":
         pixscale = props["distance"].to(u.pc) * (np.pi / 180.) * \
             np.abs(cube.header["CDELT2"])
 
-        mom0 = fits.getdata(os.path.join(data_path, key, "{}_NA_MOM0_THINGS.FITS".format(key)))
+        mom0 = fits.getdata(os.path.join(data_path, key,
+                                         "{}_NA_MOM0_THINGS.FITS".format(key)))
 
         regions = []
         for idx in np.where(bagetakos_cat["Name"] == props["name"])[0]:
             regions.append(make_region(bagetakos_cat[idx], pixscale, cube))
 
         # Now load in the pkl bubbles
-        pkls = glob.glob(os.path.join(data_path, bubble_folder, key + "_bubbles", "*.pkl"))
+        pkls = glob.glob(os.path.join(data_path, bubble_folder,
+                                      key + "_bubbles", "*.pkl"))
         bubbles = [Bubble3D.load_bubble(pk) for pk in pkls]
 
-        if len(bubbles) == 0:
-            print("Found no bubbles for: {}".format(props['name']))
-            continue
+        pkls = glob.glob(os.path.join(data_path, bubble_ro_folder,
+                                      key + "_bubbles_RO", "*.pkl"))
+        bubbles_ro = [Bubble3D.load_bubble(pk) for pk in pkls]
 
-        dists = match_sources(regions, bubbles)
+        if len(bubbles) != 0:
+            # continue
+            dists = match_sources(regions, bubbles)
 
-        overlaps[key] = (dists.max(1) > 0.0).sum() / float(len(regions))
-        print("Fraction with overlap")
-        print(overlaps[key])
+            overlaps[key] = (dists.max(1) > 0.0).sum() / float(len(regions))
+            print("NA Fraction with overlap")
+            print(overlaps[key])
+        else:
+            print("NA Found no bubbles for: {}".format(props['name']))
+            overlaps[key] = 0.0
+
+        if len(bubbles_ro) != 0:
+            # continue
+            dists_ro = match_sources(regions, bubbles_ro)
+
+            overlaps_ro[key] = \
+                (dists_ro.max(1) > 0.0).sum() / float(len(regions))
+            print("RO Fraction with overlap")
+            print(overlaps_ro[key])
+        else:
+            print("RO Found no bubbles for: {}".format(props['name']))
+            overlaps_ro[key] = 0.0
 
         ax = p.subplot(111)
         ax.imshow(mom0.squeeze(), origin='lower', cmap='afmhot')
@@ -153,6 +174,8 @@ if __name__ == "__main__":
             ax.add_patch(region.as_patch(fill=False, color='b', linewidth=2))
         for bub in bubbles:
             ax.add_patch(bub.as_patch(fill=False, color='g', linewidth=2))
+        for bub in bubbles_ro:
+            ax.add_patch(bub.as_patch(fill=False, color='r', linewidth=2))
         p.draw()
         raw_input(props['name'])
         p.clf()
@@ -160,6 +183,7 @@ if __name__ == "__main__":
         # break
 
 p.plot(overlaps.value, 'bD')
+p.plot(overlaps_ro.value, 'go')
 p.xticks(np.arange(len(overlaps.keys())),
          overlaps.keys(), rotation='vertical')
 p.ylabel("BaSiCs Fraction Overlap with Bagetakos")

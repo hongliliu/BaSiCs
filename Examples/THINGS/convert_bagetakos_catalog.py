@@ -23,7 +23,7 @@ dec = ["{}{}d{}m{}".format(sign if sign == "-" else "+", hour, minu, sec)
        for sign, hour, minu, sec in
        zip(tab["DE-"], tab["DEd"], tab["DEm"], tab["DEs"])]
 
-coords = SkyCoord([(r, d) for r, d in zip(ra, dec)])
+coords = SkyCoord([(r, d) for r, d in zip(ra, dec)], frame='fk5')
 
 columns = copy(tab.colnames)
 

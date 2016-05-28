@@ -240,7 +240,7 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
     return cluster_idx
 
 
-def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
+def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
                     min_chan_overlap=2,
                     multiprocess=False, join_overlap_frac=0.6,
                     join_overlap_corr=0.6, min_multi_size=100,

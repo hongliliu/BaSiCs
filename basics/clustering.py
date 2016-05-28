@@ -289,6 +289,8 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
         if not (overlaps >= overlap_frac).any():
             continue
 
+        # print("Not skipped.")
+
         large_bubble = bubbles[idx]
 
         potential_removals = []
@@ -315,6 +317,8 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
             end_overlap = \
                 small_bubble.channel_end - large_bubble.channel_start
 
+            # print(small_bubble.channel_start, small_bubble.channel_end)
+            # print(large_bubble.channel_start, large_bubble.channel_end)
             # print(start_overlap)
             # print(end_overlap)
 
@@ -326,7 +330,7 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
             if start_overlap > 1 and end_overlap > 0:
                 # print("None start")
                 continue
-            elif start_overlap < 0 and end_overlap < 0:
+            elif start_overlap < 0 and end_overlap < -1:
                 # print("None end")
                 continue
             elif start_overlap < 0 and end_overlap > 0:
@@ -342,7 +346,7 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.7,
                 continue
             else:
                 # We now need to find the amount of channel overlap
-                if start_overlap in [0, 1] or end_overlap in [0, 1]:
+                if start_overlap in [0, 1] or end_overlap in [0, -1]:
                     # Join if overlapping enough
                     can_join = (overlaps[small_idx] >= join_overlap_frac) & \
                         (corr_overlap >= join_overlap_corr)

@@ -176,5 +176,21 @@ galaxy_props = {"NGC_628": {"name": "NGC 628",
                              "inclination": 50 * u.deg,
                              "position_angle": 290 * u.deg,
                              "scale_height": 260 * u.pc,
-                             "distance": 3.9 * u.Mpc}
+                             "distance": 3.9 * u.Mpc},
+                "NGC_5457": {"name": "NGC 5457",
+                             "center_coord": SkyCoord("14h03m12.6",
+                                                      "+54d20m57.0",
+                                                      frame='icrs'),
+                             "inclination": 18 * u.deg,
+                             "position_angle": 39 * u.deg,
+                             "scale_height": 100 * u.pc,  # NEED TO LOOK UP
+                             "distance": 7.4 * u.Mpc},  # M101
+                "NGC_5236": {"name": "NGC 5236",
+                             "center_coord": SkyCoord("13h37m00.9",
+                                                      "-29d51m57.0",
+                                                      frame='icrs'),
+                             "inclination": 24 * u.deg,
+                             "position_angle": 225 * u.deg,
+                             "scale_height": 100 * u.pc,  # NEED TO LOOK UP
+                             "distance": 4.5 * u.Mpc}  # M83
                 }

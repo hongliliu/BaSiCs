@@ -109,11 +109,11 @@ class BubbleFinder2D(object):
         self.weightings = np.ones_like(self.scales)
         # If searching at the beam size, decrease it's importance to
         # remove spurious features.
-        if self.scales[0] == self.beam_pix:
-            # 0.8 removes small spurious features in the IC1613 cube
-            # Will need to run a proper noise test to better determine
-            # what it should be set to
-            self.weightings[0] = 0.8
+        # if self.scales[0] == self.beam_pix:
+        #     # 0.8 removes small spurious features in the IC1613 cube
+        #     # Will need to run a proper noise test to better determine
+        #     # what it should be set to
+        #     self.weightings[0] = 0.8
 
     @property
     def mask(self):
@@ -395,7 +395,7 @@ class BubbleFinder2D(object):
                         shell_frac >= ellfit_thresh["min_shell_frac"] and \
                         angular_std >= ellfit_thresh["min_angular_std"]
 
-                    if niter == 0:
+                    if niter == 0 and fit_iterations > 1:
                         iter_min_in_mask = 0.2
                     else:
                         iter_min_in_mask = min_in_mask

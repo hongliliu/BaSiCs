@@ -179,11 +179,11 @@ if __name__ == "__main__":
         ax = p.subplot(111)
         ax.imshow(mom0.squeeze(), origin='lower', cmap='afmhot')
         for region in regions:
-            ax.add_patch(region.as_patch(fill=False, color='b', linewidth=2))
+            ax.add_patch(region.as_patch(fill=False, color='g', linewidth=2))
         for bub in bubbles:
-            ax.add_patch(bub.as_patch(fill=False, color='g', linewidth=2))
+            ax.add_patch(bub.as_patch(fill=False, color='b', linewidth=2))
         for bub in bubbles_ro:
-            ax.add_patch(bub.as_patch(fill=False, color='r', linewidth=2))
+            ax.add_patch(bub.as_patch(fill=False, color='grey', linewidth=2))
         p.draw()
         p.savefig(os.path.join(data_path, bubble_folder,
                                key + "_bubbles_comparison.pdf"))

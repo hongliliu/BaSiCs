@@ -336,7 +336,8 @@ class BubbleFinder(object):
     def visualize_channel_maps(self, all_chans=False, subplot=False,
                                edges=False, plot_unclustered=False,
                                interactive_plot=True,
-                               show_mask_contours=False, start_chan=None):
+                               show_mask_contours=False, start_chan=None,
+                               save=False, save_path=None, save_name=None):
         '''
         Plot each channel optionally overlaid with the regions and/or the
         edges.
@@ -406,12 +407,25 @@ class BubbleFinder(object):
             p.xlim([0, self.cube.shape[2]])
             p.ylim([0, self.cube.shape[1]])
 
-            if interactive_plot:
-                p.draw()
-                raw_input("Channel {}".format(chan))
+            if save:
+                import os
+
+                if save_path is None:
+                    save_path = ""
+                if save_name is None:
+                    save_name = ""
+
+                p.savefig(os.path.join(save_path,
+                                       "{0}_channel_{1}.pdf".format(save_name,
+                                                                    chan)))
                 p.clf()
             else:
-                p.show()
+                if interactive_plot:
+                    p.draw()
+                    raw_input("Channel {}".format(chan))
+                    p.clf()
+                else:
+                    p.show()
 
     def save_bubbles(self, folder=None, name=None):
         '''

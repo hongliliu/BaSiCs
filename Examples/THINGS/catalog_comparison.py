@@ -75,7 +75,7 @@ def make_region(row, pixscale, cube):
     return Bubble2D(props, channel=cent_chan)
 
 
-def match_sources(set_one, set_two):
+def match_sources(set_one, set_two, return_corr=False):
     '''
     Look for spatial matches between 2 sets of bubbles
     '''
@@ -84,7 +84,7 @@ def match_sources(set_one, set_two):
 
     for i, one in enumerate(set_one):
         for j, two in enumerate(set_two):
-            dists[i, j] = one.overlap_with(two)
+            dists[i, j] = one.overlap_with(two, return_corr=return_corr)
 
     return dists
 
@@ -105,6 +105,12 @@ if __name__ == "__main__":
                    format='ascii.ecsv')
 
     region_overlaps = []
+
+    # Compare the area correlation
+    return_corr = True
+
+    # What should constitute a match?
+    min_corr = 0.3
 
     bubble_folder = "bubbles"
     bubble_ro_folder = "bubbles_RO"
@@ -147,9 +153,10 @@ if __name__ == "__main__":
 
         if len(bubbles) != 0:
             # continue
-            dists = match_sources(regions, bubbles)
+            dists = match_sources(regions, bubbles, return_corr=return_corr)
 
-            overlaps[key] = (dists.max(1) > 0.0).sum() / float(len(regions))
+            overlaps[key] = \
+                (dists.max(1) > min_corr).sum() / float(len(regions))
             print("NA Fraction with overlap")
             print(overlaps[key])
         else:
@@ -158,10 +165,11 @@ if __name__ == "__main__":
 
         if len(bubbles_ro) != 0:
             # continue
-            dists_ro = match_sources(regions, bubbles_ro)
+            dists_ro = match_sources(regions, bubbles_ro,
+                                     return_corr=return_corr)
 
             overlaps_ro[key] = \
-                (dists_ro.max(1) > 0.0).sum() / float(len(regions))
+                (dists_ro.max(1) > min_corr).sum() / float(len(regions))
             print("RO Fraction with overlap")
             print(overlaps_ro[key])
         else:
@@ -177,13 +185,20 @@ if __name__ == "__main__":
         for bub in bubbles_ro:
             ax.add_patch(bub.as_patch(fill=False, color='r', linewidth=2))
         p.draw()
-        raw_input(props['name'])
+        p.savefig(os.path.join(data_path, bubble_folder,
+                               key + "_bubbles_comparison.pdf"))
+        # raw_input(props['name'])
         p.clf()
 
         # break
 
-p.plot(overlaps.value, 'bD')
-p.plot(overlaps_ro.value, 'go')
+p.plot(overlaps.values(), 'bD', label='NA')
+p.plot(overlaps_ro.values(), 'go', label='RO')
 p.xticks(np.arange(len(overlaps.keys())),
          overlaps.keys(), rotation='vertical')
 p.ylabel("BaSiCs Fraction Overlap with Bagetakos")
+p.legend()
+p.savefig(os.path.join(data_path, bubble_folder,
+                       "fraction_matching_bubbles.pdf"))
+# p.show()
+p.clf()

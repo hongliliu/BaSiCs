@@ -112,7 +112,7 @@ if __name__ == "__main__":
     # What should constitute a match?
     min_corr = 0.3
 
-    bubble_folder = "bubbles"
+    bubble_folder = "bubbles_NA"
     bubble_ro_folder = "bubbles_RO"
 
     overlaps = dict.fromkeys(galaxy_props.keys())
@@ -144,7 +144,7 @@ if __name__ == "__main__":
 
         # Now load in the pkl bubbles
         pkls = glob.glob(os.path.join(data_path, bubble_folder,
-                                      key + "_bubbles", "*.pkl"))
+                                      key + "_bubbles_NA", "*.pkl"))
         bubbles = [Bubble3D.load_bubble(pk) for pk in pkls]
 
         pkls = glob.glob(os.path.join(data_path, bubble_ro_folder,

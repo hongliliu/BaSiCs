@@ -18,7 +18,7 @@ from log import blob_log, _prune_blobs, overlap_metric
 from bubble_edge import find_bubble_edges
 from fit_models import fit_region
 from masking_utils import (smooth_edges, remove_spurs,
-                           fill_nans_with_noise)
+                           fill_nans_with_noise, fraction_in_mask)
 
 
 class BubbleFinder2D(object):
@@ -208,6 +208,7 @@ class BubbleFinder2D(object):
             # large. Mostly this is due to the rather sharp edges in the
             # shells.
             adap_patch = 10 * 2 * self.beam_pix  # 2 since this is beam radius
+            # adap_patch = 10 * self.beam_pix
 
             # Patches must be odd.
             if adap_patch % 2 == 0:
@@ -429,6 +430,7 @@ class BubbleFinder2D(object):
                                           edge_mask=self.mask)[:-1]
 
                     if len(coords) < 4:
+                        fail_fit = True
                         break
 
                     if not niter == 0:
@@ -453,7 +455,18 @@ class BubbleFinder2D(object):
                     old_angular_std = angular_std
                     old_resid = resid
 
-                if fail_fit or shell_frac < min_shell_frac:
+                # Must satisfy the shell fraction and the full min_in_mask,
+                # which may not be tested if it breaks after the first
+                # iterations
+                if not fail_fit:
+                    final_constraints = shell_frac < min_shell_frac or \
+                        fraction_in_mask(props, self.mask.T) < min_in_mask
+                    # Skip and ignore
+                    if final_constraints:
+                        continue
+
+                # Skip and ignore
+                if fail_fit:
                     continue
 
             else:

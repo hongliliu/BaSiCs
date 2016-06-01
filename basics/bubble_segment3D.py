@@ -5,6 +5,7 @@ from spectral_cube import SpectralCube
 # from astropy.utils.console import ProgressBar
 import sys
 from warnings import warn
+from copy import copy
 
 from bubble_segment2D import BubbleFinder2D
 from bubble_objects import Bubble3D
@@ -95,7 +96,7 @@ class BubbleFinder(object):
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
                     use_cube_mask=False, nsig=2., refit=False, scales=None,
                     cube_linewidth=None, multiprocess=True, nprocesses=None,
-                    overlap_kwargs={}, **kwargs):
+                    min_shell_fraction=0.4, overlap_kwargs={}, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -221,6 +222,14 @@ class BubbleFinder(object):
                             item_len=len(new_twoD_clusters))
 
         self._bubbles.extend(new_bubbles)
+
+        # Finally, we're going to prune off any bubbles whose shell fraction is
+        # less than min_shell_fraction (~0.4). Recall that the 3D shell
+        # fraction is the maximum shell fraction of its constituent 2D regions
+        all_bubbles = copy(self.bubbles)
+
+        self._bubbles = [bub for bub in all_bubbles if
+                         bub.shell_fraction >= min_shell_fraction]
 
         return self
 

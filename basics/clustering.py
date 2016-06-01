@@ -350,6 +350,9 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
                     # Join if overlapping enough
                     can_join = (overlaps[small_idx] >= join_overlap_frac) & \
                         (corr_overlap >= join_overlap_corr)
+                    # print(overlaps[small_idx])
+                    # print(corr_overlap)
+                    # print(can_join)
                     if can_join:
                         # Now we want to check if either of these bubbles has
                         # already been marked for joining

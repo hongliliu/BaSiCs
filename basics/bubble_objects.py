@@ -4,6 +4,7 @@ from astropy.modeling.models import Ellipse2D
 from astropy.stats import circmean
 from astropy import units as u
 from astropy.wcs.utils import proj_plane_pixel_scales
+from astropy.wcs import WCS
 from astropy.coordinates import SkyCoord
 from spectral_cube.lower_dimensional_structures import LowerDimensionalObject
 from spectral_cube import SpectralCube
@@ -1474,7 +1475,7 @@ class Bubble3D(BubbleNDBase):
 
         p.show()
 
-    def visualize(self, cube, return_plot=False, use_aplpy=True,
+    def visualize(self, cube, return_plot=False, use_aplpy=False,
                   spatial_pad=10, spec_pad=5):
         '''
         Visualize the bubble within the cube.
@@ -1508,10 +1509,13 @@ class Bubble3D(BubbleNDBase):
                 use_aplpy = False
 
         if not use_aplpy:
-            ax1 = fig.add_subplot(121)
+            # using wcsaxes by feeding the wcs in as a projection
+            ax1 = fig.add_subplot(121, projection=moment0.wcs)
             im1 = ax1.imshow(moment0.value, origin='lower', cmap='gray',
                              interpolation='nearest')
             fig.colorbar(im1, ax=ax1)
+            ax1.set_ylabel('Galactic Latitude')
+            ax1.set_xlabel('Galactic Longitude')
 
             c = self.as_patch(x_cent=floor_int(moment0.shape[1] / 2.),
                               y_cent=floor_int(moment0.shape[0] / 2.),
@@ -1522,10 +1526,12 @@ class Bubble3D(BubbleNDBase):
             #           path_ends[1][1] - path_ends[0][1],
             #           fc='r', ec='r')
 
-            ax2 = fig.add_subplot(122)
+            ax2 = fig.add_subplot(122, projection=WCS(pvslice.header))
             im2 = ax2.imshow(pvslice.data, origin='lower', cmap='gray',
                              interpolation='nearest')
             fig.colorbar(im2, ax=ax2)
+            ax2.set_ylabel("Velocity (m/s)")
+            ax2.set_xlabel("Path length (pixels)")
 
             c = self.as_pv_patch(fill=False, color='r', linewidth=2,
                                  chan_cent=pvslice.data.shape[0] / 2,

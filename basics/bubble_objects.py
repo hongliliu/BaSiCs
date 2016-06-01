@@ -51,7 +51,7 @@ class BubbleNDBase(object):
 
     @property
     def pa(self):
-        return self._pa * u.deg
+        return self._pa * u.rad
 
     @property
     def major(self):

@@ -1346,7 +1346,7 @@ class Bubble3D(BubbleNDBase):
                 [floor_int(np.min(bboxes[2])), ceil_int(np.max(bboxes[3]))]]
 
     def extract_pv_slice(self, cube, width=None, use_subcube=True,
-                         warp_to_circle=True, **kwargs):
+                         warp_to_circle=False, **kwargs):
         '''
         Return a PV Slice. Defaults to across the entire bubble.
         '''
@@ -1372,6 +1372,9 @@ class Bubble3D(BubbleNDBase):
 
         if width is None:
             width = 1  # self.minor
+
+        if warp_to_circle:
+            raise NotImplementedError("Sorry, this isn't quite working yet.")
 
         if use_subcube:
 

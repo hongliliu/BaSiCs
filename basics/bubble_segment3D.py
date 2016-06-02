@@ -109,6 +109,10 @@ class BubbleFinder(object):
         else:
             output = None
 
+        if cube_linewidth is not None:
+            if not cube_linewidth.unit.equivalent(u.m / u.s):
+                raise u.UnitsError("cube_linewidth must have velocity units.")
+
         if twod_regions is None:
             if verbose:
                 print("Running bubble finding plane-by-plane.")

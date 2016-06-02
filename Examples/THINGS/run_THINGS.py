@@ -49,7 +49,8 @@ mom0 = fits.getdata(os.path.join(datapath,
                                  "{0}_{1}_MOM0_THINGS.FITS".format(name, cube_type)))
 
 mom0 = mom0.squeeze()
-lwidth = np.sqrt(mom2.squeeze())
+# Add in units before feeding in. The WCS standard is m/s.
+lwidth = np.sqrt(mom2.squeeze()) * u.m / u.s
 
 # The first channel is used to estimate the noise level. I think this is an
 # ok choice for the whole set, though the continuum sources in NGC 3031
@@ -61,8 +62,9 @@ bub_find = BubbleFinder(cube, distance=galaxy_prop["distance"],
 
 # NOTE: overlap_frac isn't really being used.
 bub_find.get_bubbles(verbose=True, overlap_frac=0.5, multiprocess=True,
-                     nsig=1.5, min_corr=0.7, min_overlap=0.8,
-                     global_corr=0.5, min_channels=3, nprocesses=None)
+                     nsig=1.5, min_corr=0.7, min_overlap=0.7,
+                     global_corr=0.5, min_channels=3, nprocesses=None,
+                     min_shell_fraction=0.5, cube_linewidth=lwidth)
 
 # Make folder for the output
 output_folder = os.path.join(datapath, "bubbles_{}".format(cube_type))

@@ -484,6 +484,7 @@ class BubbleNDBase(object):
                                        spectral_extent=False,
                                        minimal_shape=True,
                                        include_center=False,
+                                       shape=linewidth.shape,
                                        **shell_kwargs)
                 self._shell_velocity_disp = \
                     np.nanmean(u.Quantity(linewidth[slices]))

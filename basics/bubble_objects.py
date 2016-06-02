@@ -399,6 +399,7 @@ class BubbleNDBase(object):
             dispersion within the shell. If None, this is estimated from the
             shell mask, but for coarse velocity resolution this is **NOT A
             GOOD APPROXIMATION** and will lead to sever underestimations.
+            Assumed to be in m/s.
 
         '''
 
@@ -482,7 +483,7 @@ class BubbleNDBase(object):
                                        include_center=False,
                                        **shell_kwargs)
                 self._shell_velocity_disp = \
-                    np.nanmean(u.Quantity(linewidth[slices]))
+                    np.nanmean(u.Quantity(linewidth[slices])) * u.m / u.s
 
             else:
                 self._shell_velocity_disp = \

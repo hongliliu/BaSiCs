@@ -476,6 +476,9 @@ class BubbleNDBase(object):
             # Define the dispersion as half the FWHM linewidth
             if linewidth is not None:
                 # It is assumed that an appropriate mask was already applied
+                if not linewidth.unit.is_equivalent(u.m / u.s):
+                    raise u.UnitsError("linewidth must have velocity units.")
+
                 twoD_shell_mask, slices = \
                     self.as_shell_mask(mask=None,
                                        spectral_extent=False,

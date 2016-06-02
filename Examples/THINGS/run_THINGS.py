@@ -50,7 +50,8 @@ mom0 = fits.getdata(os.path.join(datapath,
 
 mom0 = mom0.squeeze()
 # Add in units before feeding in. The WCS standard is m/s.
-lwidth = np.sqrt(mom2.squeeze()) * u.m / u.s
+# Moment 2 here is actually the linewidth! Not the variance!
+lwidth = mom2.squeeze() * u.m / u.s
 
 # The first channel is used to estimate the noise level. I think this is an
 # ok choice for the whole set, though the continuum sources in NGC 3031

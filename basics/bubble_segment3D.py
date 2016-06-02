@@ -96,7 +96,8 @@ class BubbleFinder(object):
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
                     use_cube_mask=False, nsig=2., refit=False, scales=None,
                     cube_linewidth=None, multiprocess=True, nprocesses=None,
-                    min_shell_fraction=0.4, overlap_kwargs={}, **kwargs):
+                    min_shell_fraction=0.4, save_regions=False,
+                    save_region_path=None, overlap_kwargs={}, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -136,6 +137,16 @@ class BubbleFinder(object):
                 chan, regions = out
 
             twod_regions.extend(regions)
+
+        if save_regions:
+            import os
+
+            if save_region_path is None:
+                save_region_path = ""
+
+            for i, reg in enumerate(twod_regions):
+                reg.save_bubble(os.path.join(save_region_path,
+                                             "twod_region_{}.pkl".format(i)))
 
         self._bubbles = []
         self._unclustered_regions = []

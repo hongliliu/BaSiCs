@@ -8,7 +8,7 @@ from warnings import warn
 from copy import copy
 
 from bubble_segment2D import BubbleFinder2D
-from bubble_objects import Bubble3D
+from bubble_objects import Bubble3D, Bubble2D
 from bubble_catalog import PPV_Catalog
 from clustering import cluster_brute_force, threeD_overlaps
 from utils import sig_clip
@@ -96,8 +96,9 @@ class BubbleFinder(object):
     def get_bubbles(self, verbose=True, overlap_frac=0.9, min_channels=3,
                     use_cube_mask=False, nsig=2., refit=False, scales=None,
                     cube_linewidth=None, multiprocess=True, nprocesses=None,
-                    min_shell_fraction=0.4, save_regions=False,
-                    save_region_path=None, overlap_kwargs={}, **kwargs):
+                    twod_regions=None, mask=None, min_shell_fraction=0.4,
+                    save_regions=False, save_region_path=None,
+                    overlap_kwargs={}, **kwargs):
         '''
         Perform segmentation on each channel, then cluster the results to find
         bubbles.
@@ -108,35 +109,45 @@ class BubbleFinder(object):
         else:
             output = None
 
-        if verbose:
-            print("Running bubble finding plane-by-plane.")
-        twod_results = \
-            ProgressBar.map(_region_return,
-                            ((self.cube[i],
-                              self.cube.mask.include(view=(i, ))
-                              if use_cube_mask else None,
-                              i, self.sigma, nsig, overlap_frac,
-                              self.keep_threshold_mask, self.distance, scales)
-                             for i in xrange(self.cube.shape[0])),
-                            multiprocess=multiprocess,
-                            nprocesses=nprocesses,
-                            file=output,
-                            step=self.cube.shape[0],
-                            item_len=self.cube.shape[0])
+        if twod_regions is None:
+            if verbose:
+                print("Running bubble finding plane-by-plane.")
+            twod_results = \
+                ProgressBar.map(_region_return,
+                                ((self.cube[i],
+                                  self.cube.mask.include(view=(i, ))
+                                  if use_cube_mask else None,
+                                  i, self.sigma, nsig, overlap_frac,
+                                  self.keep_threshold_mask, self.distance,
+                                  scales)
+                                 for i in xrange(self.cube.shape[0])),
+                                multiprocess=multiprocess,
+                                nprocesses=nprocesses,
+                                file=output,
+                                step=self.cube.shape[0],
+                                item_len=self.cube.shape[0])
 
-        twod_regions = []
-        if self.keep_threshold_mask:
-            self._mask = np.zeros(self.cube.shape, dtype=np.bool)
-
-        for out in twod_results:
+            twod_regions = []
             if self.keep_threshold_mask:
-                chan, regions, mask_slice = out
+                self._mask = np.zeros(self.cube.shape, dtype=np.bool)
 
-                self._mask[chan] = mask_slice
-            else:
-                chan, regions = out
+            for out in twod_results:
+                if self.keep_threshold_mask:
+                    chan, regions, mask_slice = out
 
-            twod_regions.extend(regions)
+                    self._mask[chan] = mask_slice
+                else:
+                    chan, regions = out
+
+                twod_regions.extend(regions)
+        else:
+            for reg in twod_regions:
+                if not isinstance(reg, Bubble2D):
+                    raise TypeError("twod_regions must all be Bubble2D"
+                                    " objects.")
+            if mask is not None:
+                assert mask.shape == self.cube.shape
+                self._mask = mask
 
         if save_regions:
             import os

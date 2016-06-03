@@ -241,7 +241,7 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
 
 
 def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
-                    min_chan_overlap=2,
+                    min_chan_overlap=2, max_gap=1,
                     multiprocess=False, join_overlap_frac=0.6,
                     join_overlap_corr=0.6, min_multi_size=100,
                     n_jobs=None):
@@ -327,10 +327,10 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
 
             # Checking for no spectral overlap, or complete
             # First two cases are for after and before the larger bubble.
-            if start_overlap > 1 and end_overlap > 0:
+            if start_overlap > max_gap and end_overlap > 0:
                 # print("None start")
                 continue
-            elif start_overlap < 0 and end_overlap < -1:
+            elif start_overlap < 0 and end_overlap < -max_gap:
                 # print("None end")
                 continue
             elif start_overlap < 0 and end_overlap > 0:
@@ -346,7 +346,7 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
                 continue
             else:
                 # We now need to find the amount of channel overlap
-                if start_overlap in [0, 1] or end_overlap in [0, -1]:
+                if start_overlap in np.arange(0, max_gap + 1) or end_overlap in np.arange(-max_gap, 1):
                     # Join if overlapping enough
                     can_join = (overlaps[small_idx] >= join_overlap_frac) & \
                         (corr_overlap >= join_overlap_corr)

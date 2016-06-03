@@ -209,7 +209,7 @@ class BubbleFinder(object):
         # keep those that satisfy the channel requirement
         removals = []
         for i, bub in enumerate(initial_bubbles):
-            if bub.channel_width <= min_channels:
+            if bub.channel_width < min_channels:
                 removals.append(i)
 
         # Remove from the end so the indexing doesn't get messed up.

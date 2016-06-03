@@ -182,20 +182,40 @@ class BubbleFinder(object):
         for reg in unclusts:
             self._unclustered_regions.append([reg])
 
-        good_clusters = []
+        # Convert everything into a 3D bubble for merging/pruning
+        initial_bubbles = []
         for idx in np.unique(cluster_idx[cluster_idx > 0]):
             regions = [twod_regions[idx] for idx in
                        np.where(cluster_idx == idx)[0]]
 
-            if len(regions) < min_channels:
-                self._unclustered_regions.append(regions)
-                continue
+            # These bubbles won't have their physical properties set
+            initial_bubbles.append(Bubble3D.from_2D_regions(regions))
 
-            chans = np.array([reg.channel_center for reg in regions])
-            if chans.max() + 1 - chans.min() >= min_channels:
-                good_clusters.append(regions)
-            else:
-                self._unclustered_regions.append(regions)
+        if verbose:
+            print("Joining and pruning bubbles.")
+        # Now we prune off overlapping bubbles
+        initial_bubbles, removed_bubbles, new_twoD_clusters = \
+            threeD_overlaps(initial_bubbles, **overlap_kwargs)
+
+        # Add the 2D regions in the removed bubbles to the unclustered list
+        for bub in removed_bubbles:
+            self._unclustered_regions.append(bub.twoD_regions)
+
+        # Make the joined regions into bubbles
+        for regs in new_twoD_clusters:
+            initial_bubbles.append(Bubble3D.from_2D_regions(regs))
+
+        # Now we want to sort through the initial bubbles list and only
+        # keep those that satisfy the channel requirement
+        removals = []
+        for i, bub in enumerate(initial_bubbles):
+            if bub.channel_width <= min_channels:
+                removals.append(i)
+
+        # Remove from the end so the indexing doesn't get messed up.
+        for r in removals[::-1]:
+            self._unclustered_regions.append(initial_bubbles[r].twoD_regions)
+            initial_bubbles.pop(r)
 
         if verbose:
             print("Creating bubbles and finding their properties.")
@@ -211,43 +231,15 @@ class BubbleFinder(object):
                                     sigma_w_unit).linewidth_fwhm()
         # Now create the bubble objects and find their respective properties
         self._bubbles = ProgressBar.map(_make_bubble,
-                                        ((regions, refit, self.cube, self.mask,
-                                          self.distance, self.sigma,
+                                        ((bub.twoD_regions, refit, self.cube,
+                                          self.mask, self.distance, self.sigma,
                                           cube_linewidth, self.galaxy_props)
-                                         for regions in good_clusters),
+                                         for bub in initial_bubbles),
                                         multiprocess=False,
                                         nprocesses=nprocesses,
                                         file=output,
                                         step=1,
-                                        item_len=len(good_clusters))
-
-        # Now we prune off overlapping bubbles
-        self._bubbles, removed_bubbles, new_twoD_clusters = \
-            threeD_overlaps(self.bubbles, **overlap_kwargs)
-
-        # Add the 2D regions in the removed bubbles to the unclustered list
-        for bub in removed_bubbles:
-            self._unclustered_regions.append(bub.twoD_regions)
-
-        # If there is nothing to join, return here
-        if len(new_twoD_clusters) == 0:
-            return self
-
-        print("Found bubbles to join together.")
-
-        new_bubbles = \
-            ProgressBar.map(_make_bubble,
-                            ((regions, refit, self.cube, self.mask,
-                              self.distance, self.sigma,
-                              cube_linewidth, self.galaxy_props)
-                             for regions in new_twoD_clusters),
-                            multiprocess=False,
-                            nprocesses=nprocesses,
-                            file=output,
-                            step=1,
-                            item_len=len(new_twoD_clusters))
-
-        self._bubbles.extend(new_bubbles)
+                                        item_len=len(initial_bubbles))
 
         # Finally, we're going to prune off any bubbles whose shell fraction is
         # less than min_shell_fraction (~0.4). Recall that the 3D shell

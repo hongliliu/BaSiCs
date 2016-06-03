@@ -1425,7 +1425,9 @@ class Bubble3D(BubbleNDBase):
         # Return a rectangle (side-view of a cylinder) when the bubble
         # is a blowout.
         if self.bubble_type == 1:
-            return Rectangle((x_cent, chan_cent), 2 * self.major,
+            return Rectangle((x_cent - self.major,
+                              chan_cent - self.channel_width / 2),
+                             2 * self.major,
                              self.channel_width, angle=0.0, **kwargs)
         else:
             return Ellipse((x_cent, chan_cent),

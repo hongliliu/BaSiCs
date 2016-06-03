@@ -979,7 +979,7 @@ class Bubble3D(BubbleNDBase):
             self.set_galactic_properties(galaxy_kwargs)
 
     @staticmethod
-    def from_2D_regions(twod_region_list, refit=True,
+    def from_2D_regions(twod_region_list, refit=False,
                         cube=None, mask=None, distance=None, sigma=None,
                         linewidth=None, galaxy_kwargs={},
                         **fit_kwargs):

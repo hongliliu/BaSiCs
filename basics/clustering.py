@@ -241,7 +241,7 @@ def cluster_brute_force(twod_region_props, min_corr=0.5, min_overlap=0.7,
 
 
 def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
-                    min_chan_overlap=2, max_gap=1,
+                    min_chan_overlap=2, max_gap=2,
                     multiprocess=False, join_overlap_frac=0.6,
                     join_overlap_corr=0.6, min_multi_size=100,
                     n_jobs=None):
@@ -257,6 +257,9 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
     overlap_func = partial(overlap_metric, return_corr=False)
 
     # Calculate overlap between all pairs
+    if multiprocess:
+        multiprocess = False
+        print("Multiprocessing does not yet work in this function.")
     multi_conds = (multiprocess and _sklearn_flag and
                    all_overlaps[0].size >= min_multi_size)
     if multi_conds:

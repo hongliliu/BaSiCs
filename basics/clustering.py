@@ -279,7 +279,7 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
     size_sort = np.argsort(np.array([bub.area for bub in bubbles]))[::-1]
 
     # Now loop through and start the rejection/join process
-    for idx in size_sort:
+    for idx in ProgressBar(size_sort):
         # Skip if it has satisfied a removal criterion
         if idx in remove_bubbles:
             continue

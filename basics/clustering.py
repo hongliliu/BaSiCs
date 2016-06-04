@@ -254,7 +254,7 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
     remove_bubbles = []
     joined_bubbles = []
 
-    metric = lambda one, two: one.overlap_with(two)
+    overlap_func = partial(overlap_metric, return_corr=False)
 
     # Calculate overlap between all pairs
     multi_conds = (multiprocess and _sklearn_flag and
@@ -263,14 +263,16 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
         if n_jobs is None:
             n_jobs = cpu_count()
 
+        all_props = np.array([bub.params for bub in bubbles])
+
         all_overlaps = \
-            pairwise_distances(bubbles, metric=metric,
+            pairwise_distances(all_props, metric=overlap_func,
                                n_jobs=n_jobs)
 
     else:
         for i, j in combinations(range(len(bubbles)), 2):
             # Area fractional overlap
-            overlaps = metric(bubbles[i], bubbles[j])
+            overlaps = bubbles[i].overlap_with(bubbles[j])
             all_overlaps[i, j] = overlaps
             all_overlaps[j, i] = overlaps
 

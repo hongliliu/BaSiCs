@@ -420,6 +420,8 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
                             # print("Removed larger")
                             remove_bubbles.append(idx)
                             continue
+                    else:
+                        potential_removals.append(small_idx)
 
         # If the larger region was removed at all, don't add the potential
         # removals

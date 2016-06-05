@@ -194,28 +194,29 @@ class BubbleFinder(object):
         if verbose:
             print("Joining and pruning bubbles.")
         # Now we prune off overlapping bubbles
-        initial_bubbles, removed_bubbles, new_twoD_clusters = \
-            threeD_overlaps(initial_bubbles, **overlap_kwargs)
+        for _ in range(2):
+            initial_bubbles, removed_bubbles, new_twoD_clusters = \
+                threeD_overlaps(initial_bubbles, **overlap_kwargs)
 
-        # Add the 2D regions in the removed bubbles to the unclustered list
-        for bub in removed_bubbles:
-            self._unclustered_regions.append(bub.twoD_regions)
+            # Add the 2D regions in the removed bubbles to the unclustered list
+            for bub in removed_bubbles:
+                self._unclustered_regions.append(bub.twoD_regions)
 
-        # Make the joined regions into bubbles
-        for regs in new_twoD_clusters:
-            initial_bubbles.append(Bubble3D.from_2D_regions(regs))
+            # Make the joined regions into bubbles
+            for regs in new_twoD_clusters:
+                initial_bubbles.append(Bubble3D.from_2D_regions(regs))
 
-        # Now we want to sort through the initial bubbles list and only
-        # keep those that satisfy the channel requirement
-        removals = []
-        for i, bub in enumerate(initial_bubbles):
-            if bub.channel_width < min_channels:
-                removals.append(i)
+            # Now we want to sort through the initial bubbles list and only
+            # keep those that satisfy the channel requirement
+            removals = []
+            for i, bub in enumerate(initial_bubbles):
+                if bub.channel_width < min_channels:
+                    removals.append(i)
 
-        # Remove from the end so the indexing doesn't get messed up.
-        for r in removals[::-1]:
-            self._unclustered_regions.append(initial_bubbles[r].twoD_regions)
-            initial_bubbles.pop(r)
+            # Remove from the end so the indexing doesn't get messed up.
+            for r in removals[::-1]:
+                self._unclustered_regions.append(initial_bubbles[r].twoD_regions)
+                initial_bubbles.pop(r)
 
         if verbose:
             print("Creating bubbles and finding their properties.")

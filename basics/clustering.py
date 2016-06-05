@@ -276,7 +276,9 @@ def threeD_overlaps(bubbles, overlap_frac=0.6, overlap_corr=0.6,
                                n_jobs=n_jobs)
 
     else:
-        for i, j in ProgressBar(combinations(range(len(bubbles)), 2)):
+        p = ProgressBar((len(bubbles) * (len(bubbles) - 1) / 2))
+        for i, j in combinations(range(len(bubbles)), 2):
+            p.update()
             # Area fractional overlap
             overlaps = bubbles[i].overlap_with(bubbles[j])
             all_overlaps[i, j] = overlaps

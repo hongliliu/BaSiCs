@@ -72,7 +72,10 @@ output_folder = os.path.join(datapath, "bubbles_{}".format(cube_type))
 try:
     os.mkdir(output_folder)
 except OSError:
-    pass
+    # Clear out that folder before saving the new results.
+    for f in os.listdir(output_folder):
+        full_f = os.path.join(output_folder, f)
+        os.remove(full_f)
 
 # Save the bubble objects
 bub_find.save_bubbles(folder=output_folder, name=name)
